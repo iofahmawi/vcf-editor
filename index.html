@@ -44,6 +44,7 @@
   }
   header{
     flex:0 0 auto;
+    position:relative; z-index:20;
     padding:12px 16px;
     padding-top: calc(12px + env(safe-area-inset-top));
     background: rgba(255, 255, 255, 0.95);
@@ -1741,7 +1742,21 @@ $('#exitListModalConfirm').addEventListener('click', () => {
 // Intercept the phone's hardware/system back button so it never exits
 // the app directly without a confirmation, and respects in-app navigation.
 let allowRealExit = false;
-history.pushState({ app: true }, '');
+
+function ensureBackGuard(){
+  if (allowRealExit) return;
+  if (!history.state || !history.state.app) history.pushState({ app: true }, '');
+}
+ensureBackGuard();
+
+// Some mobile browsers consume the very first back-press just to dismiss
+// the on-screen keyboard, without firing popstate at all. That can silently
+// desync our guard, so we re-assert it whenever the page regains focus/
+// visibility, or whenever a focused field loses focus (keyboard closing).
+window.addEventListener('pageshow', ensureBackGuard);
+window.addEventListener('focus', ensureBackGuard);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureBackGuard(); });
+document.addEventListener('focusout', () => { setTimeout(ensureBackGuard, 50); });
 
 window.addEventListener('popstate', () => {
   if (allowRealExit) return;
