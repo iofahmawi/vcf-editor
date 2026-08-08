@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>محرر جهات الاتصال VCF</title>
+<meta name="theme-color" content="#F8FAFC">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-1440.png">
+<link rel="apple-touch-icon" href="icon-1440.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="جهات الاتصال">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --card2: #F1F5F9;
+    --accent: #4169E1; /* Royal Blue */
+    --accent2: #274472;
+    --text: #0F172A;
+    --muted: #64748B;
+    --danger: #EF4444;
+    --border: #E2E8F0;
+    --font-display: 'Almarai', Tahoma, Arial, sans-serif;
+    --font-body: 'Almarai', Tahoma, Arial, sans-serif;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.02);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:var(--font-body);
+    font-size: 13.5px;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  header{
+    position:sticky; top:0; z-index:10;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    padding:12px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+  }
+  header h1{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:15px; margin:0; color:var(--text); letter-spacing:.3px;
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    pointer-events:none; white-space:nowrap;
+  }
+  .icon-btn{
+    background:var(--card2); border:none; color:var(--accent);
+    font-size:18px; cursor:pointer; width:36px; height:36px;
+    border-radius:10px; display:flex; align-items:center; justify-content:center;
+    line-height:1; padding:0;
+    transition: all 0.2s;
+  }
+  .icon-btn:active{ transform: scale(0.95); background: var(--border); }
+  
+  #screens{ position:relative; }
+  .screen{ display:none; padding:10px 16px 30px; animation: fadeIn .25s ease-out; }
+  .screen.active{ display:block; }
+  @keyframes fadeIn{ from{opacity:0; transform: translateY(4px)} to{opacity:1; transform: translateY(0)} }
+
+  /* ---- Home (cover page) ---- */
+  .hero{ text-align:center; padding-top:25px; }
+  .hero-title{ font-family:var(--font-display); font-weight:800; font-size:22px; margin:0 0 23px; color:var(--text); }
+  .hero-sub{ color:var(--muted); font-size:13px; margin:0 auto 28px; line-height:1.6; max-width: 90%; }
+  #drop{
+    border:2px dashed var(--border);
+    border-radius:16px;
+    max-width:320px;
+    margin:0 auto;
+    padding:36px 20px;
+    text-align:center;
+    color:var(--muted);
+    background: var(--card);
+    transition:all .2s ease;
+    box-shadow: none;
+  }
+  #drop svg{ color:var(--accent); margin-bottom:12px; width: 38px; height: 38px; }
+  #drop.drag{ border-color:var(--accent); background:var(--card2); color:var(--accent); transform: scale(1.02); }
+  #drop:active{ border-color:var(--accent); background:var(--card2); }
+  #drop p{ margin:0 0 16px; font-size:13.5px; font-weight: 700; }
+  #fileInput{ display:none; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--accent); color:#FFFFFF;
+    border:none; border-radius:10px;
+    padding:11px 22px;
+    font-family:var(--font-body); font-weight:700; font-size:13.5px;
+    cursor:pointer; box-shadow: none;
+    transition: all 0.2s;
+  }
+  .btn:active{ transform:translateY(2px); box-shadow:none; }
+  .btn.block{ display:block; width:100%; margin-top:8px; }
+  #empty-state{ text-align:center; color:var(--muted); margin-top:30px; font-size:13px; }
+  
+  .signature { text-align: center; margin-top: 40px; font-size: 12.5px; color: #8b98b8; font-weight: 600; }
+
+  /* ---- Directory / contact list ---- */
+  .list-toolbar{ padding-top:0; }
+  .search-wrap{ position:relative; }
+  .search-wrap svg{ position:absolute; top:50%; right:14px; transform:translateY(-50%); color:var(--muted); }
+  #search{
+    width:100%; padding:11px 40px 11px 14px; border-radius:12px;
+    border:1px solid var(--border); background:var(--card); color:var(--text);
+    font-family:var(--font-body); font-size:13.5px; box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+  }
+  #search:focus{ outline:none; border-color:var(--accent); box-shadow: none; }
+  
+  .toolbar-links{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin:12px 4px 10px; }
+  .link-btn{
+    background:none; border:none; padding:6px 10px; cursor:pointer;
+    font-family:var(--font-body); font-size:12.5px; font-weight:700;
+    border-radius: 8px; transition: background 0.2s;
+  }
+  .link-btn.add{ color:var(--accent); background: var(--card2); padding:8px 10px; }
+  .link-btn.export{ color:var(--muted); }
+  .summary{ color:var(--muted); font-size:12.5px; font-weight:700; margin:10px 4px 6px; }
+
+  .contact-row{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 14px; margin:10px 0; border-radius:12px;
+    border:1px solid var(--border); background:var(--card);
+    cursor:pointer; box-shadow: var(--shadow-sm);
+    transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
+  }
+  .contact-row:active{ transform: scale(0.98); background:var(--card2); }
+  .contact-row.selected{ border-color:var(--accent); background:rgba(65,105,225,0.06); }
+  .contact-checkbox{
+    flex:0 0 22px; width:22px; height:22px; border-radius:50%;
+    border:2px solid var(--border); background:var(--card);
+    display:flex; align-items:center; justify-content:center;
+    transition: all 0.15s; flex-shrink:0;
+  }
+  .contact-row.selected .contact-checkbox{ background:var(--accent); border-color:var(--accent); }
+  .contact-checkbox svg{ width:13px; height:13px; color:#fff; opacity:0; transition: opacity .15s; }
+  .contact-row.selected .contact-checkbox svg{ opacity:1; }
+  .link-btn.delete-selected{ color:var(--danger); background: rgba(239, 68, 68, 0.08); padding:8px 10px; }
+  .contact-avatar{
+    flex:0 0 40px; width:40px; height:40px; border-radius:12px;
+    background:var(--card2); color:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:15px;
+    overflow:hidden;
+  }
+  .contact-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .contact-info{ min-width:0; flex:1; }
+  .contact-name{ font-family:var(--font-display); font-size:14px; font-weight:700; margin-bottom:8px; }
+  .contact-sub{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction: ltr; text-align: right; }
+
+  /* ---- Edit screen: grouped panels ---- */
+  #screen-home{ background:var(--bg); min-height:calc(100vh - 60px); position:relative; }
+  #screen-edit{ background:var(--bg); min-height:100vh; }
+  .panel{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:18px 16px; margin:14px 0; box-shadow: var(--shadow-sm);
+  }
+  #notesPanel{ padding-bottom:18px; }
+  .field-group{ margin-bottom:14px; }
+  .field-group:last-child{ margin-bottom:0; }
+  label{ display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin-bottom:11px; }
+  input[type=text], input[type=tel], input[type=email], textarea, select{
+    width:100%; padding:11px 14px; border-radius:10px;
+    border:1px solid var(--border); background:transparent; color:var(--text);
+    font-size:13.5px; font-family:var(--font-body); transition: all 0.2s; line-height:1.6;
+  }
+  input:focus, textarea:focus, select:focus{ outline:none; border-color:var(--accent); background:transparent; box-shadow: none; }
+  textarea{ resize:vertical; height:46px; min-height:46px; }
+  
+  .multi-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; touch-action:pan-y; }
+  .multi-row select, .multi-row input.type-text{
+    flex:1; min-width:0; padding:11px 8px; border-radius:10px;
+    font-size:13px; font-weight: 500; line-height:1.6;
+    box-sizing:border-box; -webkit-appearance:none; appearance:none;
+  }
+  .multi-row input[type=tel], .multi-row input[type=email]{
+    flex:0 0 120px; width:120px; direction: ltr; text-align: left; border-radius: 10px;
+    box-sizing:border-box; padding:11px 8px; line-height:1.6;
+  }
+  .rm-btn{ background:var(--danger); color:white; border:none; width: 40px; height: 40px; border-radius: 10px; font-size:14px; font-weight:bold; cursor:pointer; display:none; align-items:center; justify-content:center; flex-shrink:0; }
+  
+  .multi-row.dragging-row{
+    box-shadow:0 10px 20px rgba(0,0,0,.12);
+    background:var(--card); border-radius:10px; padding:6px; margin:0;
+  }
+  .drag-placeholder{ border:2px dashed var(--border); border-radius:10px; margin-bottom:10px; }
+  
+  .add-link{ color:var(--accent); font-weight:700; font-size:13px; cursor:pointer; background:var(--card2); border:none; padding:0 12px; height:46px; box-sizing:border-box; border-radius: 10px; width: 100%; font-family:var(--font-body); margin-top: 4px; transition: background 0.2s; }
+  .add-link:active { background: var(--border); }
+  
+  .section-title{
+    font-size:12.5px; font-weight:700; color:var(--muted); margin:0 0 11px;
+  }
+  .raw-note{ font-size:11.5px; color:var(--muted); line-height:1.5; background: var(--card2); padding: 10px; border-radius: 8px; }
+  .raw-note:empty{ display: none; margin: 0; padding: 0; border: none; background: none; }
+  .raw-note:not(:empty){ margin-top:12px; }
+  
+  #prefixModalCancel:active { background: var(--border); }
+
+  /* ---- Bottom save bar (edit only) ---- */
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:var(--text); color:#FFFFFF; padding:11px 20px;
+    border-radius:24px; font-size:13px; font-weight: 700; opacity:0; pointer-events:none;
+    transition:opacity .3s; z-index:50; white-space:nowrap; box-shadow: var(--shadow-md);
+  }
+  .toast.show{ opacity:1; }
+
+  /* Menu Dropdown Style Enhancement */
+  #listMenuDropdown {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 4px !important;
+  }
+  #listMenuDropdown button {
+    border-radius: 6px;
+    border: none;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+  }
+  #listMenuDropdown button:hover, #listMenuDropdown button:active { background: var(--card2); }
+
+  /* ---- Merge conflict options ---- */
+  .merge-field-label{ font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 8px; }
+  .merge-opt{
+    border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;
+    font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer; transition: border-color 0.2s, background 0.2s;
+  }
+  .merge-opt.selected{ border-color:var(--accent); background:var(--card2); color:var(--accent); }
+  .merge-photo-row{ display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
+  .merge-photo-opt{
+    width:64px; height:64px; border-radius:14px; border:2px solid var(--border); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; color:var(--muted); font-size:11px; font-weight:700; text-align:center;
+  }
+  .merge-photo-opt img{ width:100%; height:100%; object-fit:cover; }
+  .merge-photo-opt.selected{ border-color:var(--accent); }
+  .dup-merge-btn{
+    color:var(--accent); background:var(--card2); border:none; border-radius:8px; padding:6px 10px;
+    font-family:var(--font-body); font-weight:700; font-size:12px; cursor:pointer;
+  }
+  .dup-merge-btn:active{ background:var(--border); }
+</style>
+</head>
+<body>
+
+<header id="mainHeader" style="display:none;">
+  <button class="icon-btn" id="backBtn" style="visibility:hidden;">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 19l7-7-7-7"/></svg>
+  </button>
+  <h1 id="screenTitle">جهات الإتصال</h1>
+  <div class="search-wrap" id="headerSearchWrap" style="display:none; flex:1; margin:0 16px; max-width:88%;">
+    <input type="text" id="search" placeholder="بحث بكل الحقول">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+  </div>
+  <div style="position:relative; display:inline-block;">
+    <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
+    <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:130px; z-index:30; overflow:hidden;">
+      <button type="button" class="link-btn" id="menuFilterOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تصفية</button>
+      <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
+      <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--accent); font-size:13px;">حفظ الملف</button>
+    </div>
+  </div>
+  <button class="link-btn" id="headerDeleteBtn" style="display:none; color:var(--danger); font-size:13.5px; font-weight:700; background: rgba(239, 68, 68, 0.08); padding: 0 14px; height:36px; align-items:center; justify-content:center;">حذف</button>
+  <button class="link-btn" id="mergeAllIntraBtn" style="display:none; color:var(--accent); font-size:13.5px; font-weight:700; background: var(--card2); padding: 0 14px; height:36px; align-items:center; justify-content:center;">دمج</button>
+</header>
+
+<div id="screens">
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="hero">
+      <div class="hero-title">جهات الإتصال</div>
+      <div class="hero-sub">ارفع ملف VCF لعرض جهات الاتصال وتعديلها وحفظها</div>
+    </div>
+    <div id="drop" style="margin-top:6px;">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4v-1z"/>
+      </svg>
+      <p>اسحب ملف VCF هنا</p>
+      <button class="btn" id="chooseFileBtn">اختر ملفاً من جهازك</button>
+      <input type="file" id="fileInput" accept=".vcf,text/vcard,text/x-vcard,text/plain" multiple>
+    </div>
+    <div class="signature" style="position:fixed; bottom:30px; left:0; right:0;">طوّر بواسطة&nbsp;&nbsp;<span style="color:var(--accent); font-size:15px;">iofahmawi</span></div>
+  </div>
+
+  <!-- LIST -->
+  <div class="screen" id="screen-list">
+    <div class="list-toolbar">
+      <select id="prefixFilter" title="تصفية حسب أول 3 أرقام" style="position:absolute; opacity:0; width:1px; height:1px; pointer-events:none;">
+        <option value="">تصفية</option>
+      </select>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin:10px 2px 4px;">
+      <div class="summary" id="summaryText" style="margin:0;"></div>
+      <button class="link-btn add" id="fabAdd" style="min-width:0; white-space:nowrap;">+ إضافة جهة اتصال</button>
+      <button type="button" class="link-btn delete-selected" id="deleteSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">حذف المحدد</button>
+      <button type="button" class="link-btn" id="prefixReplaceBtn" style="display:none; color:var(--accent); background: var(--card2); padding: 7px 10px; white-space:nowrap;">تعديل البادئة</button>
+      <button type="button" class="link-btn" id="prefixDeleteBtn" style="display:none; color:var(--danger); background: rgba(239, 68, 68, 0.06); padding: 7px 10px; white-space:nowrap;">حذف النتائج</button>
+    </div>
+    <div id="contactList"></div>
+  </div>
+
+  <!-- DUPLICATES -->
+  <div class="screen" id="screen-duplicates">
+    <div class="summary" id="dupSummaryText" style="margin:12px 4px 18px;"></div>
+    <div id="duplicatesList"></div>
+  </div>
+
+  <!-- EDIT -->
+  <div class="screen" id="screen-edit">
+    <div class="panel" style="text-align:center;">
+      <div id="photoWrap" style="position:relative; width:86px; height:86px; margin:0 auto; cursor:pointer;">
+        <img id="f-photo" style="display:none; width:86px; height:86px; border-radius:20px; object-fit:cover; box-shadow: var(--shadow-sm);">
+        <div id="photoPlaceholder" style="width:86px; height:86px; border-radius:20px; border:2px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; font-weight:700;">إضافة صورة</div>
+      </div>
+      <div id="photoMenu" style="display:none; justify-content:center; gap:14px; margin:12px 0 0;">
+        <button type="button" class="link-btn" id="photoChangeOpt" style="color:var(--accent); background: var(--card2);">تغيير الصورة</button>
+        <button type="button" class="link-btn" id="photoRemoveOpt" style="color:var(--danger); background: rgba(239, 68, 68, 0.1);">حذف الصورة</button>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" style="display:none;">
+    </div>
+
+    <div class="panel">
+      <div class="field-group">
+        <label>الاسم الكامل</label>
+        <input type="text" id="f-fn" placeholder="الاسم">
+      </div>
+      <div class="field-group">
+        <label>اللقب</label>
+        <input type="text" id="f-nick">
+      </div>
+      <div class="field-group">
+        <label>معلومات العمل</label>
+        <input type="text" id="f-org">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">أرقام الهاتف</div>
+      <div id="phoneList"></div>
+      <button class="add-link" id="addPhone">+ إضافة رقم</button>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">البريد الإلكتروني</div>
+      <div id="emailList"></div>
+      <button class="add-link" id="addEmail">+ إضافة بريد</button>
+    </div>
+
+    <div class="panel" id="notesPanel">
+      <div class="field-group">
+        <label>العنوان</label>
+        <input type="text" id="f-adr">
+      </div>
+      <div class="field-group">
+        <label>ملاحظات</label>
+        <textarea id="f-note" rows="1"></textarea>
+      </div>
+      <div class="raw-note" id="rawNote"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="prefixModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">تعديل البادئة</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6;" id="prefixModalDesc"></div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label>البادئة الجديدة</label>
+      <input type="tel" id="prefixModalInput" inputmode="tel" style="direction:ltr; text-align:left; font-size:15.5px;">
+    </div>
+    <div style="display:flex; gap:8px; margin-top:18px;">
+      <button type="button" id="prefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="prefixModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:11px;">تعديل</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">حذف جهة الاتصال</div>
+    <div style="font-size:14px; color:var(--muted); margin:0 0 22px; line-height:1.7; text-align:center;">هل تريد حذف جهة الاتصال هذه؟ لا يمكن التراجع عن هذا الإجراء.</div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" id="deleteModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="deleteModalConfirm" style="flex:1 1 0; background:var(--danger); color:#fff; border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+    </div>
+  </div>
+</div>
+
+<div id="prefixDeleteModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">حذف النتائج</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;" id="prefixDeleteModalDesc"></div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="prefixDeleteModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="prefixDeleteModalConfirm" style="flex:1 1 0; margin:0; padding:11px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteSelectedModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">حذف جهات الاتصال</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;" id="deleteSelectedModalDesc"></div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="deleteSelectedModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="deleteSelectedModalConfirm" style="flex:1 1 0; margin:0; padding:11px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+    </div>
+  </div>
+</div>
+
+<div id="mergeModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:82vh; overflow-y:auto;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">دمج جهات الاتصال</div>
+    <div style="font-size:13px; color:var(--muted); margin:15px 0 4px; line-height:1.6; text-align:center;">يوجد تعارض — اختر ما تريد الاحتفاظ به</div>
+    <div id="mergeModalBody"></div>
+    <div style="display:flex; gap:8px; margin-top:18px;">
+      <button type="button" id="mergeModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="mergeModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:11px;">دمج</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let contacts = [];
+let currentId = null;
+
+const $ = (sel) => document.querySelector(sel);
+const screens = { home: $('#screen-home'), list: $('#screen-list'), edit: $('#screen-edit'), duplicates: $('#screen-duplicates') };
+const titles = { home: 'جهات الإتصال', list: 'جهات الاتصال', edit: 'تعديل جهة اتصال', duplicates: 'أرقام مكررة' };
+
+function showScreen(name){
+  if(name !== 'list' && selectionMode){ selectionMode = false; selectedIds.clear(); }
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[name].classList.add('active');
+  $('#screenTitle').textContent = titles[name];
+  $('#screenTitle').style.display = name === 'list' ? 'none' : 'block';
+  $('#headerSearchWrap').style.display = name === 'list' ? 'flex' : 'none';
+  $('#backBtn').style.visibility = name === 'home' ? 'hidden' : 'visible';
+  $('#headerDeleteBtn').style.display = name === 'edit' ? 'inline-flex' : 'none';
+  $('#mergeAllIntraBtn').style.display = name === 'duplicates' ? 'inline-flex' : 'none';
+  $('#listMenuBtn').style.display = name === 'list' ? 'inline-block' : 'none';
+  $('#listMenuDropdown').style.display = 'none';
+  $('#mainHeader').style.display = name === 'home' ? 'none' : 'flex';
+  window.scrollTo(0,0);
+}
+
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>t.classList.remove('show'), 1800);
+}
+
+function unescapeVal(v){
+  return v.replace(/\\n/gi,'\n').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\');
+}
+function escapeVal(v){
+  return (v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+}
+
+function encodeQuotedPrintable(str){
+  const bytes = new TextEncoder().encode(str);
+  let out = '';
+  for(const b of bytes){
+    if((b>=0x41&&b<=0x5A)||(b>=0x61&&b<=0x7A)||(b>=0x30&&b<=0x39)){
+      out += String.fromCharCode(b);
+    } else {
+      out += '=' + b.toString(16).toUpperCase().padStart(2,'0');
+    }
+  }
+  return out;
+}
+
+function decodeQuotedPrintable(str){
+  str = str.replace(/=(\r\n|\n|\r)/g, '');
+  const bytes = [];
+  for(let i=0;i<str.length;i++){
+    if(str[i]==='=' && /[0-9A-Fa-f]{2}/.test(str.substr(i+1,2))){
+      bytes.push(parseInt(str.substr(i+1,2),16));
+      i+=2;
+    } else {
+      bytes.push(str.charCodeAt(i));
+    }
+  }
+  try{
+    return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+  }catch(e){ return str; }
+}
+
+function parseVCF(text){
+  text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const rawLines = text.split('\n');
+  const lines = [];
+  for(const line of rawLines){
+    if((line.startsWith(' ') || line.startsWith('\t')) && lines.length>0){
+      lines[lines.length-1] += line.slice(1);
+      continue;
+    }
+    if(lines.length > 0){
+      const prev = lines[lines.length-1];
+      const colonIdx = prev.indexOf(':');
+      const keyPart = colonIdx !== -1 ? prev.slice(0, colonIdx) : prev;
+      const isQP = /QUOTED-PRINTABLE/i.test(keyPart);
+      if(isQP && /=$/.test(prev)){
+        lines[lines.length-1] = prev.slice(0, -1) + line;
+        continue;
+      }
+    }
+    if(line.trim() !== ''){
+      lines.push(line);
+    }
+  }
+
+  const cards = [];
+  let cur = null;
+
+  for(const line of lines){
+    const upper = line.toUpperCase();
+    if(upper.startsWith('BEGIN:VCARD')){
+      cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', note:'', adr:'',
+              phones:[], emails:[], rawExtra:[], version:'3.0', photo:null };
+      continue;
+    }
+    if(upper.startsWith('END:VCARD')){
+      if(cur){
+        if(!cur.fn) cur.fn = '(بدون اسم)';
+        cards.push(cur);
+      }
+      cur = null;
+      continue;
+    }
+    if(!cur) continue;
+
+    const colonIdx = line.indexOf(':');
+    if(colonIdx === -1) continue;
+    let key = line.slice(0, colonIdx);
+    let value = line.slice(colonIdx+1);
+
+    const keyParts = key.split(';');
+    const propName = keyParts[0].toUpperCase();
+    const params = keyParts.slice(1);
+
+    const isQP = params.some(p => p.toUpperCase().includes('QUOTED-PRINTABLE'));
+    if(isQP){
+      value = decodeQuotedPrintable(value);
+    }
+
+    let typeParam = '';
+    for(const p of params){
+      const m = p.match(/^TYPE=(.*)$/i);
+      const custom = p.match(/^X-CUSTOM\((.*)\)$/i);
+      if(m){ typeParam = m[1].split(',')[0]; }
+      else if(custom){
+        const inner = custom[1].split(',');
+        let label = inner[inner.length-1] || '';
+        if(/QUOTED-PRINTABLE/i.test(custom[1])){
+          label = decodeQuotedPrintable(label);
+        }
+        typeParam = typeParam || label;
+      }
+      else if(!p.includes('=') && !/^(ENCODING|CHARSET)/i.test(p)){
+        typeParam = typeParam || p;
+      }
+    }
+
+    switch(propName){
+      case 'VERSION':
+        cur.version = value.trim();
+        break;
+      case 'FN':
+        cur.fn = unescapeVal(value);
+        break;
+      case 'N':
+        if(!cur.fn || cur.fn === '(بدون اسم)'){
+          const parts = value.split(';').map(unescapeVal);
+          cur.fn = [parts[1],parts[2],parts[0]].filter(Boolean).join(' ');
+        }
+        break;
+      case 'ORG': {
+        const orgVal = unescapeVal(value.split(';').join(' '));
+        if(orgVal) cur.org = orgVal;
+        break;
+      }
+      case 'TITLE':
+        if(!cur.org) cur.org = unescapeVal(value);
+        break;
+      case 'NOTE':
+        cur.note = unescapeVal(value);
+        break;
+      case 'ADR':
+        cur.adr = unescapeVal(value.split(';').filter(Boolean).join(', '));
+        break;
+      case 'TEL': {
+        const v = unescapeVal(value);
+        const t = typeParam || 'أخرى';
+        if(!cur.phones.some(p => p.value === v && p.type === t)){
+          cur.phones.push({ type: t, value: v });
+        }
+        break;
+      }
+      case 'EMAIL': {
+        const v = unescapeVal(value);
+        const t = typeParam || 'أخرى';
+        if(!cur.emails.some(e => e.value === v && e.type === t)){
+          cur.emails.push({ type: t, value: v });
+        }
+        break;
+      }
+      case 'NICKNAME':
+        cur.nickname = unescapeVal(value.split(';')[0]);
+        break;
+      case 'PHOTO': {
+        const isBase64 = params.some(p => /BASE64/i.test(p));
+        if(isBase64){
+          const fmtMatch = params.find(p => /^(JPEG|PNG|GIF)$/i.test(p) || /^TYPE=(JPEG|PNG|GIF)/i.test(p));
+          let fmt = 'jpeg';
+          if(fmtMatch){
+            const m = fmtMatch.match(/(JPEG|PNG|GIF)/i);
+            if(m) fmt = m[1].toLowerCase();
+          }
+          cur.photo = 'data:image/' + fmt + ';base64,' + value.replace(/\s+/g,'');
+        }
+        break;
+      }
+      case 'X-ANDROID-CUSTOM': {
+        const parts = value.split(';');
+        if(parts[0] && parts[0].toLowerCase() === 'vnd.android.cursor.item/nickname' && parts[1]){
+          cur.nickname = unescapeVal(parts[1]);
+        } else {
+          cur.rawExtra.push(line);
+        }
+        break;
+      }
+      case 'BEGIN':
+      case 'END':
+        break;
+      default:
+        cur.rawExtra.push(line);
+    }
+  }
+
+  return cards;
+}
+
+function buildTypeParam(type){
+  const t = type || 'OTHER';
+  if(/^[\x00-\x7F]*$/.test(t)){
+    return 'TYPE=' + t;
+  }
+  return 'X-CUSTOM(CHARSET=UTF-8,ENCODING=QUOTED-PRINTABLE,' + encodeQuotedPrintable(t) + ')';
+}
+
+function buildVCF(contactsArr){
+  let out = '';
+  for(const c of contactsArr){
+    out += 'BEGIN:VCARD\n';
+    out += 'VERSION:' + (c.version || '3.0') + '\n';
+    out += 'FN:' + escapeVal(c.fn) + '\n';
+    out += 'N:' + escapeVal(c.fn) + ';;;;\n';
+    if(c.nickname) out += 'NICKNAME:' + escapeVal(c.nickname) + '\n';
+    if(c.org) out += 'ORG:' + escapeVal(c.org) + '\n';
+    for(const p of c.phones){
+      if(!p.value) continue;
+      out += 'TEL;' + buildTypeParam(p.type) + ':' + escapeVal(p.value) + '\n';
+    }
+    for(const e of c.emails){
+      if(!e.value) continue;
+      out += 'EMAIL;' + buildTypeParam(e.type) + ':' + escapeVal(e.value) + '\n';
+    }
+    if(c.adr) out += 'ADR:;;' + escapeVal(c.adr) + ';;;;\n';
+    if(c.note) out += 'NOTE:' + escapeVal(c.note) + '\n';
+    if(c.photo){
+      const m = c.photo.match(/^data:image\/(\w+);base64,(.*)$/s);
+      if(m) out += 'PHOTO;ENCODING=BASE64;' + m[1].toUpperCase() + ':' + m[2] + '\n';
+    }
+    for(const line of c.rawExtra){
+      out += line + '\n';
+    }
+    out += 'END:VCARD\n';
+  }
+  return out;
+}
+
+function readFileAsText(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+async function loadFiles(fileList){
+  const files = Array.from(fileList || []).filter(f => f);
+  if(files.length === 0) return;
+
+  let allParsed = [];
+  const failedFiles = [];
+
+  for(const file of files){
+    try{
+      const text = await readFileAsText(file);
+      const parsed = parseVCF(text);
+      allParsed = allParsed.concat(parsed);
+    }catch(err){
+      console.error(err);
+      failedFiles.push(file.name);
+    }
+  }
+
+  if(allParsed.length === 0){
+    toast(failedFiles.length ? 'حدث خطأ أثناء قراءة الملفات' : 'لم يتم العثور على أي جهة اتصال في الملفات');
+    return;
+  }
+
+  // دمج بسيط بدون أي حذف أو دمج تلقائي لجهات الاتصال، فقط تجميعها كلها في قائمة واحدة
+  contacts = allParsed;
+  refreshPrefixOptions();
+  renderList();
+  showScreen('list');
+
+  if(failedFiles.length){
+    toast('تم تحميل ' + allParsed.length + ' جهة اتصال (تعذّرت قراءة ' + failedFiles.length + ' ملف)');
+  }else if(files.length > 1){
+    toast('تم تحميل ' + allParsed.length + ' جهة اتصال من ' + files.length + ' ملفات');
+  }else{
+    toast('تم تحميل ' + allParsed.length + ' جهة اتصال');
+  }
+}
+
+$('#chooseFileBtn').addEventListener('click', (e) => { e.stopPropagation(); $('#fileInput').click(); });
+$('#fileInput').addEventListener('change', (e) => {
+  if(e.target.files.length) loadFiles(e.target.files);
+  e.target.value = '';
+});
+const dropZone = $('#drop');
+dropZone.addEventListener('click', () => $('#fileInput').click());
+['dragover','dragenter'].forEach(evt => dropZone.addEventListener(evt, e => {
+  e.preventDefault(); dropZone.classList.add('drag');
+}));
+['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+}));
+dropZone.addEventListener('drop', e => {
+  if(e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+});
+
+function getFilteredContacts(filter=''){
+  const f = filter.trim().toLowerCase();
+  const prefix = $('#prefixFilter').value;
+  return contacts.filter(c => {
+    if(prefix){
+      const hasPrefix = c.phones.some(p => p.value.replace(/\D/g,'').startsWith(prefix));
+      if(!hasPrefix) return false;
+    }
+    if(!f) return true;
+    const hay = [
+      c.fn, c.nickname, c.org, c.adr, c.note,
+      ...c.phones.map(p => p.value),
+      ...c.emails.map(e => e.value)
+    ].join(' ').toLowerCase();
+    return hay.includes(f);
+  });
+}
+
+let selectionMode = false;
+let selectedIds = new Set();
+let longPressTimer = null;
+let longPressTriggered = false;
+
+function renderList(filter=''){
+  const list = $('#contactList');
+  list.innerHTML = '';
+  const f = filter.trim().toLowerCase();
+  const prefix = $('#prefixFilter').value;
+  const filtered = getFilteredContacts(filter).slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
+
+  $('#summaryText').textContent = selectionMode
+    ? selectedIds.size + ' محدد'
+    : contacts.length + ' جهة اتصال' + (f || prefix ? ' — ' + filtered.length + ' نتيجة' : '');
+
+  for(const c of filtered){
+    const row = document.createElement('div');
+    row.className = 'contact-row' + (selectedIds.has(c.id) ? ' selected' : '');
+    row.dataset.id = c.id;
+    const matchedPhone = prefix ? c.phones.find(p => p.value.replace(/\D/g,'').startsWith(prefix)) : null;
+    const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
+    const avatarInner = c.photo
+      ? `<img src="${c.photo}" alt="">`
+      : `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4v-1z"/></svg>`;
+    const checkboxHtml = selectionMode
+      ? `<div class="contact-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`
+      : '';
+    row.innerHTML = `
+      ${checkboxHtml}
+      <div class="contact-avatar">${avatarInner}</div>
+      <div class="contact-info">
+        <div class="contact-name">${escapeHtml(c.fn)}</div>
+        <div class="contact-sub">${escapeHtml(sub)}</div>
+      </div>
+    `;
+
+    row.addEventListener('click', () => {
+      if(longPressTriggered){ longPressTriggered = false; return; }
+      if(selectionMode) toggleSelect(c.id);
+      else openEdit(c.id);
+    });
+    row.addEventListener('touchstart', (e) => startLongPress(c.id), {passive:true});
+    row.addEventListener('touchend', cancelLongPress);
+    row.addEventListener('touchmove', cancelLongPress);
+    row.addEventListener('mousedown', (e) => startLongPress(c.id));
+    row.addEventListener('mouseup', cancelLongPress);
+    row.addEventListener('mouseleave', cancelLongPress);
+
+    list.appendChild(row);
+  }
+}
+
+function startLongPress(id){
+  cancelLongPress();
+  longPressTimer = setTimeout(() => {
+    longPressTriggered = true;
+    if(navigator.vibrate) navigator.vibrate(15);
+    if(!selectionMode) enterSelectionMode();
+    toggleSelect(id);
+    // the row gets re-rendered immediately, so the browser may never fire
+    // the trailing click on the (now removed) element to clear this flag —
+    // clear it ourselves shortly after instead of relying on that click.
+    setTimeout(() => { longPressTriggered = false; }, 350);
+  }, 480);
+}
+function cancelLongPress(){
+  if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+}
+
+function enterSelectionMode(){
+  selectionMode = true;
+  selectedIds.clear();
+  syncFilterUI();
+}
+
+function exitSelectionMode(){
+  selectionMode = false;
+  selectedIds.clear();
+  syncFilterUI();
+  renderList($('#search').value);
+}
+
+function toggleSelect(id){
+  if(selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  if(selectedIds.size === 0){ exitSelectionMode(); return; }
+  syncFilterUI();
+  renderList($('#search').value);
+}
+
+function syncFilterUI(){
+  const prefixActive = !!$('#prefixFilter').value;
+  const searchActive = !!$('#search').value.trim();
+  const active = prefixActive || searchActive;
+  $('#prefixReplaceBtn').style.display = (prefixActive && !selectionMode) ? 'inline-block' : 'none';
+  $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'inline-block' : 'none';
+  $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'inline-block';
+  $('#deleteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
+  if(selectionMode) $('#deleteSelectedBtn').textContent = 'حذف المحدد (' + selectedIds.size + ')';
+}
+
+$('#deleteSelectedBtn').addEventListener('click', () => {
+  if(selectedIds.size === 0) return;
+  $('#deleteSelectedModalDesc').textContent = 'هل تريد حذف ' + selectedIds.size + ' جهة اتصال محددة؟';
+  $('#deleteSelectedModalOverlay').style.display = 'flex';
+});
+$('#deleteSelectedModalCancel').addEventListener('click', () => { $('#deleteSelectedModalOverlay').style.display = 'none'; });
+$('#deleteSelectedModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteSelectedModalOverlay') $('#deleteSelectedModalOverlay').style.display = 'none'; });
+$('#deleteSelectedModalConfirm').addEventListener('click', () => {
+  const count = selectedIds.size;
+  contacts = contacts.filter(c => !selectedIds.has(c.id));
+  $('#deleteSelectedModalOverlay').style.display = 'none';
+  exitSelectionMode();
+  refreshPrefixOptions();
+  renderList($('#search').value);
+  toast('تم حذف ' + count + ' جهة اتصال');
+});
+
+function refreshPrefixOptions(){
+  const sel = $('#prefixFilter');
+  const current = sel.value;
+  const prefixes = new Set();
+  for(const c of contacts){
+    for(const p of c.phones){
+      const digits = p.value.replace(/\D/g,'');
+      if(digits.length >= 6) prefixes.add(digits.slice(0,3));
+    }
+  }
+  const sorted = Array.from(prefixes).sort();
+  sel.innerHTML = '<option value="">تصفية</option>' +
+    sorted.map(p => `<option value="${p}">${p}</option>`).join('');
+  sel.value = sorted.includes(current) ? current : '';
+  syncFilterUI();
+}
+
+$('#prefixFilter').addEventListener('change', () => {
+  syncFilterUI();
+  renderList($('#search').value);
+});
+
+$('#prefixReplaceBtn').addEventListener('click', () => {
+  const oldPrefix = $('#prefixFilter').value;
+  if(!oldPrefix) return;
+  openPrefixModal(oldPrefix);
+});
+
+$('#prefixDeleteBtn').addEventListener('click', () => {
+  const matched = getFilteredContacts($('#search').value);
+  if(matched.length === 0) return;
+  openPrefixDeleteModal(matched.length);
+});
+
+function openPrefixDeleteModal(count){
+  $('#prefixDeleteModalDesc').textContent = 'هل تريد حذف ' + count + ' جهة اتصال من النتائج الحالية؟';
+  $('#prefixDeleteModalOverlay').style.display = 'flex';
+}
+function closePrefixDeleteModal(){
+  $('#prefixDeleteModalOverlay').style.display = 'none';
+}
+$('#prefixDeleteModalCancel').addEventListener('click', closePrefixDeleteModal);
+$('#prefixDeleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'prefixDeleteModalOverlay') closePrefixDeleteModal(); });
+$('#prefixDeleteModalConfirm').addEventListener('click', () => {
+  const matched = getFilteredContacts($('#search').value);
+  const matchedIds = new Set(matched.map(c => c.id));
+  contacts = contacts.filter(c => !matchedIds.has(c.id));
+  closePrefixDeleteModal();
+  $('#prefixFilter').value = '';
+  $('#search').value = '';
+  syncFilterUI();
+  refreshPrefixOptions();
+  renderList('');
+  toast('تم حذف ' + matched.length + ' جهة اتصال');
+});
+
+function openPrefixModal(oldPrefix){
+  $('#prefixModalOverlay').dataset.oldPrefix = oldPrefix;
+  $('#prefixModalDesc').textContent = 'تعديل البادئة "' + oldPrefix + '" إلى:';
+  $('#prefixModalInput').value = '';
+  $('#prefixModalOverlay').style.display = 'flex';
+  setTimeout(() => { $('#prefixModalInput').focus(); $('#prefixModalInput').select(); }, 50);
+}
+function closePrefixModal(){
+  $('#prefixModalOverlay').style.display = 'none';
+}
+$('#prefixModalCancel').addEventListener('click', closePrefixModal);
+$('#prefixModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'prefixModalOverlay') closePrefixModal(); });
+$('#prefixModalInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') $('#prefixModalConfirm').click(); });
+$('#prefixModalConfirm').addEventListener('click', () => {
+  const oldPrefix = $('#prefixModalOverlay').dataset.oldPrefix;
+  const np = $('#prefixModalInput').value.trim();
+  let count = 0;
+  for(const c of contacts){
+    for(const p of c.phones){
+      const digits = p.value.replace(/\D/g,'');
+      if(digits.startsWith(oldPrefix)){
+        p.value = np + digits.slice(oldPrefix.length);
+        count++;
+      }
+    }
+  }
+  $('#prefixFilter').value = '';
+  syncFilterUI();
+  refreshPrefixOptions();
+  renderList($('#search').value);
+  toast('تم تعديل ' + count + ' رقم');
+  closePrefixModal();
+});
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+$('#search').addEventListener('input', (e) => { renderList(e.target.value); syncFilterUI(); });
+
+const PHONE_TYPES = ['CELL','HOME','WORK','FAX','OTHER'];
+const PHONE_LABELS = {CELL:'خلوي',HOME:'منزل',WORK:'عمل',FAX:'فاكس',OTHER:'أخرى'};
+const EMAIL_TYPES = ['HOME','WORK','OTHER'];
+const EMAIL_LABELS = {HOME:'شخصي',WORK:'عمل',OTHER:'أخرى'};
+
+function openEdit(id){
+  currentId = id;
+  const c = contacts.find(x => x.id === id);
+  if(!c) return;
+  refreshPhotoPreview(c);
+  $('#f-fn').value = c.fn === '(بدون اسم)' ? '' : c.fn;
+  $('#f-nick').value = c.nickname || '';
+  $('#f-org').value = c.org || '';
+  $('#f-note').value = c.note || '';
+  $('#f-adr').value = c.adr || '';
+
+  renderMultiList('phoneList', c.phones, PHONE_TYPES, PHONE_LABELS, 'tel', true);
+  renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
+
+  $('#rawNote').textContent = c.rawExtra.length
+    ? 'يحتوي هذا الجهة على ' + c.rawExtra.length + ' خاصية إضافية سيتم الاحتفاظ بها تلقائياً عند الحفظ.'
+    : '';
+
+  showScreen('edit');
+}
+
+function refreshPhotoPreview(c){
+  const photoEl = $('#f-photo');
+  const placeholder = $('#photoPlaceholder');
+  const menu = $('#photoMenu');
+  const removeOpt = $('#photoRemoveOpt');
+  menu.style.display = 'none';
+  if(c.photo){
+    photoEl.src = c.photo;
+    photoEl.style.display = 'block';
+    placeholder.style.display = 'none';
+    removeOpt.style.display = 'inline-block';
+  } else {
+    photoEl.removeAttribute('src');
+    photoEl.style.display = 'none';
+    placeholder.style.display = 'flex';
+    removeOpt.style.display = 'none';
+  }
+}
+
+$('#photoWrap').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  if(!c.photo){
+    $('#photoInput').click();
+  } else {
+    const menu = $('#photoMenu');
+    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+  }
+});
+
+$('#photoChangeOpt').addEventListener('click', () => {
+  $('#photoMenu').style.display = 'none';
+  $('#photoInput').click();
+});
+
+$('#photoRemoveOpt').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  c.photo = null;
+  refreshPhotoPreview(c);
+});
+
+$('#photoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    img.onload = () => {
+      const MAX = 800;
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const outSize = Math.min(MAX, side);
+      const canvas = document.createElement('canvas');
+      canvas.width = outSize;
+      canvas.height = outSize;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+      c.photo = canvas.toDataURL('image/jpeg', 0.95);
+      refreshPhotoPreview(c);
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+function autosizeTypeText(inp){
+  // sizing now handled by flexbox; no-op kept for compatibility
+}
+
+function renderMultiList(containerId, arr, types, labels, inputType, draggable){
+  const el = $('#' + containerId);
+  el.innerHTML = '';
+  arr.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'multi-row';
+
+    if(draggable){
+      row.__item = item;
+      setupRowDrag(row, el, arr);
+    }
+
+    const upType = (item.type || '').toUpperCase();
+    const isStandard = types.includes(upType);
+
+    let typeControl;
+    if(isStandard){
+      typeControl = document.createElement('select');
+      types.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t; opt.textContent = labels[t];
+        if(upType === t) opt.selected = true;
+        typeControl.appendChild(opt);
+      });
+      const customOpt = document.createElement('option');
+      customOpt.value = 'CUSTOM';
+      customOpt.textContent = 'مخصص';
+      typeControl.appendChild(customOpt);
+      typeControl.addEventListener('change', () => {
+        if(typeControl.value === 'CUSTOM'){
+          item.type = '';
+          item.__justSwitchedToCustom = true;
+          renderMultiList(containerId, arr, types, labels, inputType, draggable);
+        } else {
+          item.type = typeControl.value;
+        }
+      });
+    } else {
+      typeControl = document.createElement('input');
+      typeControl.type = 'text';
+      typeControl.className = 'type-text';
+      typeControl.placeholder = inputType === 'email' ? 'نوع البريد' : 'نوع الرقم';
+      typeControl.value = item.type || '';
+      autosizeTypeText(typeControl);
+      if(item.__justSwitchedToCustom){
+        delete item.__justSwitchedToCustom;
+        setTimeout(() => typeControl.focus(), 0);
+      }
+      typeControl.addEventListener('input', () => {
+        item.type = typeControl.value;
+        autosizeTypeText(typeControl);
+      });
+      typeControl.addEventListener('blur', () => {
+        if(!typeControl.value.trim()){
+          item.type = types[0];
+          renderMultiList(containerId, arr, types, labels, inputType, draggable);
+        }
+      });
+    }
+
+    const input = document.createElement('input');
+    input.type = inputType;
+    input.value = item.value;
+    input.addEventListener('input', () => { item.value = input.value; });
+
+    const rm = document.createElement('button');
+    rm.className = 'rm-btn'; rm.innerHTML = '✕';
+    rm.addEventListener('click', () => { arr.splice(idx,1); renderMultiList(containerId, arr, types, labels, inputType, draggable); });
+
+    input.addEventListener('focus', () => { rm.style.display = 'flex'; });
+    input.addEventListener('blur', () => {
+      setTimeout(() => { rm.style.display = 'none'; }, 150);
+    });
+
+    row.appendChild(typeControl); row.appendChild(input); row.appendChild(rm);
+    el.appendChild(row);
+  });
+}
+
+function setupRowDrag(row, container, arr){
+  let pressTimer = null, dragging = false, startY = 0, startX = 0, origTop = 0, origLeft = 0, origWidth = 0, origHeight = 0;
+  let placeholder = null;
+
+  row.addEventListener('pointerdown', (e) => {
+    if(e.button !== undefined && e.button !== 0) return;
+    if(e.target.closest('.rm-btn')) return;
+    const field = e.target.closest('input, select, textarea');
+    if(field && field === document.activeElement) return;
+    startY = e.pageY; startX = e.pageX;
+    pressTimer = setTimeout(() => startDrag(e), 400);
+  });
+  row.addEventListener('pointerup', cancelPressTimer);
+  row.addEventListener('pointercancel', cancelPressTimer);
+  row.addEventListener('pointermove', (e) => {
+    if(!dragging && pressTimer && (Math.abs(e.pageY - startY) > 8 || Math.abs(e.pageX - startX) > 8)){
+      clearTimeout(pressTimer); pressTimer = null;
+    }
+  });
+  row.addEventListener('contextmenu', (e) => { if(dragging) e.preventDefault(); });
+  row.addEventListener('touchmove', (e) => { if(dragging) e.preventDefault(); }, { passive:false });
+
+  function cancelPressTimer(){
+    if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+  }
+
+  function startDrag(e){
+    dragging = true;
+    if(navigator.vibrate) navigator.vibrate(12);
+    if(document.activeElement && document.activeElement !== row) document.activeElement.blur();
+
+    const rect = row.getBoundingClientRect();
+    origTop = rect.top;
+    origLeft = rect.left;
+    origWidth = rect.width;
+    origHeight = rect.height;
+    startY = e.clientY; startX = e.clientX;
+
+    placeholder = document.createElement('div');
+    placeholder.className = 'drag-placeholder';
+    placeholder.style.height = origHeight + 'px';
+    container.insertBefore(placeholder, row);
+
+    document.body.appendChild(row);
+    row.classList.add('dragging-row');
+    row.style.position = 'fixed';
+    row.style.left = origLeft + 'px';
+    row.style.width = origWidth + 'px';
+    row.style.top = origTop + 'px';
+    row.style.zIndex = '1000';
+    row.style.pointerEvents = 'none';
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    const dy = e.clientY - startY;
+    row.style.top = (origTop + dy) + 'px';
+
+    const siblings = Array.from(container.children).filter(c => c !== placeholder);
+    const rowCenter = origTop + dy + origHeight / 2;
+    let target = null;
+    for(const sib of siblings){
+      const r = sib.getBoundingClientRect();
+      const sibCenter = r.top + r.height / 2;
+      if(rowCenter < sibCenter){ target = sib; break; }
+    }
+    if(target){
+      if(placeholder.nextSibling !== target) container.insertBefore(placeholder, target);
+    } else {
+      if(container.lastElementChild !== placeholder) container.appendChild(placeholder);
+    }
+  }
+
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+
+    container.insertBefore(row, placeholder);
+    placeholder.remove();
+    row.classList.remove('dragging-row');
+    row.style.position = ''; row.style.left = ''; row.style.top = '';
+    row.style.width = ''; row.style.zIndex = ''; row.style.pointerEvents = '';
+
+    const orderedItems = Array.from(container.children)
+      .filter(c => c.__item !== undefined)
+      .map(c => c.__item);
+    arr.length = 0;
+    orderedItems.forEach(it => arr.push(it));
+  }
+}
+
+$('#addPhone').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  c.phones.push({type:'CELL',value:''});
+  renderMultiList('phoneList', c.phones, PHONE_TYPES, PHONE_LABELS, 'tel', true);
+});
+$('#addEmail').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  c.emails.push({type:'HOME',value:''});
+  renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
+});
+
+// حفظ تلقائي: كل حقل يكتب مباشرة على جهة الاتصال الحالية فور الكتابة
+$('#f-fn').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.fn = $('#f-fn').value; });
+$('#f-nick').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.nickname = $('#f-nick').value; });
+$('#f-org').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.org = $('#f-org').value; });
+$('#f-adr').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.adr = $('#f-adr').value; });
+$('#f-note').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.note = $('#f-note').value; });
+
+// تُستدعى عند مغادرة شاشة التعديل: تنظّف القيم (اسم افتراضي عند الفراغ، حذف صفوف أرقام/إيميلات فارغة) وتحدّث القائمة
+function finalizeCurrentContact(){
+  if(!currentId) return;
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  c.fn = (c.fn || '').trim() || '(بدون اسم)';
+  c.nickname = (c.nickname || '').trim();
+  c.org = (c.org || '').trim();
+  c.note = (c.note || '').trim();
+  c.adr = (c.adr || '').trim();
+  c.phones = c.phones.filter(p => p.value.trim() !== '');
+  c.emails = c.emails.filter(e => e.value.trim() !== '');
+  refreshPrefixOptions();
+  renderList($('#search').value);
+}
+
+function deleteCurrentContact(){
+  $('#deleteModalOverlay').style.display = 'flex';
+}
+
+$('#deleteModalCancel').addEventListener('click', () => { $('#deleteModalOverlay').style.display = 'none'; });
+$('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay') $('#deleteModalOverlay').style.display = 'none'; });
+$('#deleteModalConfirm').addEventListener('click', () => {
+  $('#deleteModalOverlay').style.display = 'none';
+  contacts = contacts.filter(x => x.id !== currentId);
+  currentId = null;
+  refreshPrefixOptions();
+  renderList($('#search').value);
+  showScreen('list');
+  toast('تم الحذف');
+});
+
+$('#headerDeleteBtn').addEventListener('click', deleteCurrentContact);
+
+$('#fabAdd').addEventListener('click', () => {
+  const c = { id:'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', note:'', adr:'',
+              phones:[{type:'CELL',value:''}], emails:[], rawExtra:[], version:'3.0', photo:null };
+  contacts.push(c);
+  openEdit(c.id);
+});
+
+$('#listMenuBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dd = $('#listMenuDropdown');
+  dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+});
+document.addEventListener('click', (e) => {
+  const dd = $('#listMenuDropdown');
+  if(dd.style.display === 'block' && !dd.contains(e.target) && e.target.id !== 'listMenuBtn'){
+    dd.style.display = 'none';
+  }
+});
+
+$('#menuFilterOpt').addEventListener('click', () => {
+  $('#listMenuDropdown').style.display = 'none';
+  const sel = $('#prefixFilter');
+  sel.focus();
+  if(sel.showPicker){ try{ sel.showPicker(); }catch(e){ sel.click(); } } else { sel.click(); }
+});
+
+$('#menuSaveOpt').addEventListener('click', () => {
+  $('#listMenuDropdown').style.display = 'none';
+  exportContacts();
+});
+
+$('#menuDupOpt').addEventListener('click', () => {
+  $('#listMenuDropdown').style.display = 'none';
+  showScreen('duplicates');
+  renderDuplicates();
+});
+
+function normalizePhoneForDup(v){
+  let d = (v||'').replace(/\D/g,'');
+  if(!d) return '';
+  if(d.startsWith('00')) d = d.slice(2);
+  if(d.length > 1 && d.startsWith('0')) d = d.slice(1);
+  return d;
+}
+
+function findDuplicatePhones(){
+  const map = {};
+  for(const c of contacts){
+    const seenInContact = new Set();
+    for(const p of c.phones){
+      const norm = normalizePhoneForDup(p.value);
+      if(!norm || seenInContact.has(norm)) continue;
+      seenInContact.add(norm);
+      (map[norm] = map[norm] || []).push({ id: c.id, fn: c.fn, raw: p.value });
+    }
+  }
+  return Object.values(map)
+    .filter(entries => entries.length >= 2)
+    .sort((a,b) => b.length - a.length);
+}
+
+function findIntraContactDuplicatePhones(){
+  const result = [];
+  for(const c of contacts){
+    const groups = {};
+    for(const p of c.phones){
+      const norm = normalizePhoneForDup(p.value);
+      if(!norm) continue;
+      (groups[norm] = groups[norm] || []).push(p);
+    }
+    for(const norm in groups){
+      if(groups[norm].length >= 2){
+        result.push({ contactId: c.id, contactFn: c.fn, raw: groups[norm][0].value, norm });
+      }
+    }
+  }
+  return result;
+}
+
+function mergeIntraContactDuplicate(contactId, norm){
+  const c = contacts.find(x => x.id === contactId);
+  if(!c) return;
+  let kept = false;
+  c.phones = c.phones.filter(p => {
+    if(normalizePhoneForDup(p.value) !== norm) return true;
+    if(kept) return false;
+    kept = true;
+    return true;
+  });
+  toast('تم دمج الرقم المكرر');
+  renderDuplicates();
+  renderList();
+  refreshPrefixOptions();
+}
+
+function mergeAllIntraContactDuplicates(){
+  const intraDups = findIntraContactDuplicatePhones();
+  if(!intraDups.length) return;
+  for(const d of intraDups){
+    const c = contacts.find(x => x.id === d.contactId);
+    if(!c) continue;
+    let kept = false;
+    c.phones = c.phones.filter(p => {
+      if(normalizePhoneForDup(p.value) !== d.norm) return true;
+      if(kept) return false;
+      kept = true;
+      return true;
+    });
+  }
+  toast('تم دمج ' + intraDups.length + ' حالة تكرار داخل نفس الجهة');
+  renderDuplicates();
+  renderList();
+  refreshPrefixOptions();
+}
+$('#mergeAllIntraBtn').addEventListener('click', mergeAllIntraContactDuplicates);
+
+function renderDuplicates(){
+  const dups = findDuplicatePhones();
+  const intraDups = findIntraContactDuplicatePhones();
+  const container = $('#duplicatesList');
+  container.innerHTML = '';
+  const total = dups.length + intraDups.length;
+  $('#dupSummaryText').textContent = total
+    ? total + ' حالة تكرار'
+    : 'لا توجد أرقام مكررة';
+  $('#mergeAllIntraBtn').style.display = intraDups.length ? 'inline-flex' : 'none';
+
+  if(intraDups.length){
+    const sectionTitle = document.createElement('div');
+    sectionTitle.style.cssText = 'font-size:12.5px; font-weight:700; color:var(--muted); margin:4px 4px 11px;';
+    sectionTitle.textContent = 'تكرار داخل نفس جهة الاتصال';
+    container.appendChild(sectionTitle);
+
+    for(const d of intraDups){
+      const group = document.createElement('div');
+      group.className = 'panel';
+      group.style.cssText = 'padding:12px 14px; margin:11px 0;';
+
+      const numberRow = document.createElement('div');
+      numberRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border);';
+      const numberLabel = document.createElement('div');
+      numberLabel.style.cssText = 'font-size:13.5px; font-weight:800; color:var(--text);';
+      numberLabel.innerHTML = 'الرقم المكرر &nbsp; <span style="direction:ltr; unicode-bidi:embed;">' + escapeHtml(d.raw) + '</span>';
+      numberRow.appendChild(numberLabel);
+      const mergeBtn = document.createElement('button');
+      mergeBtn.type = 'button';
+      mergeBtn.className = 'dup-merge-btn';
+      mergeBtn.textContent = 'دمج';
+      mergeBtn.addEventListener('click', (e) => { e.stopPropagation(); mergeIntraContactDuplicate(d.contactId, d.norm); });
+      numberRow.appendChild(mergeBtn);
+      group.appendChild(numberRow);
+
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:7px 0; cursor:pointer; font-size:13px; font-weight:600; color:var(--accent);';
+      row.innerHTML = '<span style="color:var(--muted); font-weight:700;">جهة الإتصال &nbsp;:&nbsp; </span>' + escapeHtml(d.contactFn);
+      row.addEventListener('click', () => openEdit(d.contactId));
+      group.appendChild(row);
+
+      container.appendChild(group);
+    }
+  }
+
+  if(dups.length){
+    const sectionTitle = document.createElement('div');
+    sectionTitle.style.cssText = 'font-size:12.5px; font-weight:700; color:var(--muted); margin:19px 4px 11px;';
+    sectionTitle.textContent = 'تكرار بين جهات الاتصال';
+    container.appendChild(sectionTitle);
+  }
+
+  for(const entries of dups){
+    const group = document.createElement('div');
+    group.className = 'panel';
+    group.style.cssText = 'padding:12px 14px; margin:11px 0;';
+
+    const numberRow = document.createElement('div');
+    numberRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border);';
+    const numberLabel = document.createElement('div');
+    numberLabel.style.cssText = 'font-size:13.5px; font-weight:800; color:var(--text);';
+    numberLabel.innerHTML = 'الرقم المكرر &nbsp; <span style="direction:ltr; unicode-bidi:embed;">' + escapeHtml(entries[0].raw) + '</span>';
+    numberRow.appendChild(numberLabel);
+    const mergeBtn = document.createElement('button');
+    mergeBtn.type = 'button';
+    mergeBtn.className = 'dup-merge-btn';
+    mergeBtn.textContent = 'دمج';
+    mergeBtn.addEventListener('click', (e) => { e.stopPropagation(); startMerge(entries.map(x => x.id)); });
+    numberRow.appendChild(mergeBtn);
+    group.appendChild(numberRow);
+
+    entries.forEach(e => {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:7px 0; cursor:pointer; font-size:13px; font-weight:600; color:var(--accent);';
+      row.innerHTML = '<span style="color:var(--muted); font-weight:700;">جهة الإتصال &nbsp;:&nbsp; </span>' + escapeHtml(e.fn);
+      row.addEventListener('click', () => openEdit(e.id));
+      group.appendChild(row);
+    });
+
+    container.appendChild(group);
+  }
+}
+
+function normEmailForMerge(v){ return (v||'').trim().toLowerCase(); }
+
+function buildMergePlan(ids, choices){
+  choices = choices || {};
+  const list = ids.map(id => contacts.find(c => c.id === id)).filter(Boolean);
+  if(list.length < 2) return null;
+
+  const distinctNames = [...new Set(list.map(c => c.fn).filter(n => n && n !== '(بدون اسم)'))];
+  const nameConflict = distinctNames.length > 1;
+  const fn = choices.fn || distinctNames[0] || '(بدون اسم)';
+
+  const distinctPhotos = [...new Set(list.map(c => c.photo).filter(Boolean))];
+  const photoConflict = distinctPhotos.length > 1;
+  const photo = ('photo' in choices) ? choices.photo : (distinctPhotos[0] || null);
+
+  const nickname = list.map(c => c.nickname).find(v => v && v.trim()) || '';
+  const org = list.map(c => c.org).find(v => v && v.trim()) || '';
+  const adr = list.map(c => c.adr).find(v => v && v.trim()) || '';
+  const notes = [...new Set(list.map(c => c.note).filter(v => v && v.trim()))];
+  const note = notes.join('\n');
+
+  const phones = [];
+  const seenPhone = new Set();
+  for(const c of list){
+    for(const p of c.phones){
+      const norm = normalizePhoneForDup(p.value);
+      const key = norm || ('raw:' + p.value.trim().toLowerCase());
+      if(!key || seenPhone.has(key)) continue;
+      seenPhone.add(key);
+      phones.push({ type: p.type, value: p.value });
+    }
+  }
+
+  const emails = [];
+  const seenEmail = new Set();
+  for(const c of list){
+    for(const e of c.emails){
+      const key = normEmailForMerge(e.value);
+      if(!key || seenEmail.has(key)) continue;
+      seenEmail.add(key);
+      emails.push({ type: e.type, value: e.value });
+    }
+  }
+
+  const rawExtra = list.map(c => c.rawExtra).find(r => r && r.length) || [];
+
+  return {
+    conflicts: { name: nameConflict ? distinctNames : null, photo: photoConflict ? distinctPhotos : null },
+    merged: { id: list[0].id, fn, nickname, org, note, adr, phones, emails, rawExtra, version: list[0].version || '3.0', photo },
+    sourceIds: list.map(c => c.id)
+  };
+}
+
+let pendingMergeIds = null;
+let pendingMergeChoices = {};
+
+function startMerge(ids){
+  pendingMergeIds = ids;
+  pendingMergeChoices = {};
+  const plan = buildMergePlan(ids, pendingMergeChoices);
+  if(!plan) return;
+  if(!plan.conflicts.name && !plan.conflicts.photo){
+    finalizeMerge(plan);
+    return;
+  }
+  openMergeModal(plan);
+}
+
+function openMergeModal(plan){
+  const body = $('#mergeModalBody');
+  body.innerHTML = '';
+
+  if(plan.conflicts.name){
+    const label = document.createElement('div');
+    label.className = 'merge-field-label';
+    label.textContent = 'الاسم';
+    body.appendChild(label);
+    plan.conflicts.name.forEach((name, i) => {
+      const opt = document.createElement('div');
+      opt.className = 'merge-opt' + (i === 0 ? ' selected' : '');
+      opt.textContent = name;
+      opt.addEventListener('click', () => {
+        body.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        pendingMergeChoices.fn = name;
+      });
+      body.appendChild(opt);
+    });
+    pendingMergeChoices.fn = plan.conflicts.name[0];
+  }
+
+  if(plan.conflicts.photo){
+    const label = document.createElement('div');
+    label.className = 'merge-field-label';
+    label.textContent = 'الصورة';
+    body.appendChild(label);
+    const row = document.createElement('div');
+    row.className = 'merge-photo-row';
+    plan.conflicts.photo.forEach((photo, i) => {
+      const opt = document.createElement('div');
+      opt.className = 'merge-photo-opt' + (i === 0 ? ' selected' : '');
+      opt.innerHTML = `<img src="${photo}" alt="">`;
+      opt.addEventListener('click', () => {
+        row.querySelectorAll('.merge-photo-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        pendingMergeChoices.photo = photo;
+      });
+      row.appendChild(opt);
+    });
+    const noneOpt = document.createElement('div');
+    noneOpt.className = 'merge-photo-opt';
+    noneOpt.textContent = 'بدون صورة';
+    noneOpt.addEventListener('click', () => {
+      row.querySelectorAll('.merge-photo-opt').forEach(o => o.classList.remove('selected'));
+      noneOpt.classList.add('selected');
+      pendingMergeChoices.photo = null;
+    });
+    row.appendChild(noneOpt);
+    body.appendChild(row);
+    pendingMergeChoices.photo = plan.conflicts.photo[0];
+  }
+
+  $('#mergeModalOverlay').style.display = 'flex';
+}
+
+function closeMergeModal(){
+  $('#mergeModalOverlay').style.display = 'none';
+  pendingMergeIds = null;
+}
+$('#mergeModalCancel').addEventListener('click', closeMergeModal);
+$('#mergeModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'mergeModalOverlay') closeMergeModal(); });
+$('#mergeModalConfirm').addEventListener('click', () => {
+  if(!pendingMergeIds) return;
+  const plan = buildMergePlan(pendingMergeIds, pendingMergeChoices);
+  $('#mergeModalOverlay').style.display = 'none';
+  finalizeMerge(plan);
+});
+
+function finalizeMerge(plan){
+  contacts = contacts.filter(c => !plan.sourceIds.includes(c.id) || c.id === plan.merged.id);
+  const idx = contacts.findIndex(c => c.id === plan.merged.id);
+  if(idx !== -1){
+    contacts[idx] = Object.assign({}, contacts[idx], plan.merged);
+  }
+  pendingMergeIds = null;
+  toast('تم دمج جهات الاتصال');
+  renderDuplicates();
+  renderList();
+  refreshPrefixOptions();
+}
+
+function exportContacts(){
+  if(contacts.length === 0){ toast('لا توجد جهات اتصال للتصدير'); return; }
+  const vcfText = buildVCF(contacts);
+  const blob = new Blob([vcfText], {type:'text/vcard;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date();
+  const dateStr = String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+  a.download = 'contacts_' + dateStr + '.vcf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+  toast('تم تنزيل الملف');
+}
+
+$('#backBtn').addEventListener('click', () => {
+  if(screens.list.classList.contains('active') && selectionMode) exitSelectionMode();
+  else if(screens.edit.classList.contains('active')) { finalizeCurrentContact(); showScreen('list'); }
+  else if(screens.duplicates.classList.contains('active')) showScreen('list');
+  else showScreen('home');
+});
+
+showScreen('home');
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
