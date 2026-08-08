@@ -36,19 +36,18 @@
     font-size: 13.5px;
     background:var(--bg);
     color:var(--text);
-    min-height:100vh;
-    min-height:100dvh;
-    overflow-x:hidden;
-    overscroll-behavior-y:none;
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
+    height:100vh;
+    height:100dvh;
+    overflow:hidden;
+    display:flex; flex-direction:column;
     -webkit-tap-highlight-color: transparent;
   }
   header{
-    position:sticky; top:0; z-index:10;
+    flex:0 0 auto;
+    padding:12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top));
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(8px);
-    padding:12px 16px;
     display:flex; align-items:center; justify-content:space-between;
     border-bottom: 1px solid var(--border);
     box-shadow: none;
@@ -69,8 +68,8 @@
   }
   .icon-btn:active{ transform: scale(0.95); background: var(--border); }
   
-  #screens{ position:relative; }
-  .screen{ display:none; padding:10px 16px 30px; animation: fadeIn .25s ease-out; }
+  #screens{ position:relative; flex:1 1 auto; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; padding-bottom: env(safe-area-inset-bottom); }
+  .screen{ display:none; min-height:100%; padding:10px 16px 30px; animation: fadeIn .25s ease-out; }
   .screen.active{ display:block; }
   @keyframes fadeIn{ from{opacity:0; transform: translateY(4px)} to{opacity:1; transform: translateY(0)} }
 
@@ -165,8 +164,8 @@
   .contact-sub{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction: ltr; text-align: right; }
 
   /* ---- Edit screen: grouped panels ---- */
-  #screen-home{ background:var(--bg); min-height:calc(100vh - 60px); min-height:calc(100dvh - 60px); position:relative; }
-  #screen-edit{ background:var(--bg); min-height:100vh; min-height:100dvh; }
+  #screen-home{ background:var(--bg); position:relative; }
+  #screen-edit{ background:var(--bg); }
   .panel{
     background:var(--card); border:1px solid var(--border); border-radius:16px;
     padding:18px 16px; margin:14px 0; box-shadow: var(--shadow-sm);
@@ -298,7 +297,7 @@
       <button class="btn" id="chooseFileBtn">اختر ملفاً من جهازك</button>
       <input type="file" id="fileInput" accept=".vcf,text/vcard,text/x-vcard,text/plain" multiple>
     </div>
-    <div class="signature" style="position:fixed; bottom:30px; left:0; right:0;">طوّر بواسطة&nbsp;&nbsp;<a href="https://github.com/iofahmawi" target="_blank" rel="noopener" style="color:var(--accent); font-size:15px; text-decoration:none;">iofahmawi</a></div>
+    <div class="signature" style="position:fixed; bottom:calc(30px + env(safe-area-inset-bottom)); left:0; right:0;">طوّر بواسطة&nbsp;&nbsp;<a href="https://github.com/iofahmawi" target="_blank" rel="noopener" style="color:var(--accent); font-size:15px; text-decoration:none;">iofahmawi</a></div>
   </div>
 
   <!-- LIST -->
