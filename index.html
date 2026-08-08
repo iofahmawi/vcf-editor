@@ -473,7 +473,8 @@ const $ = (sel) => document.querySelector(sel);
 const screens = { home: $('#screen-home'), list: $('#screen-list'), edit: $('#screen-edit'), duplicates: $('#screen-duplicates') };
 const titles = { home: 'جهات الإتصال', list: 'جهات الاتصال', edit: 'تعديل جهة اتصال', duplicates: 'أرقام مكررة' };
 
-function showScreen(name){
+// تحديث الواجهة فقط لعرض شاشة معيّنة (بدون لمس سجل المتصفح إطلاقاً)
+function renderScreenUI(name){
   if(name !== 'list' && selectionMode){ selectionMode = false; selectedIds.clear(); }
   Object.values(screens).forEach(s=>s.classList.remove('active'));
   screens[name].classList.add('active');
@@ -487,6 +488,22 @@ function showScreen(name){
   $('#listMenuDropdown').style.display = 'none';
   $('#mainHeader').style.display = name === 'home' ? 'none' : 'flex';
   window.scrollTo(0,0);
+}
+
+// تنقّل للأمام (رئيسية←قائمة، قائمة←تعديل/تكرارات...): يضيف مُدخلاً حقيقياً
+// في سجل المتصفح خاصاً بهذه الشاشة بالتحديد. بهذا يعرف زر الرجوع (سواء زر
+// الجهاز الفعلي أو زر الرجوع داخل التطبيق) دائماً إلى أين يعود بالضبط —
+// أياً كانت الطريقة التي وصل بها المستخدم لهذه الشاشة (بحث، ضغط مباشر...) —
+// بدلاً من الاعتماد على عداد ضغطات لا يميّز بين الشاشات.
+function showScreen(name){
+  history.pushState({ screen: name }, '', '#' + name);
+  renderScreenUI(name);
+}
+
+// تنقّل للخلف: نطلب من المتصفح التراجع فعلياً لمُدخل السجل السابق؛ معالجة
+// popstate أدناه هي من تعرض الشاشة الصحيحة فور تأكيد المتصفح للتراجع.
+function goBack(){
+  history.back();
 }
 
 function toast(msg){
@@ -1349,7 +1366,7 @@ $('#deleteModalConfirm').addEventListener('click', () => {
   currentId = null;
   refreshPrefixOptions();
   renderList($('#search').value);
-  showScreen('list');
+  goBack();
   toast('تم الحذف');
 });
 
@@ -1733,13 +1750,46 @@ function clearListFilters(){
   renderList('');
 }
 
+// يقرر ماذا يعني "الرجوع" وأنت في الشاشة الحالية بالضبط:
+// - إن كان المقصود مجرّد إجراء داخل نفس الشاشة (إلغاء التحديد، مسح فلتر،
+//   عرض نافذة تأكيد) فهذا لا يُغادر الشاشة إطلاقاً → نُرجع true (بقينا).
+// - إن كان المقصود مغادرة الشاشة فعلاً (تعديل/تكرارات ← قائمة) فهذا
+//   تنقّل حقيقي يجب أن يُترجم إلى تراجع في سجل المتصفح → نُرجع false.
+function decideBackAction(){
+  if(screens.list.classList.contains('active') && selectionMode){
+    exitSelectionMode();
+    return true;
+  }
+  if(screens.edit.classList.contains('active')){
+    finalizeCurrentContact();
+    return false;
+  }
+  if(screens.duplicates.classList.contains('active')){
+    return false;
+  }
+  if(screens.list.classList.contains('active') && listFilterActive()){
+    clearListFilters();
+    return true;
+  }
+  if(screens.list.classList.contains('active')){
+    $('#exitListModalOverlay').style.display = 'flex';
+    return true;
+  }
+  // نحن في الرئيسية: اطلب تأكيد الخروج من التطبيق
+  $('#exitAppModalOverlay').style.display = 'flex';
+  return true;
+}
+
+// عندما نستدعي goBack() بأنفسنا (بعد أن قررنا بالفعل عبر decideBackAction
+// أننا نريد المغادرة)، لا داعي لتكرار نفس القرار داخل معالج popstate.
+let suppressNextPopstate = false;
+
 $('#backBtn').addEventListener('click', () => {
-  if(screens.list.classList.contains('active') && selectionMode) exitSelectionMode();
-  else if(screens.edit.classList.contains('active')) { finalizeCurrentContact(); showScreen('list'); }
-  else if(screens.duplicates.classList.contains('active')) showScreen('list');
-  else if(screens.list.classList.contains('active') && listFilterActive()) clearListFilters();
-  else if(screens.list.classList.contains('active')) $('#exitListModalOverlay').style.display = 'flex';
-  else showScreen('home');
+  const stayed = decideBackAction();
+  if(!stayed){
+    suppressNextPopstate = true;
+    goBack();
+  }
 });
 
 $('#exitListModalCancel').addEventListener('click', () => {
@@ -1747,58 +1797,38 @@ $('#exitListModalCancel').addEventListener('click', () => {
 });
 $('#exitListModalConfirm').addEventListener('click', () => {
   $('#exitListModalOverlay').style.display = 'none';
-  showScreen('home');
+  suppressNextPopstate = true;
+  goBack();
 });
 
-// Intercept the phone's hardware/system back button so it never exits
-// the app directly without a confirmation, and respects in-app navigation.
-// A single guard entry isn't reliable on Android (well-documented issue:
-// the back button can exit on the very next press regardless of JS state),
-// so we maintain a small BUFFER of guard entries, tracked by our own
-// counter (not by inspecting history state, which isn't trustworthy here).
-let allowRealExit = false;
-let guardDepth = 0;
-const GUARD_BUFFER = 2;
+// اعتراض زر الرجوع الفعلي بالجهاز: نضيف عند بدء التطبيق مُدخلاً إضافياً
+// واحداً أسفل شاشة الرئيسية (وهذا كافٍ الآن، فكل شاشة أخرى تحصل أصلاً على
+// مُدخلها الحقيقي الخاص بها عبر showScreen). هذا المُدخل الإضافي هو من
+// يمنع خروج التطبيق فوراً من أول ضغطة رجوع وأنت في الرئيسية.
+history.replaceState({ screen: 'home' }, '', '#home');
+history.pushState({ screen: 'home', guard: true }, '', '#home');
 
-function pushGuard(){
-  try { history.pushState({ app: true }, '', '#app'); guardDepth++; } catch (e) {}
-}
-function ensureBackGuard(){
-  if (allowRealExit) return;
-  while (guardDepth < GUARD_BUFFER) pushGuard();
-}
-ensureBackGuard();
+window.addEventListener('popstate', (e) => {
+  if(suppressNextPopstate){
+    suppressNextPopstate = false;
+    const target = (e.state && e.state.screen) || 'home';
+    renderScreenUI(target);
+    return;
+  }
 
-// Some mobile browsers consume the very first back-press just to dismiss
-// the on-screen keyboard, without firing popstate at all. That can silently
-// desync our guard, so we re-assert it whenever the page regains focus/
-// visibility, or whenever a focused field loses focus (keyboard closing).
-window.addEventListener('pageshow', ensureBackGuard);
-window.addEventListener('focus', ensureBackGuard);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) ensureBackGuard(); });
-document.addEventListener('focusout', () => { setTimeout(ensureBackGuard, 50); });
-
-window.addEventListener('popstate', () => {
-  if (allowRealExit) return;
-  guardDepth = Math.max(0, guardDepth - 1);
-  ensureBackGuard();
-
-  if ($('#exitAppModalOverlay').style.display === 'flex') return;
-  if ($('#exitListModalOverlay').style.display === 'flex') return;
-
-  if (screens.list.classList.contains('active') && selectionMode) {
-    exitSelectionMode();
-  } else if (screens.edit.classList.contains('active')) {
-    finalizeCurrentContact();
-    showScreen('list');
-  } else if (screens.duplicates.classList.contains('active')) {
-    showScreen('list');
-  } else if (screens.list.classList.contains('active') && listFilterActive()) {
-    clearListFilters();
-  } else if (screens.list.classList.contains('active')) {
-    $('#exitListModalOverlay').style.display = 'flex';
+  const stayed = decideBackAction();
+  if(stayed){
+    // المتصفح تراجع فعلاً بمُدخل، لكننا قررنا عدم مغادرة الشاشة الحالية
+    // (كان مجرد إلغاء تحديد/مسح فلتر/نافذة تأكيد) — نعيد إضافة مُدخل مطابق
+    // للشاشة الحالية حتى تبقى ضغطة الرجوع القادمة مرصودة بنفس الطريقة.
+    const current = screens.list.classList.contains('active') ? 'list'
+                  : screens.edit.classList.contains('active') ? 'edit'
+                  : screens.duplicates.classList.contains('active') ? 'duplicates'
+                  : 'home';
+    history.pushState({ screen: current }, '', '#' + current);
   } else {
-    $('#exitAppModalOverlay').style.display = 'flex';
+    const target = (e.state && e.state.screen) || 'home';
+    renderScreenUI(target);
   }
 });
 
@@ -1807,11 +1837,12 @@ $('#exitAppModalCancel').addEventListener('click', () => {
 });
 $('#exitAppModalConfirm').addEventListener('click', () => {
   $('#exitAppModalOverlay').style.display = 'none';
-  allowRealExit = true;
-  try { history.go(-(guardDepth + 1)); } catch (e) {}
+  // نتراجع خطوتين: نتجاوز مُدخل الحماية الحالي، ثم مُدخل الرئيسية الأساسي،
+  // فيخرج المستخدم فعلياً من التطبيق.
+  history.go(-2);
 });
 
-showScreen('home');
+renderScreenUI('home');
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
