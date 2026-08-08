@@ -266,7 +266,7 @@
   </button>
   <h1 id="screenTitle">جهات الإتصال</h1>
   <div class="search-wrap" id="headerSearchWrap" style="display:none; flex:1; margin:0 16px; max-width:88%;">
-    <input type="text" id="search" placeholder="بحث بكل الحقول">
+    <input type="text" id="search" placeholder="بحث بكل الحقول" enterkeyhint="search">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
   </div>
   <div style="position:relative; display:inline-block;">
@@ -498,6 +498,8 @@ function renderScreenUI(name){
   $('#listMenuDropdown').style.display = 'none';
   $('#mainHeader').style.display = name === 'home' ? 'none' : 'flex';
   window.scrollTo(0,0);
+  const scroller = $('#screens');
+  if(scroller) scroller.scrollTop = 0;
 }
 
 // تنقّل للأمام (رئيسية←قائمة، قائمة←تعديل/تكرارات...): يضيف مُدخلاً حقيقياً
@@ -1057,6 +1059,7 @@ function escapeHtml(s){
 }
 
 $('#search').addEventListener('input', (e) => { renderList(e.target.value); syncFilterUI(); if(listFilterActive()) pushFilterGuard(); });
+$('#search').addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); $('#search').blur(); } });
 
 const PHONE_TYPES = ['CELL','HOME','WORK','FAX','OTHER'];
 const PHONE_LABELS = {CELL:'خلوي',HOME:'منزل',WORK:'عمل',FAX:'فاكس',OTHER:'أخرى'};
