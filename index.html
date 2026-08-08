@@ -470,6 +470,16 @@ let contacts = [];
 let currentId = null;
 
 const $ = (sel) => document.querySelector(sel);
+
+// بعض بيئات المعاينة (مثل about:srcdoc) تمنع تعديل سجل المتصفح لأسباب أمنية
+// وترمي SecurityError. هذا لا يحدث عند فتح الملف فعلياً على الجهاز/المتصفح،
+// لكن نلتقطه هنا احتياطاً حتى لا يتوقف التطبيق بسبب بيئة معاينة فقط.
+function safePushState(state, title, url){
+  try{ history.pushState(state, title, url); }catch(err){ /* بيئة لا تدعم تعديل السجل */ }
+}
+function safeReplaceState(state, title, url){
+  try{ history.replaceState(state, title, url); }catch(err){ /* بيئة لا تدعم تعديل السجل */ }
+}
 const screens = { home: $('#screen-home'), list: $('#screen-list'), edit: $('#screen-edit'), duplicates: $('#screen-duplicates') };
 const titles = { home: 'جهات الإتصال', list: 'جهات الاتصال', edit: 'تعديل جهة اتصال', duplicates: 'أرقام مكررة' };
 
@@ -496,7 +506,12 @@ function renderScreenUI(name){
 // أياً كانت الطريقة التي وصل بها المستخدم لهذه الشاشة (بحث، ضغط مباشر...) —
 // بدلاً من الاعتماد على عداد ضغطات لا يميّز بين الشاشات.
 function showScreen(name){
-  history.pushState({ screen: name }, '', '#' + name);
+  safePushState({ screen: name }, '', '#' + name);
+  if(name === 'list'){
+    // القائمة تحتاج تأكيد قبل الخروج منها دائماً؛ نضيف مُدخل حماية فوراً
+    // (وليس لاحقاً وقت الرجوع) حتى لا نعتمد على "استدراك" رجوع تم بالفعل.
+    safePushState({ screen: 'list', guard: true }, '', '#list');
+  }
   renderScreenUI(name);
 }
 
@@ -900,6 +915,7 @@ function enterSelectionMode(){
   selectionMode = true;
   selectedIds.clear();
   syncFilterUI();
+  safePushState({ screen: 'list', selectionGuard: true }, '', '#list');
 }
 
 function exitSelectionMode(){
@@ -965,6 +981,7 @@ function refreshPrefixOptions(){
 $('#prefixFilter').addEventListener('change', () => {
   syncFilterUI();
   renderList($('#search').value);
+  if(listFilterActive()) pushFilterGuard();
 });
 
 $('#prefixReplaceBtn').addEventListener('click', () => {
@@ -1039,7 +1056,7 @@ function escapeHtml(s){
   return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-$('#search').addEventListener('input', (e) => { renderList(e.target.value); syncFilterUI(); });
+$('#search').addEventListener('input', (e) => { renderList(e.target.value); syncFilterUI(); if(listFilterActive()) pushFilterGuard(); });
 
 const PHONE_TYPES = ['CELL','HOME','WORK','FAX','OTHER'];
 const PHONE_LABELS = {CELL:'خلوي',HOME:'منزل',WORK:'عمل',FAX:'فاكس',OTHER:'أخرى'};
@@ -1746,8 +1763,18 @@ function listFilterActive(){
 function clearListFilters(){
   $('#search').value = '';
   $('#prefixFilter').value = '';
+  filterGuardActive = false;
   syncFilterUI();
   renderList('');
+}
+
+// مُدخل حماية إضافي عند تفعيل الفلتر لأول مرة، بنفس فكرة home guard:
+// هذا يضمن أن زر الرجوع الفعلي دائماً يهبط على مُدخل جاهز مسبقاً.
+let filterGuardActive = false;
+function pushFilterGuard(){
+  if(filterGuardActive) return;
+  filterGuardActive = true;
+  safePushState({ screen: 'list', filterGuard: true }, '', '#list');
 }
 
 // يقرر ماذا يعني "الرجوع" وأنت في الشاشة الحالية بالضبط:
@@ -1794,6 +1821,8 @@ $('#backBtn').addEventListener('click', () => {
 
 $('#exitListModalCancel').addEventListener('click', () => {
   $('#exitListModalOverlay').style.display = 'none';
+  // نعيد مُدخل الحماية بعد الإلغاء (بضغطة زر، لا يوجد سباق توقيت هنا).
+  safePushState({ screen: 'list', guard: true }, '', '#list');
 });
 $('#exitListModalConfirm').addEventListener('click', () => {
   $('#exitListModalOverlay').style.display = 'none';
@@ -1805,8 +1834,8 @@ $('#exitListModalConfirm').addEventListener('click', () => {
 // واحداً أسفل شاشة الرئيسية (وهذا كافٍ الآن، فكل شاشة أخرى تحصل أصلاً على
 // مُدخلها الحقيقي الخاص بها عبر showScreen). هذا المُدخل الإضافي هو من
 // يمنع خروج التطبيق فوراً من أول ضغطة رجوع وأنت في الرئيسية.
-history.replaceState({ screen: 'home' }, '', '#home');
-history.pushState({ screen: 'home', guard: true }, '', '#home');
+safeReplaceState({ screen: 'home' }, '', '#home');
+safePushState({ screen: 'home', guard: true }, '', '#home');
 
 window.addEventListener('popstate', (e) => {
   if(suppressNextPopstate){
@@ -1816,30 +1845,45 @@ window.addEventListener('popstate', (e) => {
     return;
   }
 
-  const stayed = decideBackAction();
-  if(stayed){
-    // المتصفح تراجع فعلاً بمُدخل، لكننا قررنا عدم مغادرة الشاشة الحالية
-    // (كان مجرد إلغاء تحديد/مسح فلتر/نافذة تأكيد) — نعيد إضافة مُدخل مطابق
-    // للشاشة الحالية حتى تبقى ضغطة الرجوع القادمة مرصودة بنفس الطريقة.
-    const current = screens.list.classList.contains('active') ? 'list'
-                  : screens.edit.classList.contains('active') ? 'edit'
-                  : screens.duplicates.classList.contains('active') ? 'duplicates'
-                  : 'home';
-    history.pushState({ screen: current }, '', '#' + current);
-  } else {
-    const target = (e.state && e.state.screen) || 'home';
-    renderScreenUI(target);
+  // كل الحالات هنا هبطت على مُدخل حماية موجود مسبقاً (وليس مُدخلاً نضيفه
+  // الآن بعد فوات الأوان)، فلا حاجة لأي pushState داخل هذا المعالج إطلاقاً —
+  // هذا هو ما كان يسبب فقدان الضغطة أحياناً على الأجهزة الحقيقية.
+  if(screens.edit.classList.contains('active')){
+    finalizeCurrentContact();
+    renderScreenUI((e.state && e.state.screen) || 'home');
+    return;
   }
+  if(screens.duplicates.classList.contains('active')){
+    renderScreenUI((e.state && e.state.screen) || 'home');
+    return;
+  }
+  if(screens.list.classList.contains('active')){
+    if(selectionMode){
+      exitSelectionMode();
+      return;
+    }
+    if(listFilterActive()){
+      filterGuardActive = false;
+      clearListFilters();
+      return;
+    }
+    $('#exitListModalOverlay').style.display = 'flex';
+    return;
+  }
+  // الرئيسية: مُدخل الحماية استُهلك فعلاً → اطلب تأكيد الخروج من التطبيق
+  $('#exitAppModalOverlay').style.display = 'flex';
 });
 
 $('#exitAppModalCancel').addEventListener('click', () => {
   $('#exitAppModalOverlay').style.display = 'none';
+  // نعيد مُدخل حماية الرئيسية (بضغطة زر، لا يوجد سباق توقيت هنا).
+  safePushState({ screen: 'home', guard: true }, '', '#home');
 });
 $('#exitAppModalConfirm').addEventListener('click', () => {
   $('#exitAppModalOverlay').style.display = 'none';
-  // نتراجع خطوتين: نتجاوز مُدخل الحماية الحالي، ثم مُدخل الرئيسية الأساسي،
-  // فيخرج المستخدم فعلياً من التطبيق.
-  history.go(-2);
+  // مُدخل الحماية استُهلك بالفعل (هذا ما أوصلنا هنا)، فتراجع واحد يكفي
+  // للخروج الفعلي من التطبيق.
+  history.back();
 });
 
 renderScreenUI('home');
