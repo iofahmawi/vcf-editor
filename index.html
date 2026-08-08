@@ -1741,11 +1741,20 @@ $('#exitListModalConfirm').addEventListener('click', () => {
 
 // Intercept the phone's hardware/system back button so it never exits
 // the app directly without a confirmation, and respects in-app navigation.
+// A single guard entry isn't reliable on Android (well-documented issue:
+// the back button can exit on the very next press regardless of JS state),
+// so we maintain a small BUFFER of guard entries, tracked by our own
+// counter (not by inspecting history state, which isn't trustworthy here).
 let allowRealExit = false;
+let guardDepth = 0;
+const GUARD_BUFFER = 2;
 
+function pushGuard(){
+  try { history.pushState({ app: true }, '', '#app'); guardDepth++; } catch (e) {}
+}
 function ensureBackGuard(){
   if (allowRealExit) return;
-  if (!history.state || !history.state.app) history.pushState({ app: true }, '');
+  while (guardDepth < GUARD_BUFFER) pushGuard();
 }
 ensureBackGuard();
 
@@ -1760,7 +1769,8 @@ document.addEventListener('focusout', () => { setTimeout(ensureBackGuard, 50); }
 
 window.addEventListener('popstate', () => {
   if (allowRealExit) return;
-  history.pushState({ app: true }, '');
+  guardDepth = Math.max(0, guardDepth - 1);
+  ensureBackGuard();
 
   if ($('#exitAppModalOverlay').style.display === 'flex') return;
   if ($('#exitListModalOverlay').style.display === 'flex') return;
@@ -1785,7 +1795,7 @@ $('#exitAppModalCancel').addEventListener('click', () => {
 $('#exitAppModalConfirm').addEventListener('click', () => {
   $('#exitAppModalOverlay').style.display = 'none';
   allowRealExit = true;
-  history.back();
+  try { history.go(-(guardDepth + 1)); } catch (e) {}
 });
 
 showScreen('home');
