@@ -1554,6 +1554,9 @@ function updateBulkPhotoCountAndSelectAll(matched){
 }
 
 $('#bulkPhotoSearch').addEventListener('input', renderBulkPhotoList);
+$('#bulkPhotoSearch').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#bulkPhotoSearch').blur(); }
+});
 
 $('#bulkPhotoSelectAll').addEventListener('click', () => {
   const q = $('#bulkPhotoSearch').value.trim();
