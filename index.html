@@ -125,12 +125,12 @@
   .toolbar-links{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin:12px 4px 10px; }
   .link-btn{
     background:none; border:none; padding:6px 10px; cursor:pointer;
-    font-family:var(--font-body); font-size:12.5px; font-weight:700;
+    font-family:var(--font-body); font-size:13.5px; font-weight:700;
     border-radius: 8px; transition: background 0.2s;
   }
   .link-btn.add{ color:var(--accent); background: var(--card2); padding:8px 10px; }
   .link-btn.export{ color:var(--muted); }
-  .summary{ color:var(--muted); font-size:12.5px; font-weight:700; margin:10px 4px 6px; }
+  .summary{ color:var(--muted); font-size:13.5px; font-weight:700; margin:10px 4px 6px; }
 
   .contact-row{
     display:flex; align-items:center; gap:12px;
@@ -151,7 +151,9 @@
   .contact-row.selected .contact-checkbox{ background:var(--accent); border-color:var(--accent); }
   .contact-checkbox svg{ width:13px; height:13px; color:#fff; opacity:0; transition: opacity .15s; }
   .contact-row.selected .contact-checkbox svg{ opacity:1; }
-  .link-btn.delete-selected{ color:var(--danger); background: rgba(239, 68, 68, 0.08); padding:8px 10px; }
+  .link-btn.delete-selected{ color:var(--danger); background: rgba(239, 68, 68, 0.045); padding:8px 10px; }
+  .link-btn.merge-selected{ color:var(--accent); background: var(--card2); padding:8px 10px; }
+  .link-btn.merge-selected:disabled{ opacity:.4; cursor:not-allowed; }
   .contact-avatar{
     flex:0 0 40px; width:40px; height:40px; border-radius:12px;
     background:var(--card2); color:var(--accent);
@@ -162,7 +164,7 @@
   .contact-avatar img{ width:100%; height:100%; object-fit:cover; }
   .contact-info{ min-width:0; flex:1; }
   .contact-name{ font-family:var(--font-display); font-size:14px; font-weight:700; margin-bottom:8px; }
-  .contact-sub{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction: ltr; text-align: right; }
+  .contact-sub{ font-size:12.75px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction: ltr; text-align: right; }
 
   /* ---- Edit screen: grouped panels ---- */
   #screen-home{ background:var(--bg); position:relative; }
@@ -311,6 +313,7 @@
     </div>
     <div style="display:flex; align-items:center; justify-content:space-between; margin:10px 2px 4px;">
       <div class="summary" id="summaryText" style="margin:0;"></div>
+      <button type="button" class="link-btn merge-selected" id="mergeSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">دمج المحدد</button>
       <button class="link-btn add" id="fabAdd" style="min-width:0; white-space:nowrap;">+ إضافة جهة اتصال</button>
       <button type="button" class="link-btn delete-selected" id="deleteSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">حذف المحدد</button>
       <button type="button" class="link-btn" id="prefixReplaceBtn" style="display:none; color:var(--accent); background: var(--card2); padding: 7px 10px; white-space:nowrap;">تعديل البادئة</button>
@@ -876,7 +879,7 @@ function renderList(filter=''){
 
   $('#summaryText').textContent = selectionMode
     ? selectedIds.size + ' محدد'
-    : contacts.length + ' جهة اتصال' + (f || prefix ? ' — ' + filtered.length + ' نتيجة' : '');
+    : (f || prefix ? filtered.length + ' نتيجة' : contacts.length + ' جهة اتصال');
 
   for(const c of filtered){
     const row = document.createElement('div');
@@ -961,14 +964,25 @@ function syncFilterUI(){
   $('#prefixReplaceBtn').style.display = (prefixActive && !selectionMode) ? 'inline-block' : 'none';
   $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'inline-block' : 'none';
   $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'inline-block';
+  $('#summaryText').style.display = selectionMode ? 'none' : 'block';
+  $('#mergeSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
   $('#deleteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
-  if(selectionMode) $('#deleteSelectedBtn').textContent = 'حذف المحدد (' + selectedIds.size + ')';
+  if(selectionMode){
+    $('#deleteSelectedBtn').textContent = 'حذف المحدد';
+    $('#mergeSelectedBtn').disabled = selectedIds.size < 2 || selectedIds.size > 3;
+  }
 }
 
 $('#deleteSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size === 0) return;
   $('#deleteSelectedModalDesc').textContent = 'هل تريد حذف ' + selectedIds.size + ' جهة اتصال محددة؟';
   $('#deleteSelectedModalOverlay').style.display = 'flex';
+});
+$('#mergeSelectedBtn').addEventListener('click', () => {
+  if(selectedIds.size < 2 || selectedIds.size > 3) return;
+  const ids = Array.from(selectedIds);
+  exitSelectionMode();
+  startMerge(ids);
 });
 $('#deleteSelectedModalCancel').addEventListener('click', () => { $('#deleteSelectedModalOverlay').style.display = 'none'; });
 $('#deleteSelectedModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteSelectedModalOverlay') $('#deleteSelectedModalOverlay').style.display = 'none'; });
@@ -1841,6 +1855,7 @@ function openMergeModal(plan){
     label.className = 'merge-field-label';
     label.textContent = 'الاسم';
     body.appendChild(label);
+    let customNameInput;
     plan.conflicts.name.forEach((name, i) => {
       const opt = document.createElement('div');
       opt.className = 'merge-opt' + (i === 0 ? ' selected' : '');
@@ -1849,9 +1864,26 @@ function openMergeModal(plan){
         body.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         pendingMergeChoices.fn = name;
+        if(customNameInput) customNameInput.value = '';
       });
       body.appendChild(opt);
     });
+    customNameInput = document.createElement('input');
+    customNameInput.type = 'text';
+    customNameInput.placeholder = 'أو اكتب اسمًا آخر';
+    customNameInput.style.cssText = 'width:100%; box-sizing:border-box; padding:10px 12px; border-radius:10px; border:1.5px solid var(--border); background:transparent; color:var(--text); font-size:13.5px; font-weight:600; font-family:var(--font-body); line-height:normal;';
+    customNameInput.addEventListener('input', () => {
+      body.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+      const v = customNameInput.value.trim();
+      if(v){
+        pendingMergeChoices.fn = v;
+      } else {
+        pendingMergeChoices.fn = plan.conflicts.name[0];
+        const first = body.querySelector('.merge-opt');
+        if(first) first.classList.add('selected');
+      }
+    });
+    body.appendChild(customNameInput);
     pendingMergeChoices.fn = plan.conflicts.name[0];
   }
 
