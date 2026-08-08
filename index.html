@@ -274,6 +274,7 @@
     <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:130px; z-index:30; overflow:hidden;">
       <button type="button" class="link-btn" id="menuFilterOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تصفية</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
+      <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">صورة جماعية</button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--accent); font-size:13px;">حفظ الملف</button>
     </div>
   </div>
@@ -461,6 +462,35 @@
     <div style="display:flex; gap:8px; margin-top:18px;">
       <button type="button" id="mergeModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="mergeModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:11px;">دمج</button>
+    </div>
+  </div>
+</div>
+
+<div id="bulkPhotoModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">صورة جماعية</div>
+
+    <input type="text" id="bulkPhotoSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+      <span id="bulkPhotoCount" style="font-size:12px; color:var(--muted);"></span>
+      <button type="button" id="bulkPhotoSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
+    </div>
+
+    <div id="bulkPhotoList" style="display:none; max-height:34vh; overflow-y:auto; border:1px solid var(--border); border-radius:10px; margin-bottom:14px;"></div>
+
+    <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
+    <div id="bulkPhotoPickWrap" style="display:flex; align-items:center; gap:12px; margin-bottom:14px; padding:10px; border:1px solid var(--border); border-radius:10px;">
+      <div id="bulkPhotoPreviewWrap" style="width:52px; height:52px; border-radius:14px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:var(--card2); color:var(--muted); font-size:10px; text-align:center;">
+        <span id="bulkPhotoPreviewPlaceholder">بدون صورة</span>
+        <img id="bulkPhotoPreviewImg" style="display:none; width:100%; height:100%; object-fit:cover;">
+      </div>
+      <button type="button" id="bulkPhotoPickBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13px; cursor:pointer;">اختر صورة</button>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="bulkPhotoCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="bulkPhotoConfirm" class="btn" style="flex:1 1 0; margin:0; padding:11px;">تطبيق</button>
     </div>
   </div>
 </div>
@@ -1129,11 +1159,7 @@ $('#photoRemoveOpt').addEventListener('click', () => {
   refreshPhotoPreview(c);
 });
 
-$('#photoInput').addEventListener('change', (e) => {
-  const file = e.target.files[0];
-  if(!file) return;
-  const c = contacts.find(x => x.id === currentId);
-  if(!c) return;
+function fileToSquarePhotoDataURL(file, callback){
   const img = new Image();
   const reader = new FileReader();
   reader.onload = (ev) => {
@@ -1150,12 +1176,22 @@ $('#photoInput').addEventListener('change', (e) => {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
-      c.photo = canvas.toDataURL('image/jpeg', 0.95);
-      refreshPhotoPreview(c);
+      callback(canvas.toDataURL('image/jpeg', 0.95));
     };
     img.src = ev.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+$('#photoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  fileToSquarePhotoDataURL(file, (dataUrl) => {
+    c.photo = dataUrl;
+    refreshPhotoPreview(c);
+  });
   e.target.value = '';
 });
 
@@ -1427,6 +1463,150 @@ $('#menuDupOpt').addEventListener('click', () => {
   $('#listMenuDropdown').style.display = 'none';
   showScreen('duplicates');
   renderDuplicates();
+});
+
+let bulkPhotoSelectedIds = new Set();
+let bulkPhotoDataUrl = null;
+
+$('#menuBulkPhotoOpt').addEventListener('click', () => {
+  $('#listMenuDropdown').style.display = 'none';
+  openBulkPhotoModal();
+});
+
+function openBulkPhotoModal(){
+  bulkPhotoSelectedIds = new Set();
+  bulkPhotoDataUrl = null;
+  $('#bulkPhotoSearch').value = '';
+  $('#bulkPhotoPreviewImg').style.display = 'none';
+  $('#bulkPhotoPreviewPlaceholder').style.display = 'block';
+  renderBulkPhotoList();
+  updateBulkPhotoConfirmState();
+  $('#bulkPhotoModalOverlay').style.display = 'flex';
+  setTimeout(() => $('#bulkPhotoSearch').focus(), 50);
+}
+function closeBulkPhotoModal(){
+  $('#bulkPhotoModalOverlay').style.display = 'none';
+}
+
+function bulkPhotoMatchContacts(query){
+  const f = query.trim().toLowerCase();
+  if(!f) return [];
+  return contacts.filter(c => {
+    const hay = [
+      c.fn, c.nickname, c.org, c.adr, c.note,
+      ...c.phones.map(p => p.value),
+      ...c.emails.map(e => e.value)
+    ].join(' ').toLowerCase();
+    return hay.includes(f);
+  });
+}
+
+function renderBulkPhotoList(){
+  const q = $('#bulkPhotoSearch').value.trim();
+  const list = $('#bulkPhotoList');
+  const countEl = $('#bulkPhotoCount');
+  const selectAllBtn = $('#bulkPhotoSelectAll');
+
+  if(!q){
+    list.style.display = 'none';
+    list.innerHTML = '';
+    countEl.textContent = '';
+    selectAllBtn.style.display = 'none';
+    updateBulkPhotoConfirmState();
+    return;
+  }
+  list.style.display = 'block';
+
+  const matched = bulkPhotoMatchContacts(q);
+  selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+
+  if(!matched.length){
+    list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
+    countEl.textContent = '';
+    updateBulkPhotoConfirmState();
+    return;
+  }
+
+  const matchedIds = new Set(matched.map(c => c.id));
+  // إزالة أي تحديد سابق لم يعد ضمن نتائج البحث الحالية
+  bulkPhotoSelectedIds.forEach(id => { if(!matchedIds.has(id)) bulkPhotoSelectedIds.delete(id); });
+
+  list.innerHTML = matched.map((c, idx) => {
+    const checked = bulkPhotoSelectedIds.has(c.id) ? 'checked' : '';
+    const isLast = idx === matched.length - 1;
+    const avatarInner = c.photo
+      ? `<img src="${c.photo}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
+    return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
+      <input type="checkbox" class="bulkPhotoItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
+      <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto;">${escapeHtml(c.fn)}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.bulkPhotoItem').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) bulkPhotoSelectedIds.add(cb.dataset.id);
+      else bulkPhotoSelectedIds.delete(cb.dataset.id);
+      updateBulkPhotoCountAndSelectAll(matched);
+      updateBulkPhotoConfirmState();
+    });
+  });
+
+  updateBulkPhotoCountAndSelectAll(matched);
+  updateBulkPhotoConfirmState();
+}
+
+function updateBulkPhotoCountAndSelectAll(matched){
+  const countEl = $('#bulkPhotoCount');
+  const selectAllBtn = $('#bulkPhotoSelectAll');
+  const allSelected = matched.length > 0 && matched.every(c => bulkPhotoSelectedIds.has(c.id));
+  countEl.textContent = bulkPhotoSelectedIds.size + ' من ' + matched.length + ' محدد';
+  selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
+}
+
+$('#bulkPhotoSearch').addEventListener('input', renderBulkPhotoList);
+
+$('#bulkPhotoSelectAll').addEventListener('click', () => {
+  const q = $('#bulkPhotoSearch').value.trim();
+  const matched = bulkPhotoMatchContacts(q);
+  const allSelected = matched.length > 0 && matched.every(c => bulkPhotoSelectedIds.has(c.id));
+  if(allSelected) matched.forEach(c => bulkPhotoSelectedIds.delete(c.id));
+  else matched.forEach(c => bulkPhotoSelectedIds.add(c.id));
+  renderBulkPhotoList();
+});
+
+$('#bulkPhotoPickWrap').addEventListener('click', () => $('#bulkPhotoInput').click());
+$('#bulkPhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  fileToSquarePhotoDataURL(file, (dataUrl) => {
+    bulkPhotoDataUrl = dataUrl;
+    $('#bulkPhotoPreviewImg').src = dataUrl;
+    $('#bulkPhotoPreviewImg').style.display = 'block';
+    $('#bulkPhotoPreviewPlaceholder').style.display = 'none';
+    updateBulkPhotoConfirmState();
+  });
+});
+
+function updateBulkPhotoConfirmState(){
+  const btn = $('#bulkPhotoConfirm');
+  const ready = !!bulkPhotoDataUrl && bulkPhotoSelectedIds.size > 0;
+  btn.style.opacity = ready ? '1' : '.5';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+}
+
+$('#bulkPhotoCancel').addEventListener('click', closeBulkPhotoModal);
+$('#bulkPhotoModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'bulkPhotoModalOverlay') closeBulkPhotoModal(); });
+$('#bulkPhotoConfirm').addEventListener('click', () => {
+  if(!bulkPhotoDataUrl || bulkPhotoSelectedIds.size === 0) return;
+  let count = 0;
+  contacts.forEach(c => {
+    if(bulkPhotoSelectedIds.has(c.id)){ c.photo = bulkPhotoDataUrl; count++; }
+  });
+  closeBulkPhotoModal();
+  renderList($('#search').value);
+  toast('تم تغيير صورة ' + count + ' جهة اتصال');
 });
 
 function normalizePhoneForDup(v){
