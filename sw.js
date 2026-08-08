@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vcf-editor-v16';
+const CACHE_NAME = 'vcf-editor-v20';
 const ASSETS = [
   './',
   './index.html',
