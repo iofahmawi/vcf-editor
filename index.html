@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>محرر جهات الاتصال</title>
+<title>محرر جهات الإتصال</title>
 <meta name="theme-color" content="#F8FAFC">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon-1440.png">
@@ -29,6 +29,7 @@
     --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05);
   }
   *{box-sizing:border-box;}
+  html{ height:100%; }
   body{
     margin:0;
     font-family:var(--font-body);
@@ -36,7 +37,9 @@
     background:var(--bg);
     color:var(--text);
     min-height:100vh;
+    min-height:100dvh;
     overflow-x:hidden;
+    overscroll-behavior-y:none;
     -webkit-tap-highlight-color: transparent;
   }
   header{
@@ -160,8 +163,8 @@
   .contact-sub{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction: ltr; text-align: right; }
 
   /* ---- Edit screen: grouped panels ---- */
-  #screen-home{ background:var(--bg); min-height:calc(100vh - 60px); position:relative; }
-  #screen-edit{ background:var(--bg); min-height:100vh; }
+  #screen-home{ background:var(--bg); min-height:calc(100vh - 60px); min-height:calc(100dvh - 60px); position:relative; }
+  #screen-edit{ background:var(--bg); min-height:100vh; min-height:100dvh; }
   .panel{
     background:var(--card); border:1px solid var(--border); border-radius:16px;
     padding:18px 16px; margin:14px 0; box-shadow: var(--shadow-sm);
