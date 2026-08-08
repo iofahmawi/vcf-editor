@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>محرر جهات الإتصال</title>
 <meta name="theme-color" content="#F8FAFC">
 <link rel="manifest" href="manifest.json">
@@ -40,6 +40,8 @@
     min-height:100dvh;
     overflow-x:hidden;
     overscroll-behavior-y:none;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
     -webkit-tap-highlight-color: transparent;
   }
   header{
