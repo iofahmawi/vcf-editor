@@ -1,6 +1,6 @@
 {
-  "name": "محرر جهات الاتصال VCF",
-  "short_name": "جهات الاتصال",
+  "name": "محرر جهات الإتصال",
+  "short_name": "محرر VCF",
   "start_url": ".",
   "display": "standalone",
   "background_color": "#FFFFFF",
