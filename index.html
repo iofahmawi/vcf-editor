@@ -1723,10 +1723,21 @@ function exportContacts(){
   toast('تم تنزيل الملف');
 }
 
+function listFilterActive(){
+  return !!$('#search').value.trim() || !!$('#prefixFilter').value;
+}
+function clearListFilters(){
+  $('#search').value = '';
+  $('#prefixFilter').value = '';
+  syncFilterUI();
+  renderList('');
+}
+
 $('#backBtn').addEventListener('click', () => {
   if(screens.list.classList.contains('active') && selectionMode) exitSelectionMode();
   else if(screens.edit.classList.contains('active')) { finalizeCurrentContact(); showScreen('list'); }
   else if(screens.duplicates.classList.contains('active')) showScreen('list');
+  else if(screens.list.classList.contains('active') && listFilterActive()) clearListFilters();
   else if(screens.list.classList.contains('active')) $('#exitListModalOverlay').style.display = 'flex';
   else showScreen('home');
 });
@@ -1782,6 +1793,8 @@ window.addEventListener('popstate', () => {
     showScreen('list');
   } else if (screens.duplicates.classList.contains('active')) {
     showScreen('list');
+  } else if (screens.list.classList.contains('active') && listFilterActive()) {
+    clearListFilters();
   } else if (screens.list.classList.contains('active')) {
     $('#exitListModalOverlay').style.display = 'flex';
   } else {
