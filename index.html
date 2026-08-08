@@ -399,17 +399,6 @@
   </div>
 </div>
 
-<div id="exitAppModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
-  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
-    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">الخروج من التطبيق</div>
-    <div style="font-size:14px; color:var(--muted); margin:0 0 22px; line-height:1.7; text-align:center;">هل تريد الخروج من التطبيق؟</div>
-    <div style="display:flex; gap:10px;">
-      <button type="button" id="exitAppModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
-      <button type="button" id="exitAppModalConfirm" style="flex:1 1 0; background:var(--danger); color:#fff; border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">خروج</button>
-    </div>
-  </div>
-</div>
-
 <div id="exitListModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">الخروج من جهات الاتصال</div>
@@ -1985,9 +1974,8 @@ function decideBackAction(){
     $('#exitListModalOverlay').style.display = 'flex';
     return true;
   }
-  // نحن في الرئيسية: اطلب تأكيد الخروج من التطبيق
-  $('#exitAppModalOverlay').style.display = 'flex';
-  return true;
+  // نحن في الرئيسية: لا شيء يُفقد هنا، فليخرج مباشرة بلا تأكيد
+  return false;
 }
 
 // عندما نستدعي goBack() بأنفسنا (بعد أن قررنا بالفعل عبر decideBackAction
@@ -2013,12 +2001,10 @@ $('#exitListModalConfirm').addEventListener('click', () => {
   goBack();
 });
 
-// اعتراض زر الرجوع الفعلي بالجهاز: نضيف عند بدء التطبيق مُدخلاً إضافياً
-// واحداً أسفل شاشة الرئيسية (وهذا كافٍ الآن، فكل شاشة أخرى تحصل أصلاً على
-// مُدخلها الحقيقي الخاص بها عبر showScreen). هذا المُدخل الإضافي هو من
-// يمنع خروج التطبيق فوراً من أول ضغطة رجوع وأنت في الرئيسية.
+// اعتراض زر الرجوع الفعلي بالجهاز: كل شاشة غير الرئيسية تحصل على مُدخلها
+// الحقيقي الخاص بها عبر showScreen. الرئيسية نفسها بلا مُدخل حماية، فأول
+// ضغطة رجوع وأنت فيها تخرج من التطبيق مباشرة بلا تأكيد.
 safeReplaceState({ screen: 'home' }, '', '#home');
-safePushState({ screen: 'home', guard: true }, '', '#home');
 
 window.addEventListener('popstate', (e) => {
   if(suppressNextPopstate){
@@ -2053,20 +2039,7 @@ window.addEventListener('popstate', (e) => {
     $('#exitListModalOverlay').style.display = 'flex';
     return;
   }
-  // الرئيسية: مُدخل الحماية استُهلك فعلاً → اطلب تأكيد الخروج من التطبيق
-  $('#exitAppModalOverlay').style.display = 'flex';
-});
-
-$('#exitAppModalCancel').addEventListener('click', () => {
-  $('#exitAppModalOverlay').style.display = 'none';
-  // نعيد مُدخل حماية الرئيسية (بضغطة زر، لا يوجد سباق توقيت هنا).
-  safePushState({ screen: 'home', guard: true }, '', '#home');
-});
-$('#exitAppModalConfirm').addEventListener('click', () => {
-  $('#exitAppModalOverlay').style.display = 'none';
-  // مُدخل الحماية استُهلك بالفعل (هذا ما أوصلنا هنا)، فتراجع واحد يكفي
-  // للخروج الفعلي من التطبيق.
-  history.back();
+  // الرئيسية: لا يوجد مُدخل حماية هنا أصلاً، فالمتصفح/النظام يتولى الخروج مباشرة.
 });
 
 renderScreenUI('home');
