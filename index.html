@@ -397,6 +397,28 @@
   </div>
 </div>
 
+<div id="exitAppModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">الخروج من التطبيق</div>
+    <div style="font-size:14px; color:var(--muted); margin:0 0 22px; line-height:1.7; text-align:center;">هل تريد الخروج من التطبيق؟</div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" id="exitAppModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="exitAppModalConfirm" style="flex:1 1 0; background:var(--danger); color:#fff; border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">خروج</button>
+    </div>
+  </div>
+</div>
+
+<div id="exitListModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">الخروج من جهات الاتصال</div>
+    <div style="font-size:14px; color:var(--muted); margin:0 0 22px; line-height:1.7; text-align:center;">هل تريد الخروج والعودة لصفحة رفع الملف؟ تأكد من حفظ تعديلاتك أولاً.</div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" id="exitListModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="exitListModalConfirm" style="flex:1 1 0; background:var(--danger); color:#fff; border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">خروج</button>
+    </div>
+  </div>
+</div>
+
 <div id="deleteModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">حذف جهة الاتصال</div>
@@ -1704,7 +1726,51 @@ $('#backBtn').addEventListener('click', () => {
   if(screens.list.classList.contains('active') && selectionMode) exitSelectionMode();
   else if(screens.edit.classList.contains('active')) { finalizeCurrentContact(); showScreen('list'); }
   else if(screens.duplicates.classList.contains('active')) showScreen('list');
+  else if(screens.list.classList.contains('active')) $('#exitListModalOverlay').style.display = 'flex';
   else showScreen('home');
+});
+
+$('#exitListModalCancel').addEventListener('click', () => {
+  $('#exitListModalOverlay').style.display = 'none';
+});
+$('#exitListModalConfirm').addEventListener('click', () => {
+  $('#exitListModalOverlay').style.display = 'none';
+  showScreen('home');
+});
+
+// Intercept the phone's hardware/system back button so it never exits
+// the app directly without a confirmation, and respects in-app navigation.
+let allowRealExit = false;
+history.pushState({ app: true }, '');
+
+window.addEventListener('popstate', () => {
+  if (allowRealExit) return;
+  history.pushState({ app: true }, '');
+
+  if ($('#exitAppModalOverlay').style.display === 'flex') return;
+  if ($('#exitListModalOverlay').style.display === 'flex') return;
+
+  if (screens.list.classList.contains('active') && selectionMode) {
+    exitSelectionMode();
+  } else if (screens.edit.classList.contains('active')) {
+    finalizeCurrentContact();
+    showScreen('list');
+  } else if (screens.duplicates.classList.contains('active')) {
+    showScreen('list');
+  } else if (screens.list.classList.contains('active')) {
+    $('#exitListModalOverlay').style.display = 'flex';
+  } else {
+    $('#exitAppModalOverlay').style.display = 'flex';
+  }
+});
+
+$('#exitAppModalCancel').addEventListener('click', () => {
+  $('#exitAppModalOverlay').style.display = 'none';
+});
+$('#exitAppModalConfirm').addEventListener('click', () => {
+  $('#exitAppModalOverlay').style.display = 'none';
+  allowRealExit = true;
+  history.back();
 });
 
 showScreen('home');
