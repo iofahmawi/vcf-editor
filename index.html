@@ -283,6 +283,7 @@
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
     <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:130px; z-index:30; overflow:hidden;">
       <button type="button" class="link-btn" id="menuFilterOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تصفية</button>
+      <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">توحيد الصورة</button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--accent); font-size:13px;">حفظ الملف</button>
@@ -939,6 +940,7 @@ function getFilteredContacts(filter=''){
 }
 
 let selectionMode = false;
+let sortReversed = false;
 let selectedIds = new Set();
 let longPressTimer = null;
 let longPressTriggered = false;
@@ -948,7 +950,7 @@ function renderList(filter=''){
   list.innerHTML = '';
   const f = filter.trim().toLowerCase();
   const prefix = $('#prefixFilter').value;
-  const filtered = getFilteredContacts(filter).slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
+  const filtered = getFilteredContacts(filter).slice().sort((a,b) => sortReversed ? b.fn.localeCompare(a.fn, 'ar') : a.fn.localeCompare(b.fn, 'ar'));
 
   $('#summaryText').textContent = selectionMode
     ? selectedIds.size + ' محدد'
@@ -1569,6 +1571,13 @@ $('#menuFilterOpt').addEventListener('click', () => {
   const sel = $('#prefixFilter');
   sel.focus();
   if(sel.showPicker){ try{ sel.showPicker(); }catch(e){ sel.click(); } } else { sel.click(); }
+});
+
+$('#menuSortOpt').addEventListener('click', () => {
+  sortReversed = !sortReversed;
+  $('#menuSortOpt').textContent = sortReversed ? 'فرز أبجدي' : 'فرز عكسي';
+  $('#listMenuDropdown').style.display = 'none';
+  renderList($('#search').value);
 });
 
 $('#menuSaveOpt').addEventListener('click', () => {
