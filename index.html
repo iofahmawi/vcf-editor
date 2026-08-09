@@ -316,7 +316,6 @@
   <div class="screen" id="screen-list">
     <div class="list-toolbar">
       <select id="prefixFilter" title="تصفية حسب أول 3 أرقام" style="position:absolute; opacity:0; width:1px; height:1px; pointer-events:none;">
-        <option value="">تصفية</option>
       </select>
     </div>
     <div style="display:flex; align-items:center; justify-content:space-between; margin:10px 2px 4px;">
@@ -919,8 +918,14 @@ function getFilteredContacts(filter=''){
   const prefix = $('#prefixFilter').value;
   return contacts.filter(c => {
     if(prefix){
-      const hasPrefix = c.phones.some(p => p.value.replace(/\D/g,'').startsWith(prefix));
-      if(!hasPrefix) return false;
+      if(prefix.startsWith('g:')){
+        const g = prefix.slice(2);
+        const cats = (c.categories || '').split(/[,،]/).map(s => s.trim());
+        if(!cats.includes(g)) return false;
+      } else {
+        const hasPrefix = c.phones.some(p => p.value.replace(/\D/g,'').startsWith(prefix));
+        if(!hasPrefix) return false;
+      }
     }
     if(!f) return true;
     const hay = [
@@ -1026,9 +1031,11 @@ function toggleSelect(id){
 }
 
 function syncFilterUI(){
-  const prefixActive = !!$('#prefixFilter').value;
+  const filterVal = $('#prefixFilter').value;
+  const prefixActive = !!filterVal && !filterVal.startsWith('g:');
+  const groupActive = filterVal.startsWith('g:');
   const searchActive = !!$('#search').value.trim();
-  const active = prefixActive || searchActive;
+  const active = prefixActive || groupActive || searchActive;
   $('#prefixReplaceBtn').style.display = (prefixActive && !selectionMode) ? 'inline-block' : 'none';
   $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'inline-block' : 'none';
   $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'inline-block';
@@ -1068,20 +1075,28 @@ function refreshPrefixOptions(){
   const sel = $('#prefixFilter');
   const current = sel.value;
   const prefixes = new Set();
+  const groups = new Set();
   for(const c of contacts){
     for(const p of c.phones){
       const digits = p.value.replace(/\D/g,'');
       if(digits.length >= 6) prefixes.add(digits.slice(0,3));
     }
+    (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean).forEach(g => groups.add(g));
   }
-  const sorted = Array.from(prefixes).sort();
-  sel.innerHTML = '<option value="">تصفية</option>' +
-    sorted.map(p => `<option value="${p}">${p}</option>`).join('');
-  sel.value = sorted.includes(current) ? current : '';
+  const sortedGroups = Array.from(groups).sort((a,b) => a.localeCompare(b, 'ar'));
+  const sortedPrefixes = Array.from(prefixes).sort();
+  const allValues = [...sortedGroups.map(g => 'g:'+g), ...sortedPrefixes];
+  const willBeActive = allValues.includes(current);
+  let html = willBeActive ? '<option value="">إلغاء التصفية</option>' : '';
+  html += sortedGroups.map(g => `<option value="g:${g}">${g}</option>`).join('');
+  html += sortedPrefixes.map(p => `<option value="${p}">${p}</option>`).join('');
+  sel.innerHTML = html;
+  sel.value = willBeActive ? current : '';
   syncFilterUI();
 }
 
 $('#prefixFilter').addEventListener('change', () => {
+  refreshPrefixOptions();
   syncFilterUI();
   renderList($('#search').value);
   if(listFilterActive()) pushFilterGuard();
