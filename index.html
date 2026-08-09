@@ -947,7 +947,7 @@ function renderList(filter=''){
 
   $('#summaryText').textContent = selectionMode
     ? selectedIds.size + ' محدد'
-    : (f || prefix ? filtered.length + ' نتيجة' : contacts.length + ' جهة اتصال');
+    : (f || prefix ? filtered.length + ' \u00A0نتيجة' : contacts.length + ' \u00A0جهة اتصال');
 
   for(const c of filtered){
     const row = document.createElement('div');
