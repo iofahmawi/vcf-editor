@@ -174,10 +174,10 @@
     padding:18px 16px; margin:14px 0; box-shadow: var(--shadow-sm);
   }
   #notesPanel{ padding-bottom:18px; }
-  .field-group{ margin-bottom:14px; }
+  .field-group{ margin-bottom:14px; position:relative; }
   .field-group:last-child{ margin-bottom:0; }
   label{ display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin-bottom:11px; }
-  input[type=text], input[type=tel], input[type=email], input[type=url], textarea, select{
+  input[type=text], input[type=tel], input[type=email], input[type=url], input[type=date], textarea, select{
     width:100%; padding:11px 14px; border-radius:10px;
     border:1px solid var(--border); background:transparent; color:var(--text);
     font-size:13.5px; font-family:var(--font-body); transition: all 0.2s; line-height:1.6;
@@ -360,6 +360,11 @@
         <input type="text" id="f-nick">
       </div>
       <div class="field-group">
+        <label>تاريخ الميلاد</label>
+        <input type="text" id="f-bday-display" readonly placeholder="اختر التاريخ" style="cursor:pointer;">
+        <input type="date" id="f-bday" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;">
+      </div>
+      <div class="field-group">
         <label>معلومات العمل</label>
         <input type="text" id="f-org">
       </div>
@@ -388,6 +393,10 @@
       <div class="field-group">
         <label>العنوان</label>
         <input type="text" id="f-adr">
+      </div>
+      <div class="field-group">
+        <label>المجموعات</label>
+        <input type="text" id="f-categories" placeholder="افصل بينها بفاصلة، مثال: عائلة، عمل">
       </div>
       <div class="field-group">
         <label>ملاحظات</label>
@@ -575,6 +584,16 @@ function escapeVal(v){
   return (v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
 }
 
+// يطبّع صيغ تاريخ الميلاد المختلفة القادمة من الهواتف (YYYYMMDD، YYYY-MM-DD،
+// أو مع وقت ملحق) إلى صيغة YYYY-MM-DD التي يفهمها input[type=date].
+function normalizeBdayForInput(v){
+  if(!v) return '';
+  const s = v.trim();
+  let m = s.match(/^(\d{4})-?(\d{2})-?(\d{2})/);
+  if(m) return m[1] + '-' + m[2] + '-' + m[3];
+  return '';
+}
+
 function encodeQuotedPrintable(str){
   const bytes = new TextEncoder().encode(str);
   let out = '';
@@ -634,7 +653,7 @@ function parseVCF(text){
   for(const line of lines){
     const upper = line.toUpperCase();
     if(upper.startsWith('BEGIN:VCARD')){
-      cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adr:'',
+      cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adr:'', categories:'', bday:'',
               phones:[], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null };
       continue;
     }
@@ -706,6 +725,12 @@ function parseVCF(text){
         break;
       case 'ADR':
         cur.adr = unescapeVal(value.split(';').filter(Boolean).join(', '));
+        break;
+      case 'CATEGORIES':
+        cur.categories = unescapeVal(value).split(',').map(s => s.trim()).filter(Boolean).join('، ');
+        break;
+      case 'BDAY':
+        cur.bday = normalizeBdayForInput(unescapeVal(value));
         break;
       case 'TEL': {
         const v = unescapeVal(value);
@@ -798,6 +823,12 @@ function buildVCF(contactsArr){
       out += 'URL;' + buildTypeParam(u.type) + ':' + escapeVal(u.value) + '\n';
     }
     if(c.adr) out += 'ADR:;;' + escapeVal(c.adr) + ';;;;\n';
+    if(c.categories){
+      const cats = c.categories.split(/[,،]/).map(s => s.trim()).filter(Boolean)
+        .map(v => v.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;'));
+      if(cats.length) out += 'CATEGORIES:' + cats.join(',') + '\n';
+    }
+    if(c.bday) out += 'BDAY:' + c.bday + '\n';
     if(c.note) out += 'NOTE:' + escapeVal(c.note) + '\n';
     if(c.photo){
       const m = c.photo.match(/^data:image\/(\w+);base64,(.*)$/s);
@@ -885,7 +916,7 @@ function getFilteredContacts(filter=''){
     }
     if(!f) return true;
     const hay = [
-      c.fn, c.nickname, c.org, c.title, c.adr, c.note,
+      c.fn, c.nickname, c.org, c.title, c.adr, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.emails.map(e => e.value),
       ...(c.urls || []).map(u => u.value)
@@ -1141,6 +1172,9 @@ function openEdit(id){
   $('#f-title').value = c.title || '';
   $('#f-note').value = c.note || '';
   $('#f-adr').value = c.adr || '';
+  $('#f-categories').value = c.categories || '';
+  $('#f-bday').value = c.bday || '';
+  $('#f-bday-display').value = c.bday ? c.bday.split('-').join('/') : '';
 
   renderMultiList('phoneList', c.phones, PHONE_TYPES, PHONE_LABELS, 'tel', true);
   renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
@@ -1435,6 +1469,17 @@ $('#f-org').addEventListener('input', () => { const c = contacts.find(x => x.id 
 $('#f-title').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.title = $('#f-title').value; });
 $('#f-adr').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.adr = $('#f-adr').value; });
 $('#f-note').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.note = $('#f-note').value; });
+$('#f-categories').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.categories = $('#f-categories').value; });
+$('#f-bday').addEventListener('input', () => {
+  const c = contacts.find(x => x.id === currentId);
+  if(c) c.bday = $('#f-bday').value;
+  $('#f-bday-display').value = $('#f-bday').value ? $('#f-bday').value.split('-').join('/') : '';
+});
+$('#f-bday-display').addEventListener('click', () => {
+  const el = $('#f-bday');
+  if (el.showPicker) { try { el.showPicker(); } catch(e) { el.click(); } }
+  else el.click();
+});
 
 // تُستدعى عند مغادرة شاشة التعديل: تنظّف القيم (اسم افتراضي عند الفراغ، حذف صفوف أرقام/إيميلات فارغة) وتحدّث القائمة
 function finalizeCurrentContact(){
@@ -1447,6 +1492,8 @@ function finalizeCurrentContact(){
   c.title = (c.title || '').trim();
   c.note = (c.note || '').trim();
   c.adr = (c.adr || '').trim();
+  c.categories = (c.categories || '').trim();
+  c.bday = (c.bday || '').trim();
   c.phones = c.phones.filter(p => p.value.trim() !== '');
   c.emails = c.emails.filter(e => e.value.trim() !== '');
   c.urls = (c.urls || []).filter(u => u.value.trim() !== '');
@@ -1473,7 +1520,7 @@ $('#deleteModalConfirm').addEventListener('click', () => {
 $('#headerDeleteBtn').addEventListener('click', deleteCurrentContact);
 
 $('#fabAdd').addEventListener('click', () => {
-  const c = { id:'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adr:'',
+  const c = { id:'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adr:'', categories:'', bday:'',
               phones:[{type:'CELL',value:''}], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null };
   contacts.push(c);
   openEdit(c.id);
@@ -1537,7 +1584,7 @@ function bulkPhotoMatchContacts(query){
   if(!f) return [];
   return contacts.filter(c => {
     const hay = [
-      c.fn, c.nickname, c.org, c.title, c.adr, c.note,
+      c.fn, c.nickname, c.org, c.title, c.adr, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.emails.map(e => e.value),
       ...(c.urls || []).map(u => u.value)
@@ -1839,6 +1886,9 @@ function buildMergePlan(ids, choices){
   const org = list.map(c => c.org).find(v => v && v.trim()) || '';
   const title = list.map(c => c.title).find(v => v && v.trim()) || '';
   const adr = list.map(c => c.adr).find(v => v && v.trim()) || '';
+  const bday = list.map(c => c.bday).find(v => v && v.trim()) || '';
+  const allCats = list.flatMap(c => (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean));
+  const categories = [...new Set(allCats)].join('، ');
   const notes = [...new Set(list.map(c => c.note).filter(v => v && v.trim()))];
   const note = notes.join('\n');
 
@@ -1880,7 +1930,7 @@ function buildMergePlan(ids, choices){
 
   return {
     conflicts: { name: nameConflict ? distinctNames : null, photo: photoConflict ? distinctPhotos : null },
-    merged: { id: list[0].id, fn, nickname, org, title, note, adr, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo },
+    merged: { id: list[0].id, fn, nickname, org, title, note, adr, categories, bday, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo },
     sourceIds: list.map(c => c.id)
   };
 }
