@@ -371,6 +371,9 @@
       <div class="section-title">البريد الإلكتروني</div>
       <div id="emailList"></div>
       <button class="add-link" id="addEmail">+ إضافة بريد</button>
+      <div class="section-title" style="margin-top:16px;">الموقع الإلكتروني</div>
+      <div id="urlList"></div>
+      <button class="add-link" id="addUrl">+ إضافة رابط</button>
     </div>
 
     <div class="panel" id="notesPanel">
@@ -624,7 +627,7 @@ function parseVCF(text){
     const upper = line.toUpperCase();
     if(upper.startsWith('BEGIN:VCARD')){
       cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adr:'',
-              phones:[], emails:[], rawExtra:[], version:'3.0', photo:null };
+              phones:[], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null };
       continue;
     }
     if(upper.startsWith('END:VCARD')){
@@ -712,6 +715,14 @@ function parseVCF(text){
         }
         break;
       }
+      case 'URL': {
+        const v = unescapeVal(value);
+        const t = typeParam || 'أخرى';
+        if(!cur.urls.some(u => u.value === v && u.type === t)){
+          cur.urls.push({ type: t, value: v });
+        }
+        break;
+      }
       case 'NICKNAME':
         cur.nickname = unescapeVal(value.split(';')[0]);
         break;
@@ -773,6 +784,10 @@ function buildVCF(contactsArr){
     for(const e of c.emails){
       if(!e.value) continue;
       out += 'EMAIL;' + buildTypeParam(e.type) + ':' + escapeVal(e.value) + '\n';
+    }
+    for(const u of (c.urls || [])){
+      if(!u.value) continue;
+      out += 'URL;' + buildTypeParam(u.type) + ':' + escapeVal(u.value) + '\n';
     }
     if(c.adr) out += 'ADR:;;' + escapeVal(c.adr) + ';;;;\n';
     if(c.note) out += 'NOTE:' + escapeVal(c.note) + '\n';
@@ -864,7 +879,8 @@ function getFilteredContacts(filter=''){
     const hay = [
       c.fn, c.nickname, c.org, c.title, c.adr, c.note,
       ...c.phones.map(p => p.value),
-      ...c.emails.map(e => e.value)
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value)
     ].join(' ').toLowerCase();
     return hay.includes(f);
   });
@@ -1103,6 +1119,8 @@ const PHONE_TYPES = ['CELL','HOME','WORK','FAX','OTHER'];
 const PHONE_LABELS = {CELL:'خلوي',HOME:'منزل',WORK:'عمل',FAX:'فاكس',OTHER:'أخرى'};
 const EMAIL_TYPES = ['HOME','WORK','OTHER'];
 const EMAIL_LABELS = {HOME:'شخصي',WORK:'عمل',OTHER:'أخرى'};
+const URL_TYPES = ['HOME','WORK','OTHER'];
+const URL_LABELS = {HOME:'شخصي',WORK:'عمل',OTHER:'أخرى'};
 
 function openEdit(id){
   currentId = id;
@@ -1118,6 +1136,7 @@ function openEdit(id){
 
   renderMultiList('phoneList', c.phones, PHONE_TYPES, PHONE_LABELS, 'tel', true);
   renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
+  renderMultiList('urlList', c.urls || [], URL_TYPES, URL_LABELS, 'url');
 
   $('#rawNote').textContent = c.rawExtra.length
     ? 'يحتوي هذا الجهة على ' + c.rawExtra.length + ' خاصية إضافية سيتم الاحتفاظ بها تلقائياً عند الحفظ.'
@@ -1249,7 +1268,7 @@ function renderMultiList(containerId, arr, types, labels, inputType, draggable){
       typeControl = document.createElement('input');
       typeControl.type = 'text';
       typeControl.className = 'type-text';
-      typeControl.placeholder = inputType === 'email' ? 'نوع البريد' : 'نوع الرقم';
+      typeControl.placeholder = inputType === 'email' ? 'نوع البريد' : (inputType === 'url' ? 'نوع الرابط' : 'نوع الرقم');
       typeControl.value = item.type || '';
       autosizeTypeText(typeControl);
       if(item.__justSwitchedToCustom){
@@ -1395,6 +1414,11 @@ $('#addEmail').addEventListener('click', () => {
   c.emails.push({type:'HOME',value:''});
   renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
 });
+$('#addUrl').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  c.urls.push({type:'HOME',value:''});
+  renderMultiList('urlList', c.urls, URL_TYPES, URL_LABELS, 'url');
+});
 
 // حفظ تلقائي: كل حقل يكتب مباشرة على جهة الاتصال الحالية فور الكتابة
 $('#f-fn').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.fn = $('#f-fn').value; });
@@ -1417,6 +1441,7 @@ function finalizeCurrentContact(){
   c.adr = (c.adr || '').trim();
   c.phones = c.phones.filter(p => p.value.trim() !== '');
   c.emails = c.emails.filter(e => e.value.trim() !== '');
+  c.urls = (c.urls || []).filter(u => u.value.trim() !== '');
   refreshPrefixOptions();
   renderList($('#search').value);
 }
@@ -1441,7 +1466,7 @@ $('#headerDeleteBtn').addEventListener('click', deleteCurrentContact);
 
 $('#fabAdd').addEventListener('click', () => {
   const c = { id:'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adr:'',
-              phones:[{type:'CELL',value:''}], emails:[], rawExtra:[], version:'3.0', photo:null };
+              phones:[{type:'CELL',value:''}], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null };
   contacts.push(c);
   openEdit(c.id);
 });
@@ -1506,7 +1531,8 @@ function bulkPhotoMatchContacts(query){
     const hay = [
       c.fn, c.nickname, c.org, c.title, c.adr, c.note,
       ...c.phones.map(p => p.value),
-      ...c.emails.map(e => e.value)
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value)
     ].join(' ').toLowerCase();
     return hay.includes(f);
   });
@@ -1831,11 +1857,22 @@ function buildMergePlan(ids, choices){
     }
   }
 
+  const urls = [];
+  const seenUrl = new Set();
+  for(const c of list){
+    for(const u of (c.urls || [])){
+      const key = (u.value || '').trim().toLowerCase();
+      if(!key || seenUrl.has(key)) continue;
+      seenUrl.add(key);
+      urls.push({ type: u.type, value: u.value });
+    }
+  }
+
   const rawExtra = list.map(c => c.rawExtra).find(r => r && r.length) || [];
 
   return {
     conflicts: { name: nameConflict ? distinctNames : null, photo: photoConflict ? distinctPhotos : null },
-    merged: { id: list[0].id, fn, nickname, org, title, note, adr, phones, emails, rawExtra, version: list[0].version || '3.0', photo },
+    merged: { id: list[0].id, fn, nickname, org, title, note, adr, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo },
     sourceIds: list.map(c => c.id)
   };
 }
