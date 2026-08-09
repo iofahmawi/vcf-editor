@@ -364,9 +364,16 @@
         <input type="text" id="f-bday-display" readonly placeholder="اختر التاريخ" style="cursor:pointer;">
         <input type="date" id="f-bday" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;">
       </div>
+    </div>
+
+    <div class="panel">
       <div class="field-group">
-        <label>معلومات العمل</label>
+        <label>الشركة</label>
         <input type="text" id="f-org">
+      </div>
+      <div class="field-group">
+        <label>القسم</label>
+        <input type="text" id="f-dept">
       </div>
       <div class="field-group">
         <label>المسمى الوظيفي</label>
@@ -396,7 +403,7 @@
       </div>
       <div class="field-group">
         <label>المجموعات</label>
-        <input type="text" id="f-categories" placeholder="افصل بينها بفاصلة، مثال: عائلة، عمل">
+        <input type="text" id="f-categories">
       </div>
       <div class="field-group">
         <label>ملاحظات</label>
@@ -713,8 +720,9 @@ function parseVCF(text){
         }
         break;
       case 'ORG': {
-        const orgVal = unescapeVal(value.split(';').join(' '));
-        if(orgVal) cur.org = orgVal;
+        const orgParts = value.split(';').map(unescapeVal);
+        if(orgParts[0]) cur.org = orgParts[0];
+        if(orgParts[1]) cur.dept = orgParts[1];
         break;
       }
       case 'TITLE':
@@ -808,7 +816,7 @@ function buildVCF(contactsArr){
     out += 'FN:' + escapeVal(c.fn) + '\n';
     out += 'N:' + escapeVal(c.fn) + ';;;;\n';
     if(c.nickname) out += 'NICKNAME:' + escapeVal(c.nickname) + '\n';
-    if(c.org) out += 'ORG:' + escapeVal(c.org) + '\n';
+    if(c.org || c.dept) out += 'ORG:' + escapeVal(c.org || '') + (c.dept ? ';' + escapeVal(c.dept) : '') + '\n';
     if(c.title) out += 'TITLE:' + escapeVal(c.title) + '\n';
     for(const p of c.phones){
       if(!p.value) continue;
@@ -916,7 +924,7 @@ function getFilteredContacts(filter=''){
     }
     if(!f) return true;
     const hay = [
-      c.fn, c.nickname, c.org, c.title, c.adr, c.note, c.categories,
+      c.fn, c.nickname, c.org, c.dept, c.title, c.adr, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.emails.map(e => e.value),
       ...(c.urls || []).map(u => u.value)
@@ -1169,6 +1177,7 @@ function openEdit(id){
   $('#f-fn').value = c.fn === '(بدون اسم)' ? '' : c.fn;
   $('#f-nick').value = c.nickname || '';
   $('#f-org').value = c.org || '';
+  $('#f-dept').value = c.dept || '';
   $('#f-title').value = c.title || '';
   $('#f-note').value = c.note || '';
   $('#f-adr').value = c.adr || '';
@@ -1466,6 +1475,7 @@ $('#addUrl').addEventListener('click', () => {
 $('#f-fn').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.fn = $('#f-fn').value; });
 $('#f-nick').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.nickname = $('#f-nick').value; });
 $('#f-org').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.org = $('#f-org').value; });
+$('#f-dept').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.dept = $('#f-dept').value; });
 $('#f-title').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.title = $('#f-title').value; });
 $('#f-adr').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.adr = $('#f-adr').value; });
 $('#f-note').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.note = $('#f-note').value; });
@@ -1489,6 +1499,7 @@ function finalizeCurrentContact(){
   c.fn = (c.fn || '').trim() || '(بدون اسم)';
   c.nickname = (c.nickname || '').trim();
   c.org = (c.org || '').trim();
+  c.dept = (c.dept || '').trim();
   c.title = (c.title || '').trim();
   c.note = (c.note || '').trim();
   c.adr = (c.adr || '').trim();
@@ -1584,7 +1595,7 @@ function bulkPhotoMatchContacts(query){
   if(!f) return [];
   return contacts.filter(c => {
     const hay = [
-      c.fn, c.nickname, c.org, c.title, c.adr, c.note, c.categories,
+      c.fn, c.nickname, c.org, c.dept, c.title, c.adr, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.emails.map(e => e.value),
       ...(c.urls || []).map(u => u.value)
