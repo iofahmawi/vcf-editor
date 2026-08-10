@@ -1364,6 +1364,7 @@ function renderMultiList(containerId, arr, types, labels, inputType, draggable){
     input.type = inputType;
     input.value = item.value;
     input.addEventListener('input', () => { item.value = input.value; });
+    input.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); input.blur(); } });
 
     const rm = document.createElement('button');
     rm.className = 'rm-btn'; rm.innerHTML = '✕';
@@ -2033,6 +2034,7 @@ function openMergeModal(plan){
         if(first) first.classList.add('selected');
       }
     });
+    customNameInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); customNameInput.blur(); } });
     group.appendChild(customNameInput);
     pendingMergeChoices.fn = plan.conflicts.name[0];
   }
