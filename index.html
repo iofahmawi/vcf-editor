@@ -516,7 +516,7 @@
   </div>
 </div>
 
-<div id="filterModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:25px;">
+<div id="filterModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:50px 20px;">
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:100%; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:16px; color:var(--text); text-align:center;">تصفية جهات الاتصال</div>
     <div id="filterModalBody"></div>
@@ -1684,6 +1684,8 @@ function openFilterModal(){
   }
 
   $('#filterModalOverlay').style.display = 'flex';
+  $('#filterModalOverlay .panel').scrollTop = 0;
+  safePushState({ screen: 'list', filterModalGuard: true }, '', '#list');
 }
 
 function closeFilterModal(){
@@ -2335,6 +2337,10 @@ function pushFilterGuard(){
 // - إن كان المقصود مغادرة الشاشة فعلاً (تعديل/تكرارات ← قائمة) فهذا
 //   تنقّل حقيقي يجب أن يُترجم إلى تراجع في سجل المتصفح → نُرجع false.
 function decideBackAction(){
+  if($('#filterModalOverlay').style.display === 'flex'){
+    closeFilterModal();
+    return true;
+  }
   if(screens.list.classList.contains('active') && selectionMode){
     exitSelectionMode();
     return true;
@@ -2387,6 +2393,10 @@ $('#exitListModalConfirm').addEventListener('click', () => {
 safeReplaceState({ screen: 'home' }, '', '#home');
 
 window.addEventListener('popstate', (e) => {
+  if($('#filterModalOverlay').style.display === 'flex'){
+    closeFilterModal();
+    return;
+  }
   if(suppressNextPopstate){
     suppressNextPopstate = false;
     const target = (e.state && e.state.screen) || 'home';
