@@ -1527,7 +1527,7 @@ function finalizeCurrentContact(){
   if(!currentId) return;
   const c = contacts.find(x => x.id === currentId);
   if(!c) return;
-  c.fn = (c.fn || '').trim() || '(بدون اسم)';
+  c.fn = (c.fn || '').trim();
   c.nickname = (c.nickname || '').trim();
   c.org = (c.org || '').trim();
   c.dept = (c.dept || '').trim();
@@ -1539,6 +1539,15 @@ function finalizeCurrentContact(){
   c.phones = c.phones.filter(p => p.value.trim() !== '');
   c.emails = c.emails.filter(e => e.value.trim() !== '');
   c.urls = (c.urls || []).filter(u => u.value.trim() !== '');
+
+  const isEmpty = !c.fn && !c.nickname && !c.org && !c.dept && !c.title && !c.note && !c.adr && !c.categories && !c.bday
+    && !c.photo && c.phones.length === 0 && c.emails.length === 0 && c.urls.length === 0;
+
+  if(isEmpty){
+    contacts = contacts.filter(x => x.id !== currentId);
+  } else {
+    c.fn = c.fn || '(بدون اسم)';
+  }
   refreshPrefixOptions();
   renderList($('#search').value);
 }
