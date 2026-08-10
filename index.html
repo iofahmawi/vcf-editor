@@ -514,7 +514,7 @@
     <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
     <div id="bulkPhotoPickWrap" style="display:flex; align-items:center; gap:12px; margin-bottom:14px; padding:10px; border:1px solid var(--border); border-radius:10px;">
       <div id="bulkPhotoPreviewWrap" style="width:52px; height:52px; border-radius:14px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:var(--card2); color:var(--muted); font-size:10px; text-align:center;">
-        <span id="bulkPhotoPreviewPlaceholder">بدون صورة</span>
+        <span id="bulkPhotoPreviewPlaceholder" style="font-size:8.5px; line-height:1.25; padding:0 2px;">بدون صورة</span>
         <img id="bulkPhotoPreviewImg" style="display:none; width:100%; height:100%; object-fit:cover;">
       </div>
       <button type="button" id="bulkPhotoPickBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13px; cursor:pointer;">اختر صورة</button>
@@ -1747,7 +1747,7 @@ $('#bulkPhotoInput').addEventListener('change', (e) => {
 
 function updateBulkPhotoConfirmState(){
   const btn = $('#bulkPhotoConfirm');
-  const ready = !!bulkPhotoDataUrl && bulkPhotoSelectedIds.size > 0;
+  const ready = bulkPhotoSelectedIds.size > 0;
   btn.style.opacity = ready ? '1' : '.5';
   btn.style.pointerEvents = ready ? 'auto' : 'none';
 }
@@ -1755,14 +1755,14 @@ function updateBulkPhotoConfirmState(){
 $('#bulkPhotoCancel').addEventListener('click', closeBulkPhotoModal);
 $('#bulkPhotoModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'bulkPhotoModalOverlay') closeBulkPhotoModal(); });
 $('#bulkPhotoConfirm').addEventListener('click', () => {
-  if(!bulkPhotoDataUrl || bulkPhotoSelectedIds.size === 0) return;
+  if(bulkPhotoSelectedIds.size === 0) return;
   let count = 0;
   contacts.forEach(c => {
-    if(bulkPhotoSelectedIds.has(c.id)){ c.photo = bulkPhotoDataUrl; count++; }
+    if(bulkPhotoSelectedIds.has(c.id)){ c.photo = bulkPhotoDataUrl || null; count++; }
   });
   closeBulkPhotoModal();
   renderList($('#search').value);
-  toast('تم تغيير صورة ' + count + ' جهة اتصال');
+  toast(bulkPhotoDataUrl ? ('تم تغيير صورة ' + count + ' جهة اتصال') : ('تم إزالة صورة ' + count + ' جهة اتصال'));
 });
 
 function normalizePhoneForDup(v){
