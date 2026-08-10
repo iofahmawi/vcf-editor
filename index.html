@@ -183,7 +183,7 @@
     font-size:13.5px; font-family:var(--font-body); transition: all 0.2s; line-height:1.6;
   }
   input:focus, textarea:focus, select:focus{ outline:none; border-color:var(--accent); background:transparent; box-shadow: none; }
-  #mergeCustomNameInput::placeholder{ color: #C4CBD6; }
+  .merge-custom-name::placeholder{ color: #C4CBD6; }
   .merge-custom-name{ border:none !important; border-radius:0 !important; transition: background 0.2s; }
   .merge-custom-name:focus{ background:var(--card2); }
   textarea{ resize:vertical; height:46px; min-height:46px; }
@@ -1924,11 +1924,24 @@ function buildMergePlan(ids, choices){
   const photoConflict = distinctPhotos.length > 1 || (distinctPhotos.length === 1 && anyMissingPhoto);
   const photo = ('photo' in choices) ? choices.photo : (distinctPhotos[0] || null);
 
-  const nickname = list.map(c => c.nickname).find(v => v && v.trim()) || '';
-  const org = list.map(c => c.org).find(v => v && v.trim()) || '';
-  const title = list.map(c => c.title).find(v => v && v.trim()) || '';
-  const adr = list.map(c => c.adr).find(v => v && v.trim()) || '';
-  const bday = list.map(c => c.bday).find(v => v && v.trim()) || '';
+  function resolveField(key){
+    const distinct = [...new Set(list.map(c => (c[key] || '').trim()).filter(Boolean))];
+    const conflict = distinct.length > 1;
+    const value = (choices[key] !== undefined) ? choices[key] : (distinct[0] || '');
+    return { distinct, conflict, value };
+  }
+  const nicknameR = resolveField('nickname');
+  const orgR = resolveField('org');
+  const deptR = resolveField('dept');
+  const titleR = resolveField('title');
+  const adrR = resolveField('adr');
+  const bdayR = resolveField('bday');
+  const nickname = nicknameR.value;
+  const org = orgR.value;
+  const dept = deptR.value;
+  const title = titleR.value;
+  const adr = adrR.value;
+  const bday = bdayR.value;
   const allCats = list.flatMap(c => (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean));
   const categories = [...new Set(allCats)].join('، ');
   const notes = [...new Set(list.map(c => c.note).filter(v => v && v.trim()))];
@@ -1971,8 +1984,17 @@ function buildMergePlan(ids, choices){
   const rawExtra = list.map(c => c.rawExtra).find(r => r && r.length) || [];
 
   return {
-    conflicts: { name: nameConflict ? distinctNames : null, photo: photoConflict ? distinctPhotos : null },
-    merged: { id: list[0].id, fn, nickname, org, title, note, adr, categories, bday, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo },
+    conflicts: {
+      name: nameConflict ? distinctNames : null,
+      photo: photoConflict ? distinctPhotos : null,
+      nickname: nicknameR.conflict ? nicknameR.distinct : null,
+      org: orgR.conflict ? orgR.distinct : null,
+      dept: deptR.conflict ? deptR.distinct : null,
+      title: titleR.conflict ? titleR.distinct : null,
+      adr: adrR.conflict ? adrR.distinct : null,
+      bday: bdayR.conflict ? bdayR.distinct : null
+    },
+    merged: { id: list[0].id, fn, nickname, org, dept, title, note, adr, categories, bday, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo },
     sourceIds: list.map(c => c.id)
   };
 }
@@ -1985,7 +2007,8 @@ function startMerge(ids){
   pendingMergeChoices = {};
   const plan = buildMergePlan(ids, pendingMergeChoices);
   if(!plan) return;
-  if(!plan.conflicts.name && !plan.conflicts.photo){
+  const hasAnyConflict = Object.values(plan.conflicts).some(Boolean);
+  if(!hasAnyConflict){
     finalizeMerge(plan);
     return;
   }
@@ -2038,6 +2061,59 @@ function openMergeModal(plan){
     group.appendChild(customNameInput);
     pendingMergeChoices.fn = plan.conflicts.name[0];
   }
+
+  const textConflictFields = [
+    { key: 'nickname', label: 'اللقب', placeholder: 'اكتب لقبًا آخر' },
+    { key: 'org', label: 'الشركة', placeholder: 'اكتب اسم شركة آخر' },
+    { key: 'dept', label: 'القسم', placeholder: 'اكتب قسمًا آخر' },
+    { key: 'title', label: 'المسمى الوظيفي', placeholder: 'اكتب مسمى آخر' },
+    { key: 'adr', label: 'العنوان', placeholder: 'اكتب عنوانًا آخر' },
+    { key: 'bday', label: 'تاريخ الميلاد', placeholder: 'اكتب تاريخًا آخر' }
+  ];
+
+  textConflictFields.forEach(({ key, label: labelText, placeholder }) => {
+    if(!plan.conflicts[key]) return;
+    const options = plan.conflicts[key];
+    const label = document.createElement('div');
+    label.className = 'merge-field-label';
+    label.textContent = labelText;
+    body.appendChild(label);
+    const group = document.createElement('div');
+    group.className = 'merge-name-group';
+    body.appendChild(group);
+    let customInput;
+    options.forEach((val, i) => {
+      const opt = document.createElement('div');
+      opt.className = 'merge-opt' + (i === 0 ? ' selected' : '');
+      opt.textContent = val;
+      opt.addEventListener('click', () => {
+        group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        pendingMergeChoices[key] = val;
+        if(customInput) customInput.value = '';
+      });
+      group.appendChild(opt);
+    });
+    customInput = document.createElement('input');
+    customInput.type = 'text';
+    customInput.placeholder = placeholder;
+    customInput.className = 'merge-custom-name';
+    customInput.style.cssText = 'width:100%; box-sizing:border-box; padding:10px 12px; background:transparent; color:var(--text); font-size:13.5px; font-weight:600; font-family:var(--font-body); line-height:normal;';
+    customInput.addEventListener('input', () => {
+      group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+      const v = customInput.value.trim();
+      if(v){
+        pendingMergeChoices[key] = v;
+      } else {
+        pendingMergeChoices[key] = options[0];
+        const first = group.querySelector('.merge-opt');
+        if(first) first.classList.add('selected');
+      }
+    });
+    customInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); customInput.blur(); } });
+    group.appendChild(customInput);
+    pendingMergeChoices[key] = options[0];
+  });
 
   if(plan.conflicts.photo){
     const label = document.createElement('div');
