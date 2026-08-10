@@ -183,6 +183,9 @@
     font-size:13.5px; font-family:var(--font-body); transition: all 0.2s; line-height:1.6;
   }
   input:focus, textarea:focus, select:focus{ outline:none; border-color:var(--accent); background:transparent; box-shadow: none; }
+  #mergeCustomNameInput::placeholder{ color: #C4CBD6; }
+  .merge-custom-name{ border:none !important; border-radius:0 !important; transition: background 0.2s; }
+  .merge-custom-name:focus{ background:var(--card2); }
   textarea{ resize:vertical; height:46px; min-height:46px; }
   
   .multi-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; touch-action:pan-y; }
@@ -249,11 +252,12 @@
 
   /* ---- Merge conflict options ---- */
   .merge-field-label{ font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 8px; }
+  .merge-name-group{ border:1.5px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:4px; }
   .merge-opt{
-    border:1.5px solid var(--border); border-radius:10px; padding:10px 12px; margin-bottom:12px;
-    font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer; transition: border-color 0.2s, background 0.2s;
+    border-bottom:1px solid var(--border); padding:10px 12px;
+    font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer; transition: background 0.2s, color 0.2s;
   }
-  .merge-opt.selected{ border-color:var(--accent); background:var(--card2); color:var(--accent); }
+  .merge-opt.selected{ background:var(--card2); color:var(--accent); }
   .merge-photo-row{ display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
   .merge-photo-opt{
     width:64px; height:64px; border-radius:14px; border:2px solid var(--border); cursor:pointer;
@@ -1994,35 +1998,40 @@ function openMergeModal(plan){
     label.className = 'merge-field-label';
     label.textContent = 'الاسم';
     body.appendChild(label);
+    const group = document.createElement('div');
+    group.className = 'merge-name-group';
+    body.appendChild(group);
     let customNameInput;
     plan.conflicts.name.forEach((name, i) => {
       const opt = document.createElement('div');
       opt.className = 'merge-opt' + (i === 0 ? ' selected' : '');
       opt.textContent = name;
       opt.addEventListener('click', () => {
-        body.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+        group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
         opt.classList.add('selected');
         pendingMergeChoices.fn = name;
         if(customNameInput) customNameInput.value = '';
       });
-      body.appendChild(opt);
+      group.appendChild(opt);
     });
     customNameInput = document.createElement('input');
     customNameInput.type = 'text';
-    customNameInput.placeholder = 'أو اكتب اسمًا آخر';
-    customNameInput.style.cssText = 'width:100%; box-sizing:border-box; padding:10px 12px; border-radius:10px; border:1.5px solid var(--border); background:transparent; color:var(--text); font-size:13.5px; font-weight:600; font-family:var(--font-body); line-height:normal;';
+    customNameInput.id = 'mergeCustomNameInput';
+    customNameInput.placeholder = 'اكتب اسمًا آخر';
+    customNameInput.className = 'merge-custom-name';
+    customNameInput.style.cssText = 'width:100%; box-sizing:border-box; padding:10px 12px; background:transparent; color:var(--text); font-size:13.5px; font-weight:600; font-family:var(--font-body); line-height:normal;';
     customNameInput.addEventListener('input', () => {
-      body.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+      group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
       const v = customNameInput.value.trim();
       if(v){
         pendingMergeChoices.fn = v;
       } else {
         pendingMergeChoices.fn = plan.conflicts.name[0];
-        const first = body.querySelector('.merge-opt');
+        const first = group.querySelector('.merge-opt');
         if(first) first.classList.add('selected');
       }
     });
-    body.appendChild(customNameInput);
+    group.appendChild(customNameInput);
     pendingMergeChoices.fn = plan.conflicts.name[0];
   }
 
