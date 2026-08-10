@@ -325,9 +325,11 @@
     </div>
     <div style="display:flex; align-items:center; justify-content:space-between; margin:10px 2px 4px;">
       <div class="summary" id="summaryText" style="margin:0;"></div>
-      <button type="button" class="link-btn merge-selected" id="mergeSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">دمج المحدد</button>
+      <div style="display:flex; align-items:center; gap:9px;">
+        <button type="button" class="link-btn merge-selected" id="mergeSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">دمج</button>
+        <button type="button" class="link-btn delete-selected" id="deleteSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">حذف</button>
+      </div>
       <button class="link-btn add" id="fabAdd" style="min-width:0; white-space:nowrap;">+ إضافة جهة اتصال</button>
-      <button type="button" class="link-btn delete-selected" id="deleteSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">حذف المحدد</button>
       <button type="button" class="link-btn" id="prefixReplaceBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 7px 10px; white-space:nowrap;">تعديل البادئة</button>
       <button type="button" class="link-btn" id="prefixDeleteBtn" style="display:none; color:var(--danger); background: rgba(239, 68, 68, 0.07); padding: 7px 10px; white-space:nowrap;">حذف النتائج</button>
     </div>
@@ -957,7 +959,7 @@ function renderList(filter=''){
   const filtered = getFilteredContacts(filter).slice().sort((a,b) => sortReversed ? b.fn.localeCompare(a.fn, 'ar') : a.fn.localeCompare(b.fn, 'ar'));
 
   $('#summaryText').textContent = selectionMode
-    ? selectedIds.size + ' محدد'
+    ? selectedIds.size + ' \u00A0محدد'
     : (f || prefix ? filtered.length + ' \u00A0نتيجة' : contacts.length + ' \u00A0جهة اتصال');
 
   for(const c of filtered){
@@ -1045,12 +1047,11 @@ function syncFilterUI(){
   $('#prefixReplaceBtn').style.display = (prefixActive && !selectionMode) ? 'inline-block' : 'none';
   $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'inline-block' : 'none';
   $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'inline-block';
-  $('#summaryText').style.display = selectionMode ? 'none' : 'block';
-  $('#mergeSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
+  $('#summaryText').style.display = 'block';
+  $('#mergeSelectedBtn').style.display = (selectionMode && selectedIds.size >= 2 && selectedIds.size <= 3) ? 'inline-block' : 'none';
   $('#deleteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
   if(selectionMode){
-    $('#deleteSelectedBtn').textContent = 'حذف المحدد';
-    $('#mergeSelectedBtn').disabled = selectedIds.size < 2 || selectedIds.size > 3;
+    $('#deleteSelectedBtn').textContent = 'حذف';
   }
 }
 
