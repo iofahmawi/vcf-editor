@@ -1919,7 +1919,8 @@ function buildMergePlan(ids, choices){
   const fn = choices.fn || distinctNames[0] || '(بدون اسم)';
 
   const distinctPhotos = [...new Set(list.map(c => c.photo).filter(Boolean))];
-  const photoConflict = distinctPhotos.length > 1;
+  const anyMissingPhoto = list.some(c => !c.photo);
+  const photoConflict = distinctPhotos.length > 1 || (distinctPhotos.length === 1 && anyMissingPhoto);
   const photo = ('photo' in choices) ? choices.photo : (distinctPhotos[0] || null);
 
   const nickname = list.map(c => c.nickname).find(v => v && v.trim()) || '';
