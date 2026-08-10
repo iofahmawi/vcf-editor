@@ -199,11 +199,16 @@
     box-sizing:border-box; padding:11px 8px; line-height:1.6;
   }
   .multi-row.row-email select, .multi-row.row-email input.type-text,
-  .multi-row.row-url select, .multi-row.row-url input.type-text{
+  .multi-row.row-url select, .multi-row.row-url input.type-text,
+  .multi-row.row-address select, .multi-row.row-address input.type-text{
     flex:0 0 102px; width:102px; padding:11px 6px;
   }
   .multi-row input[type=email], .multi-row input[type=url]{
     flex:1; min-width:0; direction: ltr; text-align: left; border-radius: 10px;
+    box-sizing:border-box; padding:11px 8px; line-height:1.6;
+  }
+  .multi-row.row-address input[type=text]:not(.type-text){
+    flex:1; min-width:0; border-radius: 10px;
     box-sizing:border-box; padding:11px 8px; line-height:1.6;
   }
   .rm-btn{ background:var(--danger); color:white; border:none; width: 40px; height: 40px; border-radius: 10px; font-size:14px; font-weight:bold; cursor:pointer; display:none; align-items:center; justify-content:center; flex-shrink:0; }
@@ -426,7 +431,8 @@
     <div class="panel" id="notesPanel">
       <div class="field-group">
         <label>العنوان</label>
-        <input type="text" id="f-adr">
+        <div id="adrList"></div>
+        <button class="add-link" id="addAdr">+ إضافة عنوان</button>
       </div>
       <div class="field-group">
         <label>المجموعات</label>
@@ -695,7 +701,7 @@ function parseVCF(text){
   for(const line of lines){
     const upper = line.toUpperCase();
     if(upper.startsWith('BEGIN:VCARD')){
-      cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adr:'', categories:'', bday:'',
+      cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adrs:[], categories:'', bday:'',
               phones:[], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null };
       continue;
     }
@@ -736,7 +742,7 @@ function parseVCF(text){
         }
         typeParam = typeParam || label;
       }
-      else if(!p.includes('=') && !/^(ENCODING|CHARSET)/i.test(p)){
+      else if(!p.includes('=') && !/^(ENCODING|CHARSET|PREF)/i.test(p)){
         typeParam = typeParam || p;
       }
     }
@@ -766,9 +772,15 @@ function parseVCF(text){
       case 'NOTE':
         cur.note = unescapeVal(value);
         break;
-      case 'ADR':
-        cur.adr = unescapeVal(value.split(';').filter(Boolean).join(', '));
+      case 'ADR': {
+        const v = unescapeVal(value.split(';').filter(Boolean).join(', '));
+        const t = typeParam || 'أخرى';
+        if(!cur.adrs) cur.adrs = [];
+        if(v && !cur.adrs.some(a => a.value === v && a.type === t)){
+          cur.adrs.push({ type: t, value: v });
+        }
         break;
+      }
       case 'CATEGORIES':
         cur.categories = unescapeVal(value).split(',').map(s => s.trim()).filter(Boolean).join('، ');
         break;
@@ -865,7 +877,10 @@ function buildVCF(contactsArr){
       if(!u.value) continue;
       out += 'URL;' + buildTypeParam(u.type) + ':' + escapeVal(u.value) + '\n';
     }
-    if(c.adr) out += 'ADR:;;' + escapeVal(c.adr) + ';;;;\n';
+    for(const a of (c.adrs || [])){
+      if(!a.value) continue;
+      out += 'ADR;' + buildTypeParam(a.type) + ':;;' + escapeVal(a.value) + ';;;;\n';
+    }
     if(c.categories){
       const cats = c.categories.split(/[,،]/).map(s => s.trim()).filter(Boolean)
         .map(v => v.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;'));
@@ -972,10 +987,11 @@ function getFilteredContacts(filter=''){
     }
     if(!f) return true;
     const hay = [
-      c.fn, c.nickname, c.org, c.dept, c.title, c.adr, c.note, c.categories,
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.emails.map(e => e.value),
-      ...(c.urls || []).map(u => u.value)
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
     ].join(' ').toLowerCase();
     return hay.includes(f);
   });
@@ -1227,6 +1243,8 @@ const EMAIL_TYPES = ['HOME','WORK','OTHER'];
 const EMAIL_LABELS = {HOME:'شخصي',WORK:'عمل',OTHER:'أخرى'};
 const URL_TYPES = ['HOME','WORK','OTHER'];
 const URL_LABELS = {HOME:'شخصي',WORK:'عمل',OTHER:'أخرى'};
+const ADR_TYPES = ['HOME','WORK','OTHER'];
+const ADR_LABELS = {HOME:'منزل',WORK:'عمل',OTHER:'آخر'};
 
 function openEdit(id){
   currentId = id;
@@ -1240,7 +1258,7 @@ function openEdit(id){
   $('#f-title').value = c.title || '';
   $('#f-note').value = c.note || '';
   autoGrowNote();
-  $('#f-adr').value = c.adr || '';
+
   $('#f-categories').value = c.categories || '';
   $('#f-bday').value = c.bday || '';
   $('#f-bday-display').value = c.bday ? c.bday.split('-').join('/') : '';
@@ -1248,6 +1266,7 @@ function openEdit(id){
   renderMultiList('phoneList', c.phones, PHONE_TYPES, PHONE_LABELS, 'tel', true);
   renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
   renderMultiList('urlList', c.urls || [], URL_TYPES, URL_LABELS, 'url');
+  renderMultiList('adrList', c.adrs || [], ADR_TYPES, ADR_LABELS, 'address');
 
   $('#rawNote').textContent = c.rawExtra.length
     ? 'يحتوي هذا الجهة على ' + c.rawExtra.length + ' خاصية إضافية سيتم الاحتفاظ بها تلقائياً عند الحفظ.'
@@ -1379,7 +1398,7 @@ function renderMultiList(containerId, arr, types, labels, inputType, draggable){
       typeControl = document.createElement('input');
       typeControl.type = 'text';
       typeControl.className = 'type-text';
-      typeControl.placeholder = inputType === 'email' ? 'نوع البريد' : (inputType === 'url' ? 'نوع الرابط' : 'نوع الرقم');
+      typeControl.placeholder = inputType === 'email' ? 'نوع البريد' : (inputType === 'url' ? 'نوع الرابط' : (inputType === 'address' ? 'نوع العنوان' : 'نوع الرقم'));
       typeControl.value = item.type || '';
       autosizeTypeText(typeControl);
       if(item.__justSwitchedToCustom){
@@ -1399,7 +1418,7 @@ function renderMultiList(containerId, arr, types, labels, inputType, draggable){
     }
 
     const input = document.createElement('input');
-    input.type = inputType;
+    input.type = (inputType === 'address') ? 'text' : inputType;
     input.value = item.value;
     input.addEventListener('input', () => { item.value = input.value; });
     input.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); input.blur(); } });
@@ -1526,6 +1545,12 @@ $('#addEmail').addEventListener('click', () => {
   c.emails.push({type:'HOME',value:''});
   renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
 });
+$('#addAdr').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  if(!c.adrs) c.adrs = [];
+  c.adrs.push({type:'HOME',value:''});
+  renderMultiList('adrList', c.adrs, ADR_TYPES, ADR_LABELS, 'address');
+});
 $('#addUrl').addEventListener('click', () => {
   const c = contacts.find(x => x.id === currentId);
   c.urls.push({type:'HOME',value:''});
@@ -1538,7 +1563,6 @@ $('#f-nick').addEventListener('input', () => { const c = contacts.find(x => x.id
 $('#f-org').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.org = $('#f-org').value; });
 $('#f-dept').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.dept = $('#f-dept').value; });
 $('#f-title').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.title = $('#f-title').value; });
-$('#f-adr').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.adr = $('#f-adr').value; });
 function autoGrowNote(){ const el = $('#f-note'); el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 46) + 'px'; }
 $('#f-note').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.note = $('#f-note').value; autoGrowNote(); });
 $('#f-categories').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.categories = $('#f-categories').value; });
@@ -1564,15 +1588,15 @@ function finalizeCurrentContact(){
   c.dept = (c.dept || '').trim();
   c.title = (c.title || '').trim();
   c.note = (c.note || '').trim();
-  c.adr = (c.adr || '').trim();
   c.categories = (c.categories || '').trim();
   c.bday = (c.bday || '').trim();
   c.phones = c.phones.filter(p => p.value.trim() !== '');
   c.emails = c.emails.filter(e => e.value.trim() !== '');
   c.urls = (c.urls || []).filter(u => u.value.trim() !== '');
+  c.adrs = (c.adrs || []).filter(a => a.value.trim() !== '');
 
-  const isEmpty = !c.fn && !c.nickname && !c.org && !c.dept && !c.title && !c.note && !c.adr && !c.categories && !c.bday
-    && !c.photo && c.phones.length === 0 && c.emails.length === 0 && c.urls.length === 0;
+  const isEmpty = !c.fn && !c.nickname && !c.org && !c.dept && !c.title && !c.note && !c.categories && !c.bday
+    && !c.photo && c.phones.length === 0 && c.emails.length === 0 && c.urls.length === 0 && c.adrs.length === 0;
 
   if(isEmpty){
     contacts = contacts.filter(x => x.id !== currentId);
@@ -1602,7 +1626,7 @@ $('#deleteModalConfirm').addEventListener('click', () => {
 $('#headerDeleteBtn').addEventListener('click', deleteCurrentContact);
 
 $('#fabAdd').addEventListener('click', () => {
-  const c = { id:'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adr:'', categories:'', bday:'',
+  const c = { id:'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adrs:[], categories:'', bday:'',
               phones:[{type:'CELL',value:''}], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null };
   contacts.push(c);
   openEdit(c.id);
@@ -1743,10 +1767,11 @@ function bulkPhotoMatchContacts(query){
   if(!f) return [];
   return contacts.filter(c => {
     const hay = [
-      c.fn, c.nickname, c.org, c.dept, c.title, c.adr, c.note, c.categories,
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.emails.map(e => e.value),
-      ...(c.urls || []).map(u => u.value)
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
     ].join(' ').toLowerCase();
     return hay.includes(f);
   });
@@ -2052,13 +2077,11 @@ function buildMergePlan(ids, choices){
   const orgR = resolveField('org');
   const deptR = resolveField('dept');
   const titleR = resolveField('title');
-  const adrR = resolveField('adr');
   const bdayR = resolveField('bday');
   const nickname = nicknameR.value;
   const org = orgR.value;
   const dept = deptR.value;
   const title = titleR.value;
-  const adr = adrR.value;
   const bday = bdayR.value;
   const allCats = list.flatMap(c => (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean));
   const categories = [...new Set(allCats)].join('، ');
@@ -2099,6 +2122,17 @@ function buildMergePlan(ids, choices){
     }
   }
 
+  const adrs = [];
+  const seenAdr = new Set();
+  for(const c of list){
+    for(const a of (c.adrs || [])){
+      const key = (a.value || '').trim().toLowerCase();
+      if(!key || seenAdr.has(key)) continue;
+      seenAdr.add(key);
+      adrs.push({ type: a.type, value: a.value });
+    }
+  }
+
   const rawExtra = list.map(c => c.rawExtra).find(r => r && r.length) || [];
 
   return {
@@ -2109,10 +2143,9 @@ function buildMergePlan(ids, choices){
       org: orgR.conflict ? orgR.distinct : null,
       dept: deptR.conflict ? deptR.distinct : null,
       title: titleR.conflict ? titleR.distinct : null,
-      adr: adrR.conflict ? adrR.distinct : null,
       bday: bdayR.conflict ? bdayR.distinct : null
     },
-    merged: { id: list[0].id, fn, nickname, org, dept, title, note, adr, categories, bday, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo },
+    merged: { id: list[0].id, fn, nickname, org, dept, title, note, adrs, categories, bday, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo },
     sourceIds: list.map(c => c.id)
   };
 }
@@ -2185,7 +2218,6 @@ function openMergeModal(plan){
     { key: 'org', label: 'الشركة', placeholder: 'اكتب اسم شركة آخر' },
     { key: 'dept', label: 'القسم', placeholder: 'اكتب قسمًا آخر' },
     { key: 'title', label: 'المسمى الوظيفي', placeholder: 'اكتب مسمى آخر' },
-    { key: 'adr', label: 'العنوان', placeholder: 'اكتب عنوانًا آخر' },
     { key: 'bday', label: 'تاريخ الميلاد', placeholder: 'اكتب تاريخًا آخر' }
   ];
 
