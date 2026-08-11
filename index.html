@@ -99,8 +99,8 @@
     display:inline-flex; align-items:center; justify-content:center;
     background:var(--accent); color:#FFFFFF;
     border:none; border-radius:10px;
-    padding:11px 22px;
-    font-family:var(--font-body); font-weight:700; font-size:13.5px;
+    padding:13px 22px;
+    font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal;
     cursor:pointer; box-shadow: none;
     transition: all 0.2s;
   }
@@ -467,8 +467,8 @@
       <input type="tel" id="prefixModalInput" inputmode="tel" style="direction:ltr; text-align:left; font-size:15.5px;">
     </div>
     <div style="display:flex; gap:8px; margin-top:18px;">
-      <button type="button" id="prefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
-      <button type="button" id="prefixModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:11px;">تعديل</button>
+      <button type="button" id="prefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="prefixModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تعديل</button>
     </div>
   </div>
 </div>
@@ -500,8 +500,8 @@
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">حذف النتائج</div>
     <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;" id="prefixDeleteModalDesc"></div>
     <div style="display:flex; gap:8px; margin-top:2px;">
-      <button type="button" id="prefixDeleteModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
-      <button type="button" id="prefixDeleteModalConfirm" style="flex:1 1 0; margin:0; padding:11px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+      <button type="button" id="prefixDeleteModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="prefixDeleteModalConfirm" style="flex:1 1 0; margin:0; padding:13px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
     </div>
   </div>
 </div>
@@ -511,8 +511,8 @@
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">حذف جهات الاتصال</div>
     <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;" id="deleteSelectedModalDesc"></div>
     <div style="display:flex; gap:8px; margin-top:2px;">
-      <button type="button" id="deleteSelectedModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
-      <button type="button" id="deleteSelectedModalConfirm" style="flex:1 1 0; margin:0; padding:11px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+      <button type="button" id="deleteSelectedModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="deleteSelectedModalConfirm" style="flex:1 1 0; margin:0; padding:13px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
     </div>
   </div>
 </div>
@@ -523,8 +523,8 @@
     <div style="font-size:13px; color:var(--muted); margin:15px 0 4px; line-height:1.6; text-align:center;">يوجد تعارض — اختر ما تريد الاحتفاظ به</div>
     <div id="mergeModalBody"></div>
     <div style="display:flex; gap:8px; margin-top:18px;">
-      <button type="button" id="mergeModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
-      <button type="button" id="mergeModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:11px;">دمج</button>
+      <button type="button" id="mergeModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="mergeModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">دمج</button>
     </div>
   </div>
 </div>
@@ -533,7 +533,7 @@
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:100%; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:21px; color:var(--text); text-align:center;">تصفية جهات الاتصال</div>
     <div id="filterModalBody"></div>
-    <button type="button" id="filterModalCancel" style="margin-top:20px; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إغلاق</button>
+    <button type="button" id="filterModalCancel" style="margin-top:20px; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إغلاق</button>
   </div>
 </div>
 
@@ -556,12 +556,12 @@
         <span id="bulkPhotoPreviewPlaceholder" style="font-size:8.5px; line-height:1.25; padding:0 2px;">بدون صورة</span>
         <img id="bulkPhotoPreviewImg" style="display:none; width:100%; height:100%; object-fit:cover;">
       </div>
-      <button type="button" id="bulkPhotoPickBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13px; cursor:pointer;">اختر صورة</button>
+      <button type="button" id="bulkPhotoPickBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">اختر صورة</button>
     </div>
 
     <div style="display:flex; gap:8px;">
-      <button type="button" id="bulkPhotoCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:13.5px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
-      <button type="button" id="bulkPhotoConfirm" class="btn" style="flex:1 1 0; margin:0; padding:11px;">تطبيق</button>
+      <button type="button" id="bulkPhotoCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="bulkPhotoConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
     </div>
   </div>
 </div>
