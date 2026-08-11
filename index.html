@@ -281,6 +281,13 @@
   .filter-empty{ text-align:center; color:var(--muted); font-size:13px; padding:20px 0; }
   #filterModalOverlay .panel{ scrollbar-width:none; -ms-overflow-style:none; }
   #filterModalOverlay .panel::-webkit-scrollbar{ display:none; width:0; height:0; }
+  .numbers-scroll-inner{
+    max-height:381px; overflow-y:auto; overflow-x:hidden;
+    margin:0; border-radius:10px; scrollbar-width:thin; scrollbar-color: var(--border) transparent;
+  }
+  .numbers-scroll-inner::-webkit-scrollbar{ width:5px; }
+  .numbers-scroll-inner::-webkit-scrollbar-track{ background:transparent; }
+  .numbers-scroll-inner::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
   .merge-photo-row{ display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
   .merge-photo-opt{
     width:56px; height:56px; border-radius:12px; border:2px solid var(--border); cursor:pointer;
@@ -1680,32 +1687,24 @@ function openFilterModal(){
   allGroup.appendChild(makeOpt('عرض الكل', ''));
   body.appendChild(allGroup);
 
-  if(groups.length){
-    const label = document.createElement('div');
-    label.className = 'filter-section-label';
-    label.textContent = 'المجموعات';
-    body.appendChild(label);
-    const group = document.createElement('div');
-    group.className = 'filter-group';
-    groups.forEach(o => group.appendChild(makeOpt(o.textContent, o.value)));
-    body.appendChild(group);
-  }
-
   if(prefixes.length){
     const label = document.createElement('div');
     label.className = 'filter-section-label';
     label.textContent = 'أول 3 أرقام';
     body.appendChild(label);
     const group = document.createElement('div');
-    group.className = 'filter-group';
-    prefixes.forEach(o => group.appendChild(makeOpt(o.textContent, o.value)));
+    group.className = 'filter-group numbers-scroll';
+    const inner = document.createElement('div');
+    inner.className = 'numbers-scroll-inner';
+    prefixes.forEach(o => inner.appendChild(makeOpt(o.textContent, o.value)));
+    group.appendChild(inner);
     body.appendChild(group);
   }
 
-  if(!groups.length && !prefixes.length){
+  if(!prefixes.length){
     const empty = document.createElement('div');
     empty.className = 'filter-empty';
-    empty.textContent = 'لا توجد مجموعات أو أرقام لتصفيتها بعد';
+    empty.textContent = 'لا توجد أرقام لتصفيتها بعد';
     body.appendChild(empty);
   }
 
