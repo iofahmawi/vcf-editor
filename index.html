@@ -257,6 +257,7 @@
 
   /* ---- Merge conflict options ---- */
   .merge-field-label{ font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 8px; }
+  .merge-field-label.merge-name-label{ margin-bottom:10px; }
   .merge-name-group{ border:1.5px solid var(--border); border-radius:10px; overflow:hidden; margin-bottom:4px; }
   .merge-opt{
     border-bottom:1px solid var(--border); padding:10px 12px;
@@ -266,7 +267,7 @@
   .merge-opt.name-opt-lg{ padding:13px 12px; font-size:14px; line-height:normal; }
 
   /* ---- Filter modal ---- */
-  .filter-section-label{ font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 1px 10px 0; }
+  .filter-section-label{ font-size:12.5px; font-weight:700; color:var(--muted); margin:18px 1px 10px 0; }
   .filter-section-label:first-child{ margin-top:0; }
   .filter-group{ border:1.5px solid var(--border); border-radius:10px; overflow:hidden; }
   .filter-opt{
@@ -289,6 +290,10 @@
   .numbers-scroll-inner::-webkit-scrollbar{ width:5px; }
   .numbers-scroll-inner::-webkit-scrollbar-track{ background:transparent; }
   .numbers-scroll-inner::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
+  #bulkPhotoList{ scrollbar-width:thin; scrollbar-color: var(--border) transparent; }
+  #bulkPhotoList::-webkit-scrollbar{ width:5px; }
+  #bulkPhotoList::-webkit-scrollbar-track{ background:transparent; }
+  #bulkPhotoList::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
   .merge-photo-row{ display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
   .merge-photo-opt{
     width:56px; height:56px; border-radius:12px; border:2px solid var(--border); cursor:pointer;
@@ -465,7 +470,7 @@
     <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6;" id="prefixModalDesc"></div>
     <div class="field-group" style="margin-bottom:0;">
       <label>البادئة الجديدة</label>
-      <input type="tel" id="prefixModalInput" inputmode="tel" style="direction:ltr; text-align:left; font-size:15.5px;">
+      <input type="tel" id="prefixModalInput" inputmode="tel" style="direction:ltr; text-align:left; font-size:15.5px; padding:13px 14px; line-height:normal;">
     </div>
     <div style="display:flex; gap:8px; margin-top:18px;">
       <button type="button" id="prefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
@@ -534,7 +539,7 @@
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:100%; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:21px; color:var(--text); text-align:center;">تصفية جهات الاتصال</div>
     <div id="filterModalBody"></div>
-    <button type="button" id="filterModalCancel" style="margin-top:20px; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إغلاق</button>
+    <button type="button" id="filterModalCancel" style="margin-top:18px; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إغلاق</button>
   </div>
 </div>
 
@@ -542,22 +547,24 @@
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">توحيد الصورة</div>
 
-    <input type="text" id="bulkPhotoSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1px solid var(--border); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+    <input type="text" id="bulkPhotoSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1.07px solid var(--border); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="bulkPhotoSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
       <span id="bulkPhotoCount" style="font-size:12px; color:var(--muted);"></span>
     </div>
 
-    <div id="bulkPhotoList" style="display:none; max-height:34vh; overflow-y:auto; border:1px solid var(--border); border-radius:10px; margin-bottom:14px;"></div>
+    <div id="bulkPhotoListWrap" style="display:none; border:1.07px solid var(--border); border-radius:10px; margin-bottom:14px; overflow:hidden;">
+      <div id="bulkPhotoList" style="max-height:34vh; overflow-y:auto;"></div>
+    </div>
 
     <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
-    <div id="bulkPhotoPickWrap" style="display:flex; align-items:center; gap:12px; margin-bottom:14px; padding:10px; border:1px solid var(--border); border-radius:10px;">
+    <div id="bulkPhotoPickWrap" style="display:flex; align-items:center; gap:12px; margin-bottom:14px; padding:10px; border:1.07px solid var(--border); border-radius:10px;">
       <div id="bulkPhotoPreviewWrap" style="width:52px; height:52px; border-radius:14px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:var(--card2); color:var(--muted); font-size:10px; text-align:center;">
         <span id="bulkPhotoPreviewPlaceholder" style="font-size:8.5px; line-height:1.25; padding:0 2px;">بدون صورة</span>
         <img id="bulkPhotoPreviewImg" style="display:none; width:100%; height:100%; object-fit:cover;">
       </div>
-      <button type="button" id="bulkPhotoPickBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">اختر صورة</button>
+      <button type="button" id="bulkPhotoPickBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center;">اختر صورة</button>
     </div>
 
     <div style="display:flex; gap:8px;">
@@ -1780,18 +1787,19 @@ function bulkPhotoMatchContacts(query){
 function renderBulkPhotoList(){
   const q = $('#bulkPhotoSearch').value.trim();
   const list = $('#bulkPhotoList');
+  const listWrap = $('#bulkPhotoListWrap');
   const countEl = $('#bulkPhotoCount');
   const selectAllBtn = $('#bulkPhotoSelectAll');
 
   if(!q){
-    list.style.display = 'none';
+    listWrap.style.display = 'none';
     list.innerHTML = '';
     countEl.textContent = '';
     selectAllBtn.style.display = 'none';
     updateBulkPhotoConfirmState();
     return;
   }
-  list.style.display = 'block';
+  listWrap.style.display = 'block';
 
   const matched = bulkPhotoMatchContacts(q);
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
@@ -2172,7 +2180,7 @@ function openMergeModal(plan){
 
   if(plan.conflicts.name){
     const label = document.createElement('div');
-    label.className = 'merge-field-label';
+    label.className = 'merge-field-label merge-name-label';
     label.textContent = 'الاسم';
     body.appendChild(label);
     const group = document.createElement('div');
