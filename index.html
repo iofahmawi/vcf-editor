@@ -1034,7 +1034,9 @@ function renderList(filter=''){
     const row = document.createElement('div');
     row.className = 'contact-row' + (selectedIds.has(c.id) ? ' selected' : '');
     row.dataset.id = c.id;
-    const matchedPhone = prefix ? c.phones.find(p => p.value.replace(/\D/g,'').startsWith(prefix)) : null;
+    const matchedPhone = prefix
+      ? c.phones.find(p => p.value.replace(/\D/g,'').startsWith(prefix))
+      : (f ? c.phones.find(p => p.value.toLowerCase().includes(f)) : null);
     const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
     // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
     // حتى لا يبدو للمستخدم أن النتيجة خاطئة
