@@ -116,9 +116,9 @@
   .search-wrap{ position:relative; }
   .search-wrap svg{ position:absolute; top:50%; right:14px; transform:translateY(-50%); color:var(--muted); }
   #search{
-    width:100%; padding:11px 40px 11px 14px; border-radius:12px;
+    width:100%; padding:10px 40px 12px 14px; border-radius:12px;
     border:1.07px solid var(--border-light); background:var(--card); color:var(--text);
-    font-family:var(--font-body); font-size:13.5px;
+    font-family:var(--font-body); font-size:14px;
     transition: all 0.2s;
   }
   #search:focus{ outline:none; border-color:var(--accent); box-shadow: none; }
@@ -317,8 +317,9 @@
   </button>
   <h1 id="screenTitle">جهات الإتصال</h1>
   <div class="search-wrap" id="headerSearchWrap" style="display:none; flex:1; margin:1px 16px 0; max-width:88%;">
-    <input type="text" id="search" placeholder="بحث بكل الحقول" enterkeyhint="search">
+    <input type="text" id="search" placeholder="بحث بكل الحقول" enterkeyhint="search" style="padding-left:34px;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+    <button type="button" id="searchAddTerm" title="إضافة شرط بحث آخر" style="display:none; position:absolute; top:50%; left:15px; transform:translateY(calc(-50% + 1px)); padding:0; margin:0; border:none; background:none; color:var(--accent); font-size:20px; font-weight:600; line-height:1; cursor:pointer; align-items:center; justify-content:center;">+</button>
   </div>
   <div style="position:relative; display:inline-block;">
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
@@ -992,6 +993,7 @@ function getFilteredContacts(filter=''){
   const prefix = $('#prefixFilter').value;
   const isNumericSearch = !prefix && /^\+?\d+$/.test(filter.trim());
   const digitsSearch = isNumericSearch ? filter.trim().replace(/\D/g,'') : '';
+  const terms = f.split('+').map(s => s.trim()).filter(Boolean);
   return contacts.filter(c => {
     if(prefix){
       if(prefix.startsWith('g:')){
@@ -1014,6 +1016,7 @@ function getFilteredContacts(filter=''){
       ...(c.urls || []).map(u => u.value),
       ...(c.adrs || []).map(a => a.value)
     ].join(' ').toLowerCase();
+    if(terms.length > 1) return terms.every(t => hay.includes(t));
     return hay.includes(f);
   });
 }
@@ -1239,6 +1242,7 @@ $('#prefixDeleteModalConfirm').addEventListener('click', () => {
   closePrefixDeleteModal();
   $('#prefixFilter').value = '';
   $('#search').value = '';
+  updateSearchAddTermBtn();
   syncFilterUI();
   refreshPrefixOptions();
   renderList('');
@@ -1283,8 +1287,23 @@ function escapeHtml(s){
   return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-$('#search').addEventListener('input', (e) => { renderList(e.target.value); syncFilterUI(); if(listFilterActive()) pushFilterGuard(); });
+function updateSearchAddTermBtn(){
+  const val = $('#search').value;
+  const trimmed = val.trim();
+  const btn = $('#searchAddTerm');
+  btn.style.display = (trimmed && !trimmed.endsWith('+')) ? 'flex' : 'none';
+}
+$('#search').addEventListener('input', (e) => { renderList(e.target.value); syncFilterUI(); updateSearchAddTermBtn(); if(listFilterActive()) pushFilterGuard(); });
 $('#search').addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); $('#search').blur(); } });
+$('#searchAddTerm').addEventListener('click', () => {
+  const input = $('#search');
+  const trimmed = input.value.trim();
+  if(!trimmed || trimmed.endsWith('+')) return;
+  input.value = trimmed + '+';
+  updateSearchAddTermBtn();
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+});
 
 const PHONE_TYPES = ['CELL','HOME','WORK','FAX','OTHER'];
 const PHONE_LABELS = {CELL:'محمول',HOME:'منزل',WORK:'عمل',FAX:'فاكس',OTHER:'أخرى'};
@@ -2395,6 +2414,7 @@ function clearListFilters(){
   $('#search').value = '';
   $('#prefixFilter').value = '';
   sortReversed = false;
+  updateSearchAddTermBtn();
   $('#menuSortOpt').textContent = 'فرز عكسي';
   filterGuardActive = false;
   syncFilterUI();
