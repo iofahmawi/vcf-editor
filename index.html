@@ -267,30 +267,6 @@
   .merge-opt.selected{ background:var(--card2); color:var(--accent); }
   .merge-opt.name-opt-lg{ padding:13px 12px; font-size:14px; line-height:normal; }
 
-  /* ---- Filter modal ---- */
-  .filter-section-label{ font-size:12.5px; font-weight:700; color:var(--muted); margin:18px 1px 10px 0; }
-  .filter-section-label:first-child{ margin-top:0; }
-  .filter-group{ border:1.5px solid var(--border-light); border-radius:10px; overflow:hidden; }
-  .filter-opt{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    border-bottom:1px solid var(--border); padding:12px 14px;
-    font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer;
-    transition: background 0.2s, color 0.2s;
-  }
-  .filter-opt:last-child{ border-bottom:none; }
-  .filter-opt.selected{ background:rgba(65,105,225,0.06); color:var(--accent); }
-  .filter-opt .filter-opt-check{ flex:0 0 18px; width:18px; height:18px; color:var(--accent); opacity:0; transition:opacity .15s; }
-  .filter-opt.selected .filter-opt-check{ opacity:1; }
-  .filter-empty{ text-align:center; color:var(--muted); font-size:13px; padding:20px 0; }
-  #filterModalOverlay .panel{ scrollbar-width:none; -ms-overflow-style:none; }
-  #filterModalOverlay .panel::-webkit-scrollbar{ display:none; width:0; height:0; }
-  .numbers-scroll-inner{
-    max-height:381px; overflow-y:auto; overflow-x:hidden;
-    margin:0; border-radius:10px; scrollbar-width:thin; scrollbar-color: var(--border) transparent;
-  }
-  .numbers-scroll-inner::-webkit-scrollbar{ width:5px; }
-  .numbers-scroll-inner::-webkit-scrollbar-track{ background:transparent; }
-  .numbers-scroll-inner::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
   #bulkPhotoList{ scrollbar-width:thin; scrollbar-color: var(--border) transparent; }
   #bulkPhotoList::-webkit-scrollbar{ width:5px; }
   #bulkPhotoList::-webkit-scrollbar-track{ background:transparent; }
@@ -324,7 +300,6 @@
   <div style="position:relative; display:inline-block;">
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
     <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:130px; z-index:30; overflow:hidden;">
-      <button type="button" class="link-btn" id="menuFilterOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تصفية بالرقم</button>
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">توحيد الصورة</button>
@@ -534,14 +509,6 @@
       <button type="button" id="mergeModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="mergeModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">دمج</button>
     </div>
-  </div>
-</div>
-
-<div id="filterModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:50px 20px;">
-  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:100%; overflow-y:auto; display:flex; flex-direction:column;">
-    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:21px; color:var(--text); text-align:center;">تصفية جهات الاتصال</div>
-    <div id="filterModalBody"></div>
-    <button type="button" id="filterModalCancel" style="margin-top:18px; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إغلاق</button>
   </div>
 </div>
 
@@ -990,21 +957,10 @@ $('#newFileBtn').addEventListener('click', () => {
 
 function getFilteredContacts(filter=''){
   const f = filter.trim().toLowerCase();
-  const prefix = $('#prefixFilter').value;
-  const isNumericSearch = !prefix && /^\+?\d+$/.test(filter.trim());
+  const isNumericSearch = /^\+?\d+$/.test(filter.trim());
   const digitsSearch = isNumericSearch ? filter.trim().replace(/\D/g,'') : '';
   const terms = f.split('+').map(s => s.trim()).filter(Boolean);
   return contacts.filter(c => {
-    if(prefix){
-      if(prefix.startsWith('g:')){
-        const g = prefix.slice(2);
-        const cats = (c.categories || '').split(/[,،]/).map(s => s.trim());
-        if(!cats.includes(g)) return false;
-      } else {
-        const hasPrefix = c.phones.some(p => p.value.replace(/\D/g,'').startsWith(prefix));
-        if(!hasPrefix) return false;
-      }
-    }
     if(!f) return true;
     if(isNumericSearch){
       return c.phones.some(p => p.value.replace(/\D/g,'').startsWith(digitsSearch));
@@ -1031,12 +987,10 @@ function renderList(filter=''){
   const list = $('#contactList');
   list.innerHTML = '';
   const f = filter.trim().toLowerCase();
-  const prefix = $('#prefixFilter').value;
   const filtered = getFilteredContacts(filter).slice().sort((a,b) => sortReversed ? b.fn.localeCompare(a.fn, 'ar') : a.fn.localeCompare(b.fn, 'ar'));
 
-  const prefixActive = !!prefix && !prefix.startsWith('g:');
   const isNumericSearch = /^\+?\d+$/.test(filter.trim());
-  const digitsPrefix = prefixActive ? prefix : (isNumericSearch ? filter.trim().replace(/\D/g,'') : '');
+  const digitsPrefix = isNumericSearch ? filter.trim().replace(/\D/g,'') : '';
 
   if(digitsPrefix){
     let phoneCount = 0;
@@ -1051,16 +1005,14 @@ function renderList(filter=''){
   } else {
     $('#summaryText').textContent = selectionMode
       ? selectedIds.size + ' \u00A0محدد'
-      : (f || prefix ? filtered.length : contacts.length) + ' \u00A0جهة اتصال';
+      : (f ? filtered.length : contacts.length) + ' \u00A0جهة اتصال';
   }
 
   for(const c of filtered){
     const row = document.createElement('div');
     row.className = 'contact-row' + (selectedIds.has(c.id) ? ' selected' : '');
     row.dataset.id = c.id;
-    const matchedPhone = prefix
-      ? c.phones.find(p => p.value.replace(/\D/g,'').startsWith(prefix))
-      : (f ? c.phones.find(p => p.value.toLowerCase().includes(f)) : null);
+    const matchedPhone = f ? c.phones.find(p => p.value.toLowerCase().includes(f)) : null;
     const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
     // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
     // حتى لا يبدو للمستخدم أن النتيجة خاطئة
@@ -1139,14 +1091,11 @@ function toggleSelect(id){
 }
 
 function syncFilterUI(){
-  const filterVal = $('#prefixFilter').value;
-  const prefixActive = !!filterVal && !filterVal.startsWith('g:');
-  const groupActive = filterVal.startsWith('g:');
   const searchVal = $('#search').value.trim();
   const searchActive = !!searchVal;
   const isNumericSearch = /^\+?\d+$/.test(searchVal);
-  const active = prefixActive || groupActive || searchActive;
-  $('#prefixReplaceBtn').style.display = ((prefixActive || isNumericSearch) && !selectionMode) ? 'inline-block' : 'none';
+  const active = searchActive;
+  $('#prefixReplaceBtn').style.display = (isNumericSearch && !selectionMode) ? 'inline-block' : 'none';
   $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'inline-block' : 'none';
   $('#prefixBtnGroup').style.display = (active && !selectionMode) ? 'flex' : 'none';
   $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'inline-block';
@@ -1182,40 +1131,13 @@ $('#deleteSelectedModalConfirm').addEventListener('click', () => {
 });
 
 function refreshPrefixOptions(){
-  const sel = $('#prefixFilter');
-  const current = sel.value;
-  const prefixes = new Set();
-  const groups = new Set();
-  for(const c of contacts){
-    for(const p of c.phones){
-      const digits = p.value.replace(/\D/g,'');
-      if(digits.length >= 6) prefixes.add(digits.slice(0,3));
-    }
-    (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean).forEach(g => groups.add(g));
-  }
-  const sortedGroups = Array.from(groups).sort((a,b) => a.localeCompare(b, 'ar'));
-  const sortedPrefixes = Array.from(prefixes).sort();
-  const allValues = [...sortedGroups.map(g => 'g:'+g), ...sortedPrefixes];
-  const willBeActive = allValues.includes(current);
-  let html = willBeActive ? '<option value="">إلغاء التصفية</option>' : '';
-  html += sortedGroups.map(g => `<option value="g:${g}">${g}</option>`).join('');
-  html += sortedPrefixes.map(p => `<option value="${p}">${p}</option>`).join('');
-  sel.innerHTML = html;
-  sel.value = willBeActive ? current : '';
+  // تصفية بالرقم أُزيلت من الواجهة؛ نُبقي هذه الدالة كمجرد نداء لتحديث حالة الأزرار
+  // حتى لا نضطر لتعديل كل نقاط الاستدعاء المنتشرة بالكود.
   syncFilterUI();
 }
 
-$('#prefixFilter').addEventListener('change', () => {
-  refreshPrefixOptions();
-  syncFilterUI();
-  renderList($('#search').value);
-  if(listFilterActive()) pushFilterGuard();
-});
-
 $('#prefixReplaceBtn').addEventListener('click', () => {
-  const filterVal = $('#prefixFilter').value;
-  const prefixActive = !!filterVal && !filterVal.startsWith('g:');
-  const oldPrefix = prefixActive ? filterVal : $('#search').value.trim().replace(/\D/g,'');
+  const oldPrefix = $('#search').value.trim().replace(/\D/g,'');
   if(!oldPrefix) return;
   openPrefixModal(oldPrefix);
 });
@@ -1711,75 +1633,6 @@ document.addEventListener('click', (e) => {
     dd.style.display = 'none';
   }
 });
-
-$('#menuFilterOpt').addEventListener('click', () => {
-  $('#listMenuDropdown').style.display = 'none';
-  openFilterModal();
-});
-
-function openFilterModal(){
-  refreshPrefixOptions();
-  const sel = $('#prefixFilter');
-  const currentVal = sel.value;
-  const options = Array.from(sel.options).filter(o => o.value !== '');
-  const groups = options.filter(o => o.value.startsWith('g:'));
-  const prefixes = options.filter(o => !o.value.startsWith('g:'));
-
-  const body = $('#filterModalBody');
-  body.innerHTML = '';
-
-  function makeOpt(label, value){
-    const opt = document.createElement('div');
-    opt.className = 'filter-opt' + (currentVal === value ? ' selected' : '');
-    const span = document.createElement('span');
-    span.textContent = label;
-    opt.appendChild(span);
-    opt.insertAdjacentHTML('beforeend', '<svg class="filter-opt-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>');
-    opt.addEventListener('click', () => {
-      sel.value = value;
-      sel.dispatchEvent(new Event('change'));
-      closeFilterModal();
-    });
-    return opt;
-  }
-
-  const allGroup = document.createElement('div');
-  allGroup.className = 'filter-group';
-  allGroup.appendChild(makeOpt('عرض الكل', ''));
-  body.appendChild(allGroup);
-
-  if(prefixes.length){
-    const label = document.createElement('div');
-    label.className = 'filter-section-label';
-    label.textContent = 'أول 3 أرقام';
-    body.appendChild(label);
-    const group = document.createElement('div');
-    group.className = 'filter-group numbers-scroll';
-    const inner = document.createElement('div');
-    inner.className = 'numbers-scroll-inner';
-    prefixes.forEach(o => inner.appendChild(makeOpt(o.textContent, o.value)));
-    group.appendChild(inner);
-    body.appendChild(group);
-  }
-
-  if(!prefixes.length){
-    const empty = document.createElement('div');
-    empty.className = 'filter-empty';
-    empty.textContent = 'لا توجد أرقام لتصفيتها بعد';
-    body.appendChild(empty);
-  }
-
-  $('#filterModalOverlay').style.display = 'flex';
-  $('#filterModalOverlay .panel').scrollTop = 0;
-  safePushState({ screen: 'list', filterModalGuard: true }, '', '#list');
-}
-
-function closeFilterModal(){
-  $('#filterModalOverlay').style.display = 'none';
-}
-
-$('#filterModalCancel').addEventListener('click', closeFilterModal);
-$('#filterModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'filterModalOverlay') closeFilterModal(); });
 
 $('#menuSortOpt').addEventListener('click', () => {
   sortReversed = !sortReversed;
@@ -2436,10 +2289,6 @@ function pushFilterGuard(){
 // - إن كان المقصود مغادرة الشاشة فعلاً (تعديل/تكرارات ← قائمة) فهذا
 //   تنقّل حقيقي يجب أن يُترجم إلى تراجع في سجل المتصفح → نُرجع false.
 function decideBackAction(){
-  if($('#filterModalOverlay').style.display === 'flex'){
-    closeFilterModal();
-    return true;
-  }
   if(screens.list.classList.contains('active') && selectionMode){
     exitSelectionMode();
     return true;
@@ -2492,10 +2341,6 @@ $('#exitListModalConfirm').addEventListener('click', () => {
 safeReplaceState({ screen: 'home' }, '', '#home');
 
 window.addEventListener('popstate', (e) => {
-  if($('#filterModalOverlay').style.display === 'flex'){
-    closeFilterModal();
-    return;
-  }
   if(suppressNextPopstate){
     suppressNextPopstate = false;
     const target = (e.state && e.state.screen) || 'home';
