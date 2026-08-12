@@ -1287,7 +1287,7 @@ $('#search').addEventListener('input', (e) => { renderList(e.target.value); sync
 $('#search').addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); $('#search').blur(); } });
 
 const PHONE_TYPES = ['CELL','HOME','WORK','FAX','OTHER'];
-const PHONE_LABELS = {CELL:'خلوي',HOME:'منزل',WORK:'عمل',FAX:'فاكس',OTHER:'أخرى'};
+const PHONE_LABELS = {CELL:'محمول',HOME:'منزل',WORK:'عمل',FAX:'فاكس',OTHER:'أخرى'};
 const EMAIL_TYPES = ['HOME','WORK','OTHER'];
 const EMAIL_LABELS = {HOME:'شخصي',WORK:'عمل',OTHER:'أخرى'};
 const URL_TYPES = ['HOME','WORK','OTHER'];
