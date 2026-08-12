@@ -1740,6 +1740,7 @@ $('#menuSortOpt').addEventListener('click', () => {
   $('#menuSortOpt').textContent = sortReversed ? 'فرز أبجدي' : 'فرز عكسي';
   $('#listMenuDropdown').style.display = 'none';
   renderList($('#search').value);
+  if(listFilterActive()) pushFilterGuard();
 });
 
 $('#menuSaveOpt').addEventListener('click', () => {
@@ -2361,11 +2362,13 @@ function exportContacts(){
 }
 
 function listFilterActive(){
-  return !!$('#search').value.trim() || !!$('#prefixFilter').value;
+  return !!$('#search').value.trim() || !!$('#prefixFilter').value || sortReversed;
 }
 function clearListFilters(){
   $('#search').value = '';
   $('#prefixFilter').value = '';
+  sortReversed = false;
+  $('#menuSortOpt').textContent = 'فرز عكسي';
   filterGuardActive = false;
   syncFilterUI();
   renderList('');
