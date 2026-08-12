@@ -990,6 +990,8 @@ $('#newFileBtn').addEventListener('click', () => {
 function getFilteredContacts(filter=''){
   const f = filter.trim().toLowerCase();
   const prefix = $('#prefixFilter').value;
+  const isNumericSearch = !prefix && /^\+?\d+$/.test(filter.trim());
+  const digitsSearch = isNumericSearch ? filter.trim().replace(/\D/g,'') : '';
   return contacts.filter(c => {
     if(prefix){
       if(prefix.startsWith('g:')){
@@ -1002,6 +1004,9 @@ function getFilteredContacts(filter=''){
       }
     }
     if(!f) return true;
+    if(isNumericSearch){
+      return c.phones.some(p => p.value.replace(/\D/g,'').startsWith(digitsSearch));
+    }
     const hay = [
       c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
       ...c.phones.map(p => p.value),
