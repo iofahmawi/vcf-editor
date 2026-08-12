@@ -1026,9 +1026,25 @@ function renderList(filter=''){
   const prefix = $('#prefixFilter').value;
   const filtered = getFilteredContacts(filter).slice().sort((a,b) => sortReversed ? b.fn.localeCompare(a.fn, 'ar') : a.fn.localeCompare(b.fn, 'ar'));
 
-  $('#summaryText').textContent = selectionMode
-    ? selectedIds.size + ' \u00A0محدد'
-    : (f || prefix ? filtered.length + ' \u00A0نتيجة' : contacts.length + ' \u00A0جهة اتصال');
+  const prefixActive = !!prefix && !prefix.startsWith('g:');
+  const isNumericSearch = /^\+?\d+$/.test(filter.trim());
+  const digitsPrefix = prefixActive ? prefix : (isNumericSearch ? filter.trim().replace(/\D/g,'') : '');
+
+  if(digitsPrefix){
+    let phoneCount = 0;
+    for(const c of contacts){
+      for(const p of c.phones){
+        if(p.value.replace(/\D/g,'').startsWith(digitsPrefix)) phoneCount++;
+      }
+    }
+    $('#summaryText').textContent = selectionMode
+      ? selectedIds.size + ' \u00A0محدد'
+      : phoneCount + ' \u00A0نتيجة';
+  } else {
+    $('#summaryText').textContent = selectionMode
+      ? selectedIds.size + ' \u00A0محدد'
+      : (f || prefix ? filtered.length : contacts.length) + ' \u00A0جهة اتصال';
+  }
 
   for(const c of filtered){
     const row = document.createElement('div');
@@ -1118,9 +1134,11 @@ function syncFilterUI(){
   const filterVal = $('#prefixFilter').value;
   const prefixActive = !!filterVal && !filterVal.startsWith('g:');
   const groupActive = filterVal.startsWith('g:');
-  const searchActive = !!$('#search').value.trim();
+  const searchVal = $('#search').value.trim();
+  const searchActive = !!searchVal;
+  const isNumericSearch = /^\+?\d+$/.test(searchVal);
   const active = prefixActive || groupActive || searchActive;
-  $('#prefixReplaceBtn').style.display = (prefixActive && !selectionMode) ? 'inline-block' : 'none';
+  $('#prefixReplaceBtn').style.display = ((prefixActive || isNumericSearch) && !selectionMode) ? 'inline-block' : 'none';
   $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'inline-block' : 'none';
   $('#prefixBtnGroup').style.display = (active && !selectionMode) ? 'flex' : 'none';
   $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'inline-block';
@@ -1187,7 +1205,9 @@ $('#prefixFilter').addEventListener('change', () => {
 });
 
 $('#prefixReplaceBtn').addEventListener('click', () => {
-  const oldPrefix = $('#prefixFilter').value;
+  const filterVal = $('#prefixFilter').value;
+  const prefixActive = !!filterVal && !filterVal.startsWith('g:');
+  const oldPrefix = prefixActive ? filterVal : $('#search').value.trim().replace(/\D/g,'');
   if(!oldPrefix) return;
   openPrefixModal(oldPrefix);
 });
