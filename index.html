@@ -1017,11 +1017,16 @@ function renderList(filter=''){
     const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
     // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
     // حتى لا يبدو للمستخدم أن النتيجة خاطئة، مع سطر خافت للاسم الحقيقي تحته
+    // (نفحص كل شرط من شروط البحث المركب على حدة، مو النص الكامل)
     let displayName = c.fn;
     let realNameLine = '';
-    if(f && c.nickname && !c.fn.toLowerCase().includes(f) && c.nickname.toLowerCase().includes(f)){
-      displayName = c.nickname;
-      realNameLine = `<div class="contact-realname">${escapeHtml(c.fn)}</div>`;
+    if(f && c.nickname){
+      const searchTerms = f.split('+').map(s => s.trim()).filter(Boolean);
+      const matchesNickname = searchTerms.some(t => c.nickname.toLowerCase().includes(t) && !c.fn.toLowerCase().includes(t));
+      if(matchesNickname){
+        displayName = c.nickname;
+        realNameLine = `<div class="contact-realname">${escapeHtml(c.fn)}</div>`;
+      }
     }
     const avatarInner = c.photo
       ? `<img src="${c.photo}" alt="">`
