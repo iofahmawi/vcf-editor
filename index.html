@@ -326,7 +326,7 @@
       </svg>
       <p>اسحب ملف VCF هنا</p>
       <button class="btn" id="chooseFileBtn">اختر ملفاً من جهازك</button>
-      <input type="file" id="fileInput" accept=".vcf,text/vcard,text/x-vcard,text/plain" multiple>
+      <input type="file" id="fileInput" accept=".vcf,.csv,text/vcard,text/x-vcard,text/csv,text/plain" multiple>
     </div>
     <button type="button" id="newFileBtn" style="display:block; margin:24px auto 0; background:none; border:none; color:var(--accent); font-family:var(--font-body); font-size:13.25px; font-weight:800; cursor:pointer; text-decoration:none; padding:6px 10px;">إنشاء ملف جديد</button>
     <div class="signature" style="position:fixed; bottom:calc(30px + env(safe-area-inset-bottom)); left:0; right:0;">طوّر بواسطة&nbsp;&nbsp;<a href="https://github.com/iofahmawi" target="_blank" rel="noopener" style="color:var(--accent); font-size:15px; text-decoration:none;">iofahmawi</a></div>
@@ -617,6 +617,13 @@ function escapeVal(v){
   return (v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
 }
 
+// جوجل أحياناً يصدّر الأرقام مجزأة بمسافات (مثل "+962 7 9573 1514")، ما يسبب
+// مشاكل عند نسخ الرقم ولصقه ببرامج أخرى. نزيل المسافات فقط ونُبقي على أي
+// رموز أخرى (مثل * و # بأكواد USSD) كما هي دون المساس بها.
+function normalizePhoneValue(v){
+  return v.replace(/\s+/g, '');
+}
+
 // يطبّع صيغ تاريخ الميلاد المختلفة القادمة من الهواتف (YYYYMMDD، YYYY-MM-DD،
 // أو مع وقت ملحق) إلى صيغة YYYY-MM-DD التي يفهمها input[type=date].
 function normalizeBdayForInput(v){
@@ -781,7 +788,7 @@ function parseVCF(text){
         cur.bday = normalizeBdayForInput(unescapeVal(value));
         break;
       case 'TEL': {
-        const v = unescapeVal(value);
+        const v = normalizePhoneValue(unescapeVal(value));
         const t = typeParam || 'أخرى';
         let obj = cur.phones.find(p => p.value === v && p.type === t);
         if(!obj){
@@ -853,6 +860,145 @@ function parseVCF(text){
   }
 
   return cards;
+}
+
+// محلل CSV عام يتعامل مع الحقول المحاطة بعلامات اقتباس (قد تحتوي فواصل أو أسطر جديدة داخلها)
+function parseCSVRows(text){
+  text = text.replace(/^\uFEFF/, ''); // إزالة BOM إن وجد
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  let i = 0;
+  const len = text.length;
+  while(i < len){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += c; i++; continue;
+    } else {
+      if(c === '"'){ inQuotes = true; i++; continue; }
+      if(c === ','){ row.push(field); field = ''; i++; continue; }
+      if(c === '\r'){ i++; continue; }
+      if(c === '\n'){ row.push(field); field = ''; rows.push(row); row = []; i++; continue; }
+      field += c; i++; continue;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+// يدعم صيغة تصدير جهات اتصال جوجل بأعمدة (Phone N / E-mail N / Address N / Website N)
+function parseCSV(text){
+  const rows = parseCSVRows(text);
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  const idx = name => headers.indexOf(name);
+
+  const phoneCols = [], emailCols = [], urlCols = [], addrCols = [];
+  headers.forEach((h, i) => {
+    let m;
+    if((m = h.match(/^Phone (\d+) - Label$/i))) phoneCols.push({ labelIdx:i, valueIdx: idx(`Phone ${m[1]} - Value`) });
+    if((m = h.match(/^E-mail (\d+) - Label$/i))) emailCols.push({ labelIdx:i, valueIdx: idx(`E-mail ${m[1]} - Value`) });
+    if((m = h.match(/^Website (\d+) - Label$/i))) urlCols.push({ labelIdx:i, valueIdx: idx(`Website ${m[1]} - Value`) });
+    if((m = h.match(/^Address (\d+) - Label$/i))){
+      const n = m[1];
+      addrCols.push({
+        labelIdx:i,
+        formattedIdx: idx(`Address ${n} - Formatted`),
+        streetIdx: idx(`Address ${n} - Street`),
+        cityIdx: idx(`Address ${n} - City`),
+        regionIdx: idx(`Address ${n} - Region`),
+        postalIdx: idx(`Address ${n} - Postal Code`),
+        countryIdx: idx(`Address ${n} - Country`),
+        poBoxIdx: idx(`Address ${n} - PO Box`),
+        extIdx: idx(`Address ${n} - Extended Address`)
+      });
+    }
+  });
+
+  const firstIdx = idx('First Name'), middleIdx = idx('Middle Name'), lastIdx = idx('Last Name');
+  const nicknameIdx = idx('Nickname'), fileAsIdx = idx('File As');
+  const orgIdx = idx('Organization Name'), titleIdx = idx('Organization Title'), deptIdx = idx('Organization Department');
+  const bdayIdx = idx('Birthday'), notesIdx = idx('Notes'), labelsIdx = idx('Labels');
+
+  const cards = [];
+  for(let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if(!row || row.every(v => !v || !v.trim())) continue;
+    const get = (i) => (i >= 0 && row[i] !== undefined) ? row[i].trim().replace(/[\u200e\u200f\u202a-\u202e]/g, '') : '';
+    // أحياناً يضع جوجل أكثر من رقم/بريد بنفس الخانة مفصولة بـ " ::: " عندما يشتركون بنفس التسمية
+    const splitMulti = (v) => v.split(':::').map(s => s.trim()).filter(Boolean);
+
+    let fn = [get(firstIdx), get(middleIdx), get(lastIdx)].filter(Boolean).join(' ');
+    if(!fn) fn = get(fileAsIdx);
+    if(!fn) fn = '(بدون اسم)';
+
+    const phones = [];
+    for(const pc of phoneCols){
+      const raw = get(pc.valueIdx);
+      if(!raw) continue;
+      const t = get(pc.labelIdx) || 'أخرى';
+      for(const rawV of splitMulti(raw)){
+        const v = normalizePhoneValue(rawV);
+        if(!phones.some(p => p.value === v && p.type === t)) phones.push({ type:t, value:v });
+      }
+    }
+    const emails = [];
+    for(const ec of emailCols){
+      const raw = get(ec.valueIdx);
+      if(!raw) continue;
+      const t = get(ec.labelIdx) || 'أخرى';
+      for(const v of splitMulti(raw)){
+        if(!emails.some(e => e.value === v && e.type === t)) emails.push({ type:t, value:v });
+      }
+    }
+    const urls = [];
+    for(const uc of urlCols){
+      const raw = get(uc.valueIdx);
+      if(!raw) continue;
+      const t = get(uc.labelIdx) || 'أخرى';
+      for(const v of splitMulti(raw)){
+        if(!urls.some(u => u.value === v && u.type === t)) urls.push({ type:t, value:v });
+      }
+    }
+    const adrs = [];
+    for(const ac of addrCols){
+      let v = get(ac.formattedIdx);
+      if(!v){
+        v = [get(ac.streetIdx), get(ac.cityIdx), get(ac.regionIdx), get(ac.postalIdx), get(ac.countryIdx), get(ac.poBoxIdx), get(ac.extIdx)].filter(Boolean).join(', ');
+      }
+      if(!v) continue;
+      const t = get(ac.labelIdx) || 'أخرى';
+      if(!adrs.some(a => a.value === v && a.type === t)) adrs.push({ type:t, value:v });
+    }
+
+    const rawLabels = get(labelsIdx);
+    const categories = rawLabels
+      ? rawLabels.split(':::').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join('، ')
+      : '';
+
+    cards.push({
+      id: 'c'+Math.random().toString(36).slice(2,9),
+      fn, nickname: get(nicknameIdx), org: get(orgIdx), dept: get(deptIdx), title: get(titleIdx),
+      note: get(notesIdx), adrs, categories, bday: normalizeBdayForInput(get(bdayIdx)),
+      phones, emails, urls, rawExtra: [], version: '3.0', photo: null
+    });
+  }
+  return cards;
+}
+
+// يحدد نوع الملف (VCF أو CSV) تلقائياً من الامتداد أو من محتوى الملف نفسه
+function detectAndParse(text, filename){
+  const trimmed = text.replace(/^\uFEFF/, '').trimStart();
+  const lowerName = (filename || '').toLowerCase();
+  if(lowerName.endsWith('.vcf') || /^BEGIN:VCARD/i.test(trimmed)){
+    return parseVCF(text);
+  }
+  return parseCSV(text);
 }
 
 function buildTypeParam(type){
@@ -927,7 +1073,7 @@ async function loadFiles(fileList){
   for(const file of files){
     try{
       const text = await readFileAsText(file);
-      const parsed = parseVCF(text);
+      const parsed = detectAndParse(text, file.name);
       allParsed = allParsed.concat(parsed);
     }catch(err){
       console.error(err);
