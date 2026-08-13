@@ -347,6 +347,7 @@
       <button class="link-btn add" id="fabAdd" style="min-width:0; white-space:nowrap;">+ إضافة جهة اتصال</button>
   <div id="prefixBtnGroup" style="display:none; align-items:center; gap:9px;">
         <button type="button" class="link-btn" id="prefixReplaceBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; white-space:nowrap;">تعديل البادئة</button>
+        <button type="button" class="link-btn" id="removeGroupBtn" style="display:none; color:var(--danger); background: rgba(239, 68, 68, 0.07); padding: 10px 10px; white-space:nowrap;">إزالة المجموعة</button>
         <button type="button" class="link-btn" id="prefixDeleteBtn" style="display:none; color:var(--danger); background: rgba(239, 68, 68, 0.07); padding: 10px 10px; white-space:nowrap;">حذف النتائج</button>
       </div>
     </div>
@@ -486,6 +487,17 @@
     <div style="display:flex; gap:8px; margin-top:2px;">
       <button type="button" id="prefixDeleteModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="prefixDeleteModalConfirm" style="flex:1 1 0; margin:0; padding:13px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+    </div>
+  </div>
+</div>
+
+<div id="removeGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إزالة المجموعة</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;" id="removeGroupModalDesc"></div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="removeGroupModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="removeGroupModalConfirm" style="flex:1 1 0; margin:0; padding:13px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إزالة</button>
     </div>
   </div>
 </div>
@@ -1268,6 +1280,12 @@ function getFilteredContacts(filter=''){
   });
 }
 
+function getContactsWithCategory(term){
+  const t = term.trim().toLowerCase();
+  if(!t) return [];
+  return contacts.filter(c => (c.categories || '').split(/[,،]/).map(s => s.trim()).some(tag => tag.toLowerCase() === t));
+}
+
 let selectionMode = false;
 let sortReversed = false;
 let selectedIds = new Set();
@@ -1396,6 +1414,8 @@ function syncFilterUI(){
   const active = searchActive;
   $('#prefixReplaceBtn').style.display = (isNumericSearch && !selectionMode) ? 'inline-block' : 'none';
   $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'inline-block' : 'none';
+  const groupMatched = (active && !selectionMode && !isNumericSearch) ? getContactsWithCategory(searchVal) : [];
+  $('#removeGroupBtn').style.display = groupMatched.length ? 'inline-block' : 'none';
   $('#prefixBtnGroup').style.display = (active && !selectionMode) ? 'flex' : 'none';
   $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'inline-block';
   $('#summaryText').style.display = 'block';
@@ -1456,6 +1476,34 @@ function closePrefixDeleteModal(){
 }
 $('#prefixDeleteModalCancel').addEventListener('click', closePrefixDeleteModal);
 $('#prefixDeleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'prefixDeleteModalOverlay') closePrefixDeleteModal(); });
+
+$('#removeGroupBtn').addEventListener('click', () => {
+  const term = $('#search').value.trim();
+  const matched = getContactsWithCategory(term);
+  if(matched.length === 0) return;
+  $('#removeGroupModalDesc').textContent = 'هل تريد إزالة مجموعة "' + term + '" من ' + matched.length + ' جهة اتصال؟ (لن يتم حذف جهات الاتصال نفسها)';
+  $('#removeGroupModalOverlay').style.display = 'flex';
+});
+function closeRemoveGroupModal(){
+  $('#removeGroupModalOverlay').style.display = 'none';
+}
+$('#removeGroupModalCancel').addEventListener('click', closeRemoveGroupModal);
+$('#removeGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'removeGroupModalOverlay') closeRemoveGroupModal(); });
+$('#removeGroupModalConfirm').addEventListener('click', () => {
+  const term = $('#search').value.trim();
+  const t = term.toLowerCase();
+  const matched = getContactsWithCategory(term);
+  matched.forEach(c => {
+    const tags = c.categories.split(/[,،]/).map(s => s.trim()).filter(Boolean).filter(tag => tag.toLowerCase() !== t);
+    c.categories = tags.join('، ');
+  });
+  closeRemoveGroupModal();
+  $('#search').value = '';
+  updateSearchAddTermBtn();
+  syncFilterUI();
+  renderList('');
+  toast('تمت إزالة المجموعة من ' + matched.length + ' جهة اتصال');
+});
 $('#prefixDeleteModalConfirm').addEventListener('click', () => {
   const matched = getFilteredContacts($('#search').value);
   const matchedIds = new Set(matched.map(c => c.id));
