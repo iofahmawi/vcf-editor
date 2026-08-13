@@ -1316,7 +1316,17 @@ function getFilteredContacts(filter=''){
       ...(c.urls || []).map(u => u.value),
       ...(c.adrs || []).map(a => a.value)
     ].join(' ').toLowerCase();
-    if(terms.length > 1) return terms.every(t => hay.includes(t));
+    if(terms.length > 1){
+      // في البحث المركب، أي جزء رقمي (مثل 079) يجب أن يطابق بداية رقم هاتف فعلي
+      // وليس أي ظهور للرقم في أي حقل نصي آخر
+      return terms.every(t => {
+        if(/^\+?\d+$/.test(t)){
+          const digits = t.replace(/\D/g,'');
+          return c.phones.some(p => p.value.replace(/\D/g,'').startsWith(digits));
+        }
+        return hay.includes(t);
+      });
+    }
     return hay.includes(f);
   });
 }
@@ -1362,7 +1372,16 @@ function renderList(filter=''){
     const row = document.createElement('div');
     row.className = 'contact-row' + (selectedIds.has(c.id) ? ' selected' : '');
     row.dataset.id = c.id;
-    const matchedPhone = f ? c.phones.find(p => p.value.toLowerCase().includes(f)) : null;
+    const searchTermsForRow = f.split('+').map(s => s.trim()).filter(Boolean);
+    const numericTermForRow = searchTermsForRow.find(t => /^\+?\d+$/.test(t));
+    let matchedPhone = null;
+    if(numericTermForRow){
+      const digitsForRow = numericTermForRow.replace(/\D/g,'');
+      matchedPhone = c.phones.find(p => p.value.replace(/\D/g,'').startsWith(digitsForRow));
+    }
+    if(!matchedPhone && f){
+      matchedPhone = c.phones.find(p => p.value.toLowerCase().includes(f));
+    }
     const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
     // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
     // حتى لا يبدو للمستخدم أن النتيجة خاطئة، مع سطر خافت للاسم الحقيقي تحته
@@ -1370,8 +1389,7 @@ function renderList(filter=''){
     let displayName = c.fn;
     let realNameLine = '';
     if(f && c.nickname){
-      const searchTerms = f.split('+').map(s => s.trim()).filter(Boolean);
-      const matchesNickname = searchTerms.some(t => c.nickname.toLowerCase().includes(t) && !c.fn.toLowerCase().includes(t));
+      const matchesNickname = searchTermsForRow.some(t => c.nickname.toLowerCase().includes(t) && !c.fn.toLowerCase().includes(t));
       if(matchesNickname){
         displayName = c.nickname;
         realNameLine = `<div class="contact-realname">${escapeHtml(c.fn)}</div>`;
