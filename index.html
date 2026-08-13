@@ -892,7 +892,7 @@ function parseCSVRows(text){
 }
 
 // يدعم صيغة تصدير جهات اتصال جوجل بأعمدة (Phone N / E-mail N / Address N / Website N)
-function parseCSV(text){
+function parseCSVGoogle(text){
   const rows = parseCSVRows(text);
   if(rows.length < 2) return [];
   const headers = rows[0].map(h => h.trim());
@@ -989,6 +989,127 @@ function parseCSV(text){
     });
   }
   return cards;
+}
+
+// يدعم صيغة تصدير جهات اتصال آوتلوك (أعمدة مسطّحة بأسماء ثابتة لكل نوع رقم/عنوان،
+// واللقب يكون مدمجاً داخل حقل الملاحظات بصيغة "الاسم المستعار: XXX")
+function parseCSVOutlook(text){
+  const rows = parseCSVRows(text);
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  const idx = name => headers.indexOf(name);
+
+  const firstIdx = idx('First Name'), middleIdx = idx('Middle Name'), lastIdx = idx('Last Name');
+  const notesIdx = idx('Notes'), bdayIdx = idx('Birthday'), webIdx = idx('Web Page');
+  const companyIdx = idx('Company'), jobTitleIdx = idx('Job Title'), deptIdx = idx('Department');
+  const catIdx = idx('Categories');
+
+  const phoneFields = [
+    ['Primary Phone', 'أساسي'], ['Mobile Phone', 'محمول'],
+    ['Home Phone', 'منزل'], ['Home Phone 2', 'منزل 2'], ['Home Fax', 'فاكس المنزل'],
+    ['Company Main Phone', 'الشركة'], ['Business Phone', 'عمل'], ['Business Phone 2', 'عمل 2'], ['Business Fax', 'فاكس العمل'],
+    ['Other Phone', 'أخرى'], ['Other Fax', 'فاكس أخرى'],
+    ['Assistant\'s Phone', 'هاتف المساعد'], ['Callback', 'معاودة الاتصال'], ['Car Phone', 'هاتف السيارة'],
+    ['Pager', 'بيجر'], ['Radio Phone', 'هاتف لاسلكي'], ['ISDN', 'ISDN'], ['TTY/TDD Phone', 'TTY/TDD'], ['Telex', 'تلكس']
+  ].map(([name,label]) => ({ i: idx(name), label })).filter(f => f.i !== -1);
+
+  const emailFields = [
+    ['E-mail Address', 'بريد إلكتروني'], ['E-mail 2 Address', 'بريد إلكتروني 2'], ['E-mail 3 Address', 'بريد إلكتروني 3']
+  ].map(([name,label]) => ({ i: idx(name), label })).filter(f => f.i !== -1);
+
+  const addrGroups = ['Home', 'Business', 'Other'].map(prefix => ({
+    label: prefix === 'Home' ? 'المنزل' : (prefix === 'Business' ? 'العمل' : 'أخرى'),
+    fullIdx: idx(`${prefix} Address`),
+    streetIdx: idx(`${prefix} Street`), street2Idx: idx(`${prefix} Street 2`), street3Idx: idx(`${prefix} Street 3`),
+    poIdx: idx(`${prefix} Address PO Box`), cityIdx: idx(`${prefix} City`), stateIdx: idx(`${prefix} State`),
+    postalIdx: idx(`${prefix} Postal Code`), countryIdx: idx(`${prefix} Country`)
+  }));
+
+  const cards = [];
+  for(let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if(!row || row.every(v => !v || !v.trim())) continue;
+    const get = (i) => (i >= 0 && row[i] !== undefined) ? row[i].trim().replace(/[\u200e\u200f\u202a-\u202e]/g, '') : '';
+    const splitMulti = (v) => v.split(':::').map(s => s.trim()).filter(Boolean);
+
+    let fn = [get(firstIdx), get(middleIdx), get(lastIdx)].filter(Boolean).join(' ');
+    if(!fn) fn = '(بدون اسم)';
+
+    // استخراج اللقب المدمج بحقل الملاحظات بصيغة "الاسم المستعار: XXX" وإزالته من نص الملاحظة
+    let nickname = '';
+    let note = get(notesIdx);
+    const nickMatch = note.match(/^\s*الاسم المستعار\s*:\s*(.+?)\s*$/m);
+    if(nickMatch){
+      nickname = nickMatch[1].trim();
+      note = note.replace(nickMatch[0], '').trim();
+    }
+
+    // أرقام إضافية زايدة عن أعمدة الهاتف الثابتة تُدمج بالملاحظات بصيغة
+    // "هاتف (التسمية): الرقم" كل رقم بسطر مستقل، فنسحبها ونحذفها من نص الملاحظة
+    const notePhones = [];
+    note = note.split('\n').filter(line => {
+      const m = line.match(/^\s*هاتف\s*\(([^)]+)\)\s*:\s*(.+?)\s*$/);
+      if(m){
+        notePhones.push({ type: m[1].trim(), value: normalizePhoneValue(m[2]) });
+        return false;
+      }
+      return true;
+    }).join('\n').trim();
+
+    const phones = [];
+    for(const pf of phoneFields){
+      const raw = get(pf.i);
+      if(!raw) continue;
+      for(const rawV of splitMulti(raw)){
+        const v = normalizePhoneValue(rawV);
+        if(!phones.some(p => p.value === v && p.type === pf.label)) phones.push({ type: pf.label, value: v });
+      }
+    }
+    for(const np of notePhones){
+      if(!phones.some(p => p.value === np.value && p.type === np.type)) phones.push(np);
+    }
+    const emails = [];
+    for(const ef of emailFields){
+      const v = get(ef.i);
+      if(!v) continue;
+      if(!emails.some(e => e.value === v && e.type === ef.label)) emails.push({ type: ef.label, value: v });
+    }
+    const urls = [];
+    const webVal = get(webIdx);
+    if(webVal) urls.push({ type: 'الموقع الإلكتروني', value: webVal });
+
+    const adrs = [];
+    for(const ag of addrGroups){
+      let v = get(ag.fullIdx);
+      if(!v){
+        v = [get(ag.streetIdx), get(ag.street2Idx), get(ag.street3Idx), get(ag.poIdx), get(ag.cityIdx), get(ag.stateIdx), get(ag.postalIdx), get(ag.countryIdx)].filter(Boolean).join(', ');
+      }
+      if(!v) continue;
+      if(!adrs.some(a => a.value === v && a.type === ag.label)) adrs.push({ type: ag.label, value: v });
+    }
+
+    const rawCats = get(catIdx);
+    const categories = rawCats
+      ? rawCats.split(';').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join('، ')
+      : '';
+
+    cards.push({
+      id: 'c'+Math.random().toString(36).slice(2,9),
+      fn, nickname, org: get(companyIdx), dept: get(deptIdx), title: get(jobTitleIdx),
+      note, adrs, categories, bday: normalizeBdayForInput(get(bdayIdx)),
+      phones, emails, urls, rawExtra: [], version: '3.0', photo: null
+    });
+  }
+  return cards;
+}
+
+// يكتشف صيغة ملف CSV (جوجل أو آوتلوك) من عناوين الأعمدة ويوجّه للمحلل المناسب
+function parseCSV(text){
+  const rows = parseCSVRows(text);
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  const isGoogleFormat = headers.some(h => /^Phone \d+ - Label$/i.test(h));
+  return isGoogleFormat ? parseCSVGoogle(text) : parseCSVOutlook(text);
 }
 
 // يحدد نوع الملف (VCF أو CSV) تلقائياً من الامتداد أو من محتوى الملف نفسه
