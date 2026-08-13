@@ -165,6 +165,7 @@
   .contact-avatar img{ width:100%; height:100%; object-fit:cover; }
   .contact-info{ min-width:0; flex:1; }
   .contact-name{ font-family:var(--font-display); font-size:14px; font-weight:700; margin-bottom:8px; }
+  .contact-realname{ font-size:12px; color:var(--muted); margin-bottom:10px; }
   .contact-sub{ font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction: ltr; text-align: right; }
 
   /* ---- Edit screen: grouped panels ---- */
@@ -1015,10 +1016,12 @@ function renderList(filter=''){
     const matchedPhone = f ? c.phones.find(p => p.value.toLowerCase().includes(f)) : null;
     const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
     // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
-    // حتى لا يبدو للمستخدم أن النتيجة خاطئة
+    // حتى لا يبدو للمستخدم أن النتيجة خاطئة، مع سطر خافت للاسم الحقيقي تحته
     let displayName = c.fn;
+    let realNameLine = '';
     if(f && c.nickname && !c.fn.toLowerCase().includes(f) && c.nickname.toLowerCase().includes(f)){
       displayName = c.nickname;
+      realNameLine = `<div class="contact-realname">${escapeHtml(c.fn)}</div>`;
     }
     const avatarInner = c.photo
       ? `<img src="${c.photo}" alt="">`
@@ -1030,7 +1033,8 @@ function renderList(filter=''){
       ${checkboxHtml}
       <div class="contact-avatar">${avatarInner}</div>
       <div class="contact-info">
-        <div class="contact-name">${escapeHtml(displayName)}</div>
+        <div class="contact-name"${realNameLine ? ' style="margin-bottom:10px;"' : ''}>${escapeHtml(displayName)}</div>
+        ${realNameLine}
         <div class="contact-sub">${escapeHtml(sub)}</div>
       </div>
     `;
