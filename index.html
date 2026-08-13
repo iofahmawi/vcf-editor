@@ -687,12 +687,13 @@ function parseVCF(text){
     const upper = line.toUpperCase();
     if(upper.startsWith('BEGIN:VCARD')){
       cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adrs:[], categories:'', bday:'',
-              phones:[], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null };
+              phones:[], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null, _itemRefs:{} };
       continue;
     }
     if(upper.startsWith('END:VCARD')){
       if(cur){
         if(!cur.fn) cur.fn = '(بدون اسم)';
+        delete cur._itemRefs;
         cards.push(cur);
       }
       cur = null;
@@ -706,7 +707,11 @@ function parseVCF(text){
     let value = line.slice(colonIdx+1);
 
     const keyParts = key.split(';');
-    const propName = keyParts[0].toUpperCase();
+    // جوجل يصدّر بعض الحقول (TEL/EMAIL/ADR) بادئة "itemN." لربطها بتسمية مخصصة
+    // بسطر منفصل "itemN.X-ABLabel"، فنفصل هذه البادئة عن اسم الخاصية الحقيقي
+    const groupMatch = keyParts[0].match(/^item(\d+)\.(.+)$/i);
+    const itemGroup = groupMatch ? groupMatch[1] : null;
+    const propName = (groupMatch ? groupMatch[2] : keyParts[0]).toUpperCase();
     const params = keyParts.slice(1);
 
     const isQP = params.some(p => p.toUpperCase().includes('QUOTED-PRINTABLE'));
@@ -761,9 +766,12 @@ function parseVCF(text){
         const v = unescapeVal(value.split(';').filter(Boolean).join(', '));
         const t = typeParam || 'أخرى';
         if(!cur.adrs) cur.adrs = [];
-        if(v && !cur.adrs.some(a => a.value === v && a.type === t)){
-          cur.adrs.push({ type: t, value: v });
+        let obj = cur.adrs.find(a => a.value === v && a.type === t);
+        if(v && !obj){
+          obj = { type: t, value: v };
+          cur.adrs.push(obj);
         }
+        if(itemGroup && obj) cur._itemRefs[itemGroup] = obj;
         break;
       }
       case 'CATEGORIES':
@@ -775,17 +783,23 @@ function parseVCF(text){
       case 'TEL': {
         const v = unescapeVal(value);
         const t = typeParam || 'أخرى';
-        if(!cur.phones.some(p => p.value === v && p.type === t)){
-          cur.phones.push({ type: t, value: v });
+        let obj = cur.phones.find(p => p.value === v && p.type === t);
+        if(!obj){
+          obj = { type: t, value: v };
+          cur.phones.push(obj);
         }
+        if(itemGroup) cur._itemRefs[itemGroup] = obj;
         break;
       }
       case 'EMAIL': {
         const v = unescapeVal(value);
         const t = typeParam || 'أخرى';
-        if(!cur.emails.some(e => e.value === v && e.type === t)){
-          cur.emails.push({ type: t, value: v });
+        let obj = cur.emails.find(e => e.value === v && e.type === t);
+        if(!obj){
+          obj = { type: t, value: v };
+          cur.emails.push(obj);
         }
+        if(itemGroup) cur._itemRefs[itemGroup] = obj;
         break;
       }
       case 'URL': {
@@ -809,6 +823,15 @@ function parseVCF(text){
             if(m) fmt = m[1].toLowerCase();
           }
           cur.photo = 'data:image/' + fmt + ';base64,' + value.replace(/\s+/g,'');
+        }
+        break;
+      }
+      case 'X-ABLABEL': {
+        if(itemGroup && cur._itemRefs[itemGroup]){
+          const label = unescapeVal(value.split(';')[0]);
+          // جوجل أحياناً يستخدم تسميات داخلية مثل _$!<Mobile>!$_ للأنواع القياسية
+          const generic = label.match(/^_\$!<(.+)>!\$_$/);
+          cur._itemRefs[itemGroup].type = generic ? generic[1] : label;
         }
         break;
       }
