@@ -186,6 +186,8 @@
   }
   input:focus, textarea:focus, select:focus{ outline:none; border-color:var(--accent); background:transparent; box-shadow: none; }
   .merge-custom-name::placeholder{ color: #C4CBD6; }
+  #unifyGroupSearch::placeholder, #unifyGroupValue::placeholder{ color: #C4CBD6; }
+  #unifyGroupValue{ padding-top:8px; padding-bottom:8px; line-height:2; }
   .merge-custom-name{ border:none !important; border-radius:0 !important; transition: background 0.2s; }
   .merge-custom-name:focus{ background:var(--card2); }
   textarea{ resize:none; height:46px; min-height:46px; overflow:hidden; }
@@ -304,6 +306,7 @@
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">توحيد الصورة</button>
+      <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">توحيد المجموعة</button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
     </div>
   </div>
@@ -563,6 +566,33 @@
     <div style="display:flex; gap:8px;">
       <button type="button" id="bulkPhotoCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="bulkPhotoConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+<div id="unifyGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">توحيد المجموعة</div>
+
+    <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+      <button type="button" id="unifyGroupSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
+      <span id="unifyGroupCount" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+
+    <div id="unifyGroupListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
+      <div id="unifyGroupList" style="max-height:34vh; overflow-y:auto;"></div>
+    </div>
+
+    <div class="field-group" style="margin-bottom:14px;">
+      <label>اسم المجموعة</label>
+      <input type="text" id="unifyGroupValue" placeholder="اترك الحقل فارغاً للإزالة">
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="unifyGroupCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="unifyGroupConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
     </div>
   </div>
 </div>
@@ -2171,6 +2201,135 @@ $('#bulkPhotoConfirm').addEventListener('click', () => {
   closeBulkPhotoModal();
   renderList($('#search').value);
   toast(bulkPhotoDataUrl ? ('تم تغيير صورة ' + count + ' جهة اتصال') : ('تم إزالة صورة ' + count + ' جهة اتصال'));
+});
+
+let unifyGroupSelectedIds = new Set();
+
+$('#menuUnifyGroupOpt').addEventListener('click', () => {
+  $('#listMenuDropdown').style.display = 'none';
+  openUnifyGroupModal();
+});
+function openUnifyGroupModal(){
+  unifyGroupSelectedIds = new Set();
+  $('#unifyGroupSearch').value = '';
+  $('#unifyGroupValue').value = '';
+  renderUnifyGroupList();
+  updateUnifyGroupConfirmState();
+  $('#unifyGroupModalOverlay').style.display = 'flex';
+  setTimeout(() => $('#unifyGroupSearch').focus(), 50);
+}
+function closeUnifyGroupModal(){
+  $('#unifyGroupModalOverlay').style.display = 'none';
+}
+function unifyGroupMatchContacts(query){
+  const f = query.trim().toLowerCase();
+  if(!f) return [];
+  return contacts.filter(c => {
+    const hay = [
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
+      ...c.phones.map(p => p.value),
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
+    ].join(' ').toLowerCase();
+    return hay.includes(f);
+  });
+}
+function renderUnifyGroupList(){
+  const q = $('#unifyGroupSearch').value.trim();
+  const list = $('#unifyGroupList');
+  const listWrap = $('#unifyGroupListWrap');
+  const countEl = $('#unifyGroupCount');
+  const selectAllBtn = $('#unifyGroupSelectAll');
+
+  if(!q){
+    listWrap.style.display = 'none';
+    list.innerHTML = '';
+    countEl.textContent = '';
+    selectAllBtn.style.display = 'none';
+    updateUnifyGroupConfirmState();
+    return;
+  }
+  listWrap.style.display = 'block';
+
+  const matched = unifyGroupMatchContacts(q);
+  selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+
+  if(!matched.length){
+    list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
+    countEl.textContent = '';
+    updateUnifyGroupConfirmState();
+    return;
+  }
+
+  const matchedIds = new Set(matched.map(c => c.id));
+  unifyGroupSelectedIds.forEach(id => { if(!matchedIds.has(id)) unifyGroupSelectedIds.delete(id); });
+
+  list.innerHTML = matched.map((c, idx) => {
+    const checked = unifyGroupSelectedIds.has(c.id) ? 'checked' : '';
+    const isLast = idx === matched.length - 1;
+    const avatarInner = c.photo
+      ? `<img src="${c.photo}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
+    return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
+      <input type="checkbox" class="unifyGroupItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
+      <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto;">${escapeHtml(c.fn)}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.unifyGroupItem').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) unifyGroupSelectedIds.add(cb.dataset.id);
+      else unifyGroupSelectedIds.delete(cb.dataset.id);
+      updateUnifyGroupCountAndSelectAll(matched);
+      updateUnifyGroupConfirmState();
+    });
+  });
+
+  updateUnifyGroupCountAndSelectAll(matched);
+  updateUnifyGroupConfirmState();
+}
+function updateUnifyGroupCountAndSelectAll(matched){
+  const countEl = $('#unifyGroupCount');
+  const selectAllBtn = $('#unifyGroupSelectAll');
+  const allSelected = matched.length > 0 && matched.every(c => unifyGroupSelectedIds.has(c.id));
+  countEl.textContent = unifyGroupSelectedIds.size + ' من ' + matched.length + ' محدد';
+  selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
+}
+
+$('#unifyGroupSearch').addEventListener('input', renderUnifyGroupList);
+$('#unifyGroupSearch').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#unifyGroupSearch').blur(); }
+});
+
+$('#unifyGroupSelectAll').addEventListener('click', () => {
+  const q = $('#unifyGroupSearch').value.trim();
+  const matched = unifyGroupMatchContacts(q);
+  const allSelected = matched.length > 0 && matched.every(c => unifyGroupSelectedIds.has(c.id));
+  if(allSelected) matched.forEach(c => unifyGroupSelectedIds.delete(c.id));
+  else matched.forEach(c => unifyGroupSelectedIds.add(c.id));
+  renderUnifyGroupList();
+});
+
+function updateUnifyGroupConfirmState(){
+  const btn = $('#unifyGroupConfirm');
+  const ready = unifyGroupSelectedIds.size > 0;
+  btn.style.opacity = ready ? '1' : '.5';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+}
+
+$('#unifyGroupCancel').addEventListener('click', closeUnifyGroupModal);
+$('#unifyGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'unifyGroupModalOverlay') closeUnifyGroupModal(); });
+$('#unifyGroupConfirm').addEventListener('click', () => {
+  if(unifyGroupSelectedIds.size === 0) return;
+  const val = $('#unifyGroupValue').value.trim();
+  let count = 0;
+  contacts.forEach(c => {
+    if(unifyGroupSelectedIds.has(c.id)){ c.categories = val; count++; }
+  });
+  closeUnifyGroupModal();
+  renderList($('#search').value);
+  toast(val ? ('تم توحيد مجموعة ' + count + ' جهة اتصال') : ('تم إزالة مجموعة ' + count + ' جهة اتصال'));
 });
 
 function normalizePhoneForDup(v){
