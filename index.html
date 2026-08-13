@@ -742,7 +742,7 @@ function parseVCF(text){
       const prev = lines[lines.length-1];
       const colonIdx = prev.indexOf(':');
       const keyPart = colonIdx !== -1 ? prev.slice(0, colonIdx) : prev;
-      const isQP = keyPart.split(';').slice(1).some(p => /^ENCODING=QUOTED-PRINTABLE$/i.test(p.trim()));
+      const isQP = /QUOTED-PRINTABLE/i.test(keyPart);
       if(isQP && /=$/.test(prev)){
         lines[lines.length-1] = prev.slice(0, -1) + line;
         continue;
