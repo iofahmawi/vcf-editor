@@ -508,7 +508,7 @@
 <div id="removeGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إزالة المجموعة</div>
-    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;" id="removeGroupModalDesc"></div>
+    <div style="font-size:13.5px; color:var(--muted); margin:17px 0 19px; line-height:1.6; text-align:center;" id="removeGroupModalDesc"></div>
     <div style="display:flex; gap:8px; margin-top:2px;">
       <button type="button" id="removeGroupModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="removeGroupModalConfirm" style="flex:1 1 0; margin:0; padding:13px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إزالة</button>
@@ -1522,7 +1522,7 @@ $('#removeGroupBtn').addEventListener('click', () => {
   const term = $('#search').value.trim();
   const matched = getContactsWithCategory(term);
   if(matched.length === 0) return;
-  $('#removeGroupModalDesc').textContent = 'هل تريد إزالة مجموعة "' + term + '" من ' + matched.length + ' جهة اتصال؟ (لن يتم حذف جهات الاتصال نفسها)';
+  $('#removeGroupModalDesc').textContent = 'هل تريد إزالة مجموعة "' + term + '" من ' + matched.length + ' جهة اتصال؟';
   $('#removeGroupModalOverlay').style.display = 'flex';
 });
 function closeRemoveGroupModal(){
