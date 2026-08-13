@@ -491,6 +491,17 @@
   </div>
 </div>
 
+<div id="saveFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">اختر صيغة الحفظ</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 18px; line-height:1.6; text-align:center;">بأي صيغة تريد تصدير جهات الاتصال؟</div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="saveFormatCsvBtn" style="flex:1 1 0; margin:0; padding:13px; background:var(--accent); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">CSV</button>
+      <button type="button" id="saveFormatVcfBtn" style="flex:1 1 0; margin:0; padding:13px; background:var(--accent); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">VCF</button>
+    </div>
+  </div>
+</div>
+
 <div id="removeGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إزالة المجموعة</div>
@@ -1991,7 +2002,19 @@ $('#menuSortOpt').addEventListener('click', () => {
 
 $('#menuSaveOpt').addEventListener('click', () => {
   $('#listMenuDropdown').style.display = 'none';
+  $('#saveFormatModalOverlay').style.display = 'flex';
+});
+function closeSaveFormatModal(){
+  $('#saveFormatModalOverlay').style.display = 'none';
+}
+$('#saveFormatModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'saveFormatModalOverlay') closeSaveFormatModal(); });
+$('#saveFormatVcfBtn').addEventListener('click', () => {
+  closeSaveFormatModal();
   exportContacts();
+});
+$('#saveFormatCsvBtn').addEventListener('click', () => {
+  closeSaveFormatModal();
+  exportContactsCsv();
 });
 
 $('#menuDupOpt').addEventListener('click', () => {
@@ -2600,6 +2623,67 @@ function exportContacts(){
   const d = new Date();
   const dateStr = String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
   a.download = 'contacts_' + dateStr + '.vcf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+  toast('تم تنزيل الملف');
+}
+
+function csvEscape(val){
+  const s = (val == null) ? '' : String(val);
+  if(/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function buildCSV(contactsArr){
+  const maxOf = (getter) => contactsArr.reduce((m, c) => Math.max(m, getter(c)), 0);
+  const maxPhones = maxOf(c => c.phones.filter(p => p.value).length);
+  const maxEmails = maxOf(c => c.emails.filter(e => e.value).length);
+  const maxUrls = maxOf(c => (c.urls || []).filter(u => u.value).length);
+  const maxAdrs = maxOf(c => (c.adrs || []).filter(a => a.value).length);
+
+  const headers = ['First Name', 'Middle Name', 'Last Name', 'Nickname', 'File As',
+    'Organization Name', 'Organization Title', 'Organization Department', 'Birthday', 'Notes', 'Labels'];
+  for(let i = 1; i <= maxPhones; i++){ headers.push(`Phone ${i} - Label`, `Phone ${i} - Value`); }
+  for(let i = 1; i <= maxEmails; i++){ headers.push(`E-mail ${i} - Label`, `E-mail ${i} - Value`); }
+  for(let i = 1; i <= maxUrls; i++){ headers.push(`Website ${i} - Label`, `Website ${i} - Value`); }
+  for(let i = 1; i <= maxAdrs; i++){ headers.push(`Address ${i} - Label`, `Address ${i} - Formatted`); }
+
+  const rows = [headers];
+  for(const c of contactsArr){
+    const phones = c.phones.filter(p => p.value);
+    const emails = c.emails.filter(e => e.value);
+    const urls = (c.urls || []).filter(u => u.value);
+    const adrs = (c.adrs || []).filter(a => a.value);
+    const labels = (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean).join(':::');
+    const row = ['', '', c.fn || '', c.nickname || '', c.fn || '', c.org || '', c.title || '', c.dept || '', c.bday || '', c.note || '', labels];
+    for(let i = 0; i < maxPhones; i++){ row.push(phones[i]?.type || '', phones[i]?.value || ''); }
+    for(let i = 0; i < maxEmails; i++){ row.push(emails[i]?.type || '', emails[i]?.value || ''); }
+    for(let i = 0; i < maxUrls; i++){ row.push(urls[i]?.type || '', urls[i]?.value || ''); }
+    for(let i = 0; i < maxAdrs; i++){ row.push(adrs[i]?.type || '', adrs[i]?.value || ''); }
+    rows.push(row);
+  }
+  return '\uFEFF' + rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+}
+
+function exportContactsCsv(){
+  if(contacts.length === 0){ toast('لا توجد جهات اتصال للتصدير'); return; }
+  let csvText;
+  try{
+    csvText = buildCSV(contacts);
+  }catch(err){
+    console.error('CSV export failed:', err);
+    toast('حدث خطأ أثناء إنشاء ملف CSV');
+    return;
+  }
+  const blob = new Blob([csvText], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date();
+  const dateStr = String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+  a.download = 'contacts_' + dateStr + '.csv';
   document.body.appendChild(a);
   a.click();
   a.remove();
