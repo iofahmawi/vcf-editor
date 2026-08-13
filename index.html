@@ -134,14 +134,18 @@
   .summary{ color:var(--muted); font-size:13.5px; font-weight:700; margin:10px 4px 6px; }
 
   .contact-row{
-    display:flex; align-items:center; gap:12px;
     padding:12px 14px; margin:10px 0; border-radius:12px;
     border:1px solid var(--border); background:var(--card);
     cursor:pointer; box-shadow: var(--shadow-sm);
     transition: transform 0.15s, box-shadow 0.15s;
     -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
   }
+  .contact-expand, .contact-expand *{
+    -webkit-touch-callout:default; -webkit-user-select:text; user-select:text;
+  }
+  .contact-row-header{ display:flex; align-items:center; gap:12px; }
   .contact-row:active{ transform: scale(0.98); }
+  .contact-row.expanded:active{ transform: none; }
   .contact-row.selected{ border-color:var(--accent); background:var(--card); }
   .contact-checkbox{
     flex:0 0 22px; width:22px; height:22px; border-radius:50%;
@@ -167,6 +171,15 @@
   .contact-name{ font-family:var(--font-display); font-size:14px; font-weight:700; margin-bottom:8px; }
   .contact-realname{ font-size:12px; color:var(--muted); margin-bottom:10px; }
   .contact-sub{ font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction: ltr; text-align: right; }
+  .contact-expand{ margin-top:12px; padding-top:12px; border-top:1px solid var(--border); cursor:default; }
+  .contact-expand-group{ margin-bottom:10px; }
+  .contact-expand-group:last-of-type{ margin-bottom:0; }
+  .contact-expand-label{ font-size:11px; color:var(--muted); margin-bottom:3px; }
+  .contact-expand-row{ display:flex; justify-content:flex-start; align-items:center; gap:8px; padding:4px 0; font-size:13.5px; }
+  .contact-expand-value{ color:var(--text); direction:ltr; text-align:left; overflow-wrap:anywhere; }
+  .contact-expand-type{ flex:0 0 auto; font-size:11.5px; color:var(--muted); }
+  .contact-expand-note{ font-size:13px; color:var(--text); white-space:pre-wrap; line-height:1.6; }
+  .contact-expand-edit-btn{ display:block; width:100%; margin-top:12px; padding:11px; border-radius:10px; border:none; background:var(--card2); color:var(--accent); font-family:var(--font-body); font-weight:700; font-size:13px; cursor:pointer; }
 
   /* ---- Edit screen: grouped panels ---- */
   #screen-home{ background:var(--bg); position:relative; }
@@ -729,7 +742,7 @@ function parseVCF(text){
       const prev = lines[lines.length-1];
       const colonIdx = prev.indexOf(':');
       const keyPart = colonIdx !== -1 ? prev.slice(0, colonIdx) : prev;
-      const isQP = /QUOTED-PRINTABLE/i.test(keyPart);
+      const isQP = keyPart.split(';').slice(1).some(p => /^ENCODING=QUOTED-PRINTABLE$/i.test(p.trim()));
       if(isQP && /=$/.test(prev)){
         lines[lines.length-1] = prev.slice(0, -1) + line;
         continue;
@@ -774,7 +787,7 @@ function parseVCF(text){
     const propName = (groupMatch ? groupMatch[2] : keyParts[0]).toUpperCase();
     const params = keyParts.slice(1);
 
-    const isQP = params.some(p => p.toUpperCase().includes('QUOTED-PRINTABLE'));
+    const isQP = params.some(p => /^ENCODING=QUOTED-PRINTABLE$/i.test(p.trim()));
     if(isQP){
       value = decodeQuotedPrintable(value);
     }
@@ -823,7 +836,7 @@ function parseVCF(text){
         cur.note = unescapeVal(value);
         break;
       case 'ADR': {
-        const v = unescapeVal(value.split(';').filter(Boolean).join(', '));
+        const v = unescapeVal(value.split(';').filter(Boolean).join(', ')).replace(/^[\u200E\u200F]+/, '');
         const t = typeParam || 'أخرى';
         if(!cur.adrs) cur.adrs = [];
         let obj = cur.adrs.find(a => a.value === v && a.type === t);
@@ -1207,7 +1220,11 @@ function buildVCF(contactsArr){
     }
     for(const a of (c.adrs || [])){
       if(!a.value) continue;
-      out += 'ADR;' + buildTypeParam(a.type) + ':;;' + escapeVal(a.value) + ';;;;\n';
+      // نضيف علامة اتجاه غير مرئية (LRM) في بداية العنوان لضمان عرضه من
+      // اليسار لليمين بشكل صحيح داخل تطبيقات جهات اتصال أخرى ذات واجهة
+      // عربية (RTL)، خصوصاً حقول التعديل التي تفرض اتجاه افتراضي RTL
+      // وتُعيد ترتيب الإحداثيات بصرياً رغم صحة البيانات الفعلية.
+      out += 'ADR;' + buildTypeParam(a.type) + ':;;\u200E' + escapeVal(a.value) + ';;;;\n';
     }
     if(c.categories){
       const cats = c.categories.split(/[,،]/).map(s => s.trim()).filter(Boolean)
@@ -1342,6 +1359,63 @@ let sortReversed = false;
 let selectedIds = new Set();
 let longPressTimer = null;
 let longPressTriggered = false;
+let expandedContactId = null;
+
+function escapeAttr(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+}
+
+function buildContactExpandHtml(c){
+  const groups = [];
+
+  const phones = c.phones.filter(p => p.value);
+  if(phones.length){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">أرقام الهاتف</div>${
+      phones.map(p => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(PHONE_LABELS[p.type] || p.type || '')}</span><span class="contact-expand-value">${escapeHtml(p.value)}</span></div>`).join('')
+    }</div>`);
+  }
+
+  const emails = c.emails.filter(e => e.value);
+  if(emails.length){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">البريد الإلكتروني</div>${
+      emails.map(e => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(EMAIL_LABELS[e.type] || e.type || '')}</span><span class="contact-expand-value">${escapeHtml(e.value)}</span></div>`).join('')
+    }</div>`);
+  }
+
+  const urls = (c.urls || []).filter(u => u.value);
+  if(urls.length){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">الروابط</div>${
+      urls.map(u => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(URL_LABELS[u.type] || u.type || '')}</span><span class="contact-expand-value">${escapeHtml(u.value)}</span></div>`).join('')
+    }</div>`);
+  }
+
+  if(c.org || c.title || c.dept){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">الجهة</div><div class="contact-expand-note">${escapeHtml([c.org, c.title, c.dept].filter(Boolean).join(' - '))}</div></div>`);
+  }
+
+  if(c.categories){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">المجموعات</div><div class="contact-expand-note">${escapeHtml(c.categories)}</div></div>`);
+  }
+
+  if(c.bday){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">تاريخ الميلاد</div><div class="contact-expand-note">${escapeHtml(c.bday)}</div></div>`);
+  }
+
+  const adrs = (c.adrs || []).filter(a => a.value);
+  if(adrs.length){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">العناوين</div>${
+      adrs.map(a => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(ADR_LABELS[a.type] || a.type || '')}</span><span class="contact-expand-value">${escapeHtml(a.value)}</span></div>`).join('')
+    }</div>`);
+  }
+
+  if(c.note){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">ملاحظات</div><div class="contact-expand-note">${escapeHtml(c.note)}</div></div>`);
+  }
+
+  if(!groups.length) return '';
+
+  return `<div class="contact-expand">${groups.join('')}<button type="button" class="contact-expand-edit-btn" data-edit-id="${escapeAttr(c.id)}">تعديل جهة الاتصال</button></div>`;
+}
 
 function renderList(filter=''){
   const list = $('#contactList');
@@ -1370,7 +1444,8 @@ function renderList(filter=''){
 
   for(const c of filtered){
     const row = document.createElement('div');
-    row.className = 'contact-row' + (selectedIds.has(c.id) ? ' selected' : '');
+    const isExpanded = !selectionMode && expandedContactId === c.id;
+    row.className = 'contact-row' + (selectedIds.has(c.id) ? ' selected' : '') + (isExpanded ? ' expanded' : '');
     row.dataset.id = c.id;
     const searchTermsForRow = f.split('+').map(s => s.trim()).filter(Boolean);
     const numericTermForRow = searchTermsForRow.find(t => /^\+?\d+$/.test(t));
@@ -1401,27 +1476,40 @@ function renderList(filter=''){
     const checkboxHtml = selectionMode
       ? `<div class="contact-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`
       : '';
+    const expandHtml = isExpanded ? buildContactExpandHtml(c) : '';
     row.innerHTML = `
-      ${checkboxHtml}
-      <div class="contact-avatar">${avatarInner}</div>
-      <div class="contact-info">
-        <div class="contact-name"${realNameLine ? ' style="margin-bottom:10px;"' : ''}>${escapeHtml(displayName)}</div>
-        ${realNameLine}
-        <div class="contact-sub">${escapeHtml(sub)}</div>
+      <div class="contact-row-header">
+        ${checkboxHtml}
+        <div class="contact-avatar">${avatarInner}</div>
+        <div class="contact-info">
+          <div class="contact-name"${realNameLine ? ' style="margin-bottom:10px;"' : ''}>${escapeHtml(displayName)}</div>
+          ${realNameLine}
+          <div class="contact-sub">${escapeHtml(sub)}</div>
+        </div>
       </div>
+      ${expandHtml}
     `;
 
-    row.addEventListener('click', () => {
+    row.querySelector('.contact-row-header').addEventListener('click', () => {
       if(longPressTriggered){ longPressTriggered = false; return; }
-      if(selectionMode) toggleSelect(c.id);
-      else openEdit(c.id);
+      if(selectionMode){ toggleSelect(c.id); return; }
+      expandedContactId = (expandedContactId === c.id) ? null : c.id;
+      renderList($('#search').value);
     });
-    row.addEventListener('touchstart', (e) => startLongPress(c.id), {passive:true});
-    row.addEventListener('touchend', cancelLongPress);
-    row.addEventListener('touchmove', cancelLongPress);
-    row.addEventListener('mousedown', (e) => startLongPress(c.id));
-    row.addEventListener('mouseup', cancelLongPress);
-    row.addEventListener('mouseleave', cancelLongPress);
+    const editBtn = row.querySelector('.contact-expand-edit-btn');
+    if(editBtn){
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openEdit(c.id);
+      });
+    }
+    const headerEl = row.querySelector('.contact-row-header');
+    headerEl.addEventListener('touchstart', (e) => startLongPress(c.id), {passive:true});
+    headerEl.addEventListener('touchend', cancelLongPress);
+    headerEl.addEventListener('touchmove', cancelLongPress);
+    headerEl.addEventListener('mousedown', (e) => startLongPress(c.id));
+    headerEl.addEventListener('mouseup', cancelLongPress);
+    headerEl.addEventListener('mouseleave', cancelLongPress);
 
     list.appendChild(row);
   }
@@ -1447,6 +1535,7 @@ function cancelLongPress(){
 function enterSelectionMode(){
   selectionMode = true;
   selectedIds.clear();
+  expandedContactId = null;
   syncFilterUI();
   safePushState({ screen: 'list', selectionGuard: true }, '', '#list');
 }
