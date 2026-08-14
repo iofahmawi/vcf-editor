@@ -1827,7 +1827,7 @@ function fileToSquarePhotoDataURL(file, callback){
   const reader = new FileReader();
   reader.onload = (ev) => {
     img.onload = () => {
-      const MAX = 800;
+      const MAX = 720;
       const side = Math.min(img.width, img.height);
       const sx = (img.width - side) / 2;
       const sy = (img.height - side) / 2;
@@ -1839,7 +1839,7 @@ function fileToSquarePhotoDataURL(file, callback){
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
-      callback(canvas.toDataURL('image/jpeg', 0.95));
+      callback(canvas.toDataURL('image/jpeg', 0.90));
     };
     img.src = ev.target.result;
   };
