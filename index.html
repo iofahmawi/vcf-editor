@@ -319,8 +319,8 @@
     <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:130px; z-index:30; overflow:hidden;">
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
+      <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">إدارة المجموعات</button>
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">توحيد الصورة</button>
-      <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">توحيد المجموعة</button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
     </div>
   </div>
@@ -586,7 +586,7 @@
 
 <div id="unifyGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
-    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">توحيد المجموعة</div>
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">إدارة المجموعات</div>
 
     <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
@@ -2452,11 +2452,25 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
   const val = $('#unifyGroupValue').value.trim();
   let count = 0;
   contacts.forEach(c => {
-    if(unifyGroupSelectedIds.has(c.id)){ c.categories = val; count++; }
+    if(unifyGroupSelectedIds.has(c.id)){
+      if(val){
+        // نضيف المجموعة الجديدة إلى المجموعات الحالية بدل استبدالها، مع
+        // تفادي التكرار لو الجهة منضمة أصلاً لنفس المجموعة.
+        const existing = (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean);
+        if(!existing.some(g => g.toLowerCase() === val.toLowerCase())){
+          existing.push(val);
+        }
+        c.categories = existing.join('، ');
+      } else {
+        // ترك الحقل فارغاً يعني إزالة كل المجموعات المنضمة لها الجهات المحددة
+        c.categories = '';
+      }
+      count++;
+    }
   });
   closeUnifyGroupModal();
   renderList($('#search').value);
-  toast(val ? ('تم توحيد مجموعة ' + count + ' جهة اتصال') : ('تم إزالة مجموعة ' + count + ' جهة اتصال'));
+  toast(val ? ('تم إضافة المجموعة إلى ' + count + ' جهة اتصال') : ('تم إزالة مجموعة ' + count + ' جهة اتصال'));
 });
 
 function normalizePhoneForDup(v){
