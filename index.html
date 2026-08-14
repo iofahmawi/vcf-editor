@@ -643,9 +643,21 @@ function renderScreenUI(name){
   $('#listMenuBtn').style.display = name === 'list' ? 'inline-block' : 'none';
   $('#listMenuDropdown').style.display = 'none';
   $('#mainHeader').style.display = name === 'home' ? 'none' : 'flex';
-  window.scrollTo(0,0);
   const scroller = $('#screens');
-  if(scroller) scroller.scrollTop = 0;
+  if(name === 'list' && expandedContactId){
+    // نرجع للقائمة وبطاقة مفتوحة: نمرّر لموضع البطاقة نفسها بدل تصفير
+    // التمرير للأعلى، حتى لا يضطر المستخدم للبحث عنها من جديد.
+    const target = $('.contact-row[data-id="' + CSS.escape(String(expandedContactId)) + '"]');
+    if(target){
+      target.scrollIntoView({ block: 'center' });
+    } else {
+      window.scrollTo(0,0);
+      if(scroller) scroller.scrollTop = 0;
+    }
+  } else {
+    window.scrollTo(0,0);
+    if(scroller) scroller.scrollTop = 0;
+  }
 }
 
 // تنقّل للأمام (رئيسية←قائمة، قائمة←تعديل/تكرارات...): يضيف مُدخلاً حقيقياً
@@ -1317,6 +1329,9 @@ $('#newFileBtn').addEventListener('click', () => {
   showScreen('list');
 });
 
+// يقارن أرقام الهاتف مع رقم بحث مدخل، مع التعامل مع تكافؤ رمز الدولة
+// الأردني (962) مع الصفر المحلي في بداية الرقم؛ فبحث "962" يطابق أي رقم
+// محلي (0...) لأن كل الأرقام المحلية تنتمي لنفس رمز الدولة، وبالعكس.
 function getFilteredContacts(filter=''){
   const f = filter.trim().toLowerCase();
   const isNumericSearch = /^\+?\d+$/.test(filter.trim());
