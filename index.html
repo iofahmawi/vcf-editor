@@ -296,7 +296,7 @@
   .merge-photo-opt img{ width:100%; height:100%; object-fit:cover; }
   .merge-photo-opt.selected{ border-color:var(--accent); }
   .dup-merge-btn{
-    color:var(--accent); background:var(--card2); border:none; border-radius:8px; padding:6px 10px;
+    color:var(--accent); background:var(--card2); border:none; border-radius:8px; padding:4px 10px 8px;
     font-family:var(--font-body); font-weight:700; font-size:12px; cursor:pointer;
   }
   .dup-merge-btn:active{ background:var(--border); }
@@ -325,7 +325,7 @@
     </div>
   </div>
   <button class="link-btn" id="headerDeleteBtn" style="display:none; color:var(--danger); font-size:13.5px; font-weight:700; background: rgba(239, 68, 68, 0.07); padding: 0 14px; height:36px; align-items:center; justify-content:center;">حذف</button>
-  <button class="link-btn" id="mergeAllIntraBtn" style="display:none; color:var(--accent); font-size:13.5px; font-weight:700; background: var(--card2); padding: 0 14px; height:36px; align-items:center; justify-content:center;">دمج</button>
+  <button class="link-btn" id="mergeAllIntraBtn" style="display:none; color:var(--accent); font-size:13.5px; font-weight:700; background: var(--card2); padding: 0 14px; height:36px; align-items:center; justify-content:center;"><span style="position:relative; top:-2px;">دمج</span></button>
 </header>
 
 <div id="screens">
@@ -543,8 +543,8 @@
 
 <div id="mergeModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 40px); overflow-y:auto;">
-    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">دمج جهات الاتصال</div>
-    <div style="font-size:13px; color:var(--muted); margin:15px 0 4px; line-height:1.6; text-align:center;">يوجد تعارض — اختر ما تريد الاحتفاظ به</div>
+    <div id="mergeModalTitle" style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">دمج جهات الاتصال</div>
+    <div id="mergeModalSubtitle" style="font-size:13px; color:var(--muted); margin:15px 0 4px; line-height:1.6; text-align:center;">يوجد تعارض — اختر ما تريد الاحتفاظ به</div>
     <div id="mergeModalBody"></div>
     <div style="display:flex; gap:8px; margin-top:18px;">
       <button type="button" id="mergeModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
@@ -2515,6 +2515,86 @@ function findIntraContactDuplicatePhones(){
   return result;
 }
 
+function openIntraPhoneMergeModal(contactId, norm){
+  const c = contacts.find(x => x.id === contactId);
+  if(!c) return;
+  const matches = c.phones.filter(p => normalizePhoneForDup(p.value) === norm);
+  if(matches.length < 2) return;
+  // خيارات فريدة (قد يكون الرقمان مكتوبين بنفس الصيغة تماماً أو بصيغ مختلفة)
+  const options = [...new Set(matches.map(p => p.value))];
+  mergeModalMode = 'intraPhone';
+  pendingIntraPhoneMerge = { contactId, norm, chosen: options[0] };
+  $('#mergeModalTitle').textContent = 'دمج رقم مكرر';
+  $('#mergeModalSubtitle').textContent = 'الرقم مكرر داخل نفس جهة الاتصال';
+
+  const body = $('#mergeModalBody');
+  body.innerHTML = '';
+  const label = document.createElement('div');
+  label.className = 'merge-field-label merge-name-label';
+  label.textContent = 'أي رقم تريد الإبقاء عليه؟';
+  body.appendChild(label);
+  const group = document.createElement('div');
+  group.className = 'merge-name-group';
+  body.appendChild(group);
+  let customInput;
+  options.forEach((val, i) => {
+    const opt = document.createElement('div');
+    opt.className = 'merge-opt name-opt-lg' + (i === 0 ? ' selected' : '');
+    opt.style.direction = 'ltr';
+    opt.style.unicodeBidi = 'embed';
+    opt.style.textAlign = 'right';
+    opt.textContent = val;
+    opt.addEventListener('click', () => {
+      group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      pendingIntraPhoneMerge.chosen = val;
+      if(customInput) customInput.value = '';
+    });
+    group.appendChild(opt);
+  });
+  customInput = document.createElement('input');
+  customInput.type = 'tel';
+  customInput.placeholder = 'اكتب رقماً آخر';
+  customInput.className = 'merge-custom-name';
+  customInput.style.cssText = 'width:100%; box-sizing:border-box; padding:13px 12px; background:transparent; color:var(--text); font-size:14px; font-weight:600; font-family:var(--font-body); line-height:normal; direction:ltr; text-align:right;';
+  customInput.addEventListener('input', () => {
+    group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+    const v = customInput.value.trim();
+    if(v){
+      pendingIntraPhoneMerge.chosen = v;
+    } else {
+      pendingIntraPhoneMerge.chosen = options[0];
+      const first = group.querySelector('.merge-opt');
+      if(first) first.classList.add('selected');
+    }
+  });
+  customInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); customInput.blur(); } });
+  group.appendChild(customInput);
+
+  $('#mergeModalOverlay').style.display = 'flex';
+}
+
+function finalizeIntraPhoneMerge(){
+  if(!pendingIntraPhoneMerge) return;
+  const { contactId, norm, chosen } = pendingIntraPhoneMerge;
+  const c = contacts.find(x => x.id === contactId);
+  if(c){
+    let kept = false;
+    c.phones = c.phones.filter(p => {
+      if(normalizePhoneForDup(p.value) !== norm) return true;
+      if(kept) return false;
+      kept = true;
+      p.value = chosen;
+      return true;
+    });
+  }
+  pendingIntraPhoneMerge = null;
+  toast('تم دمج الرقم المكرر');
+  renderDuplicates();
+  renderList();
+  refreshPrefixOptions();
+}
+
 function mergeIntraContactDuplicate(contactId, norm){
   const c = contacts.find(x => x.id === contactId);
   if(!c) return;
@@ -2584,7 +2664,7 @@ function renderDuplicates(){
       mergeBtn.type = 'button';
       mergeBtn.className = 'dup-merge-btn';
       mergeBtn.textContent = 'دمج';
-      mergeBtn.addEventListener('click', (e) => { e.stopPropagation(); mergeIntraContactDuplicate(d.contactId, d.norm); });
+      mergeBtn.addEventListener('click', (e) => { e.stopPropagation(); openIntraPhoneMergeModal(d.contactId, d.norm); });
       numberRow.appendChild(mergeBtn);
       group.appendChild(numberRow);
 
@@ -2737,6 +2817,8 @@ function buildMergePlan(ids, choices){
 
 let pendingMergeIds = null;
 let pendingMergeChoices = {};
+let pendingIntraPhoneMerge = null; // { contactId, norm, options } عند دمج تكرار داخل نفس الجهة
+let mergeModalMode = 'contacts'; // 'contacts' | 'intraPhone'
 
 function startMerge(ids){
   pendingMergeIds = ids;
@@ -2752,6 +2834,9 @@ function startMerge(ids){
 }
 
 function openMergeModal(plan){
+  mergeModalMode = 'contacts';
+  $('#mergeModalTitle').textContent = 'دمج جهات الاتصال';
+  $('#mergeModalSubtitle').textContent = 'يوجد تعارض — اختر ما تريد الاحتفاظ به';
   const body = $('#mergeModalBody');
   body.innerHTML = '';
 
@@ -2890,10 +2975,19 @@ function openMergeModal(plan){
 function closeMergeModal(){
   $('#mergeModalOverlay').style.display = 'none';
   pendingMergeIds = null;
+  pendingIntraPhoneMerge = null;
+  mergeModalMode = 'contacts';
 }
 $('#mergeModalCancel').addEventListener('click', closeMergeModal);
 $('#mergeModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'mergeModalOverlay') closeMergeModal(); });
 $('#mergeModalConfirm').addEventListener('click', () => {
+  if(mergeModalMode === 'intraPhone'){
+    if(!pendingIntraPhoneMerge) return;
+    $('#mergeModalOverlay').style.display = 'none';
+    finalizeIntraPhoneMerge();
+    mergeModalMode = 'contacts';
+    return;
+  }
   if(!pendingMergeIds) return;
   const plan = buildMergePlan(pendingMergeIds, pendingMergeChoices);
   $('#mergeModalOverlay').style.display = 'none';
