@@ -1408,6 +1408,7 @@ function getFilteredContacts(filter=''){
     const hay = [
       c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
       ...c.phones.map(p => p.value),
+      ...c.phones.map(p => PHONE_LABELS[p.type] || p.type || ''),
       ...c.emails.map(e => e.value),
       ...(c.urls || []).map(u => u.value),
       ...(c.adrs || []).map(a => a.value)
@@ -1535,6 +1536,9 @@ function renderList(filter=''){
     }
     if(!matchedPhone && f){
       matchedPhone = c.phones.find(p => p.value.toLowerCase().includes(f));
+    }
+    if(!matchedPhone && f){
+      matchedPhone = c.phones.find(p => (PHONE_LABELS[p.type] || p.type || '').toLowerCase().includes(f));
     }
     const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
     // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
