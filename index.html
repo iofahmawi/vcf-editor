@@ -526,12 +526,19 @@
 
 <div id="saveFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
-    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">اختر صيغة الحفظ</div>
-    <div id="saveFormatSubtitle" style="font-size:13.5px; color:var(--muted); margin:15px 0 18px; line-height:1.6; text-align:center;">بأي صيغة تريد تصدير جهات الاتصال؟</div>
+    <div id="saveFormatTitle" style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">اختر صيغة الحفظ</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:18px 0 14px; line-height:1.6; text-align:center;">أبعاد الصور</div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="photoSize512Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">512×512</button>
+      <button type="button" id="photoSize720Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">720×720</button>
+    </div>
+    <div style="border-top:1px solid var(--border); margin:18px 0 14px;"></div>
+    <div id="saveFormatSubtitle" style="font-size:13.5px; color:var(--muted); margin:0 0 14px; line-height:1.6; text-align:center;">صيغة الملف</div>
     <div style="display:flex; gap:8px; margin-top:2px;">
       <button type="button" id="saveFormatCsvBtn" style="flex:1 1 0; margin:0; padding:13px; background:var(--card2); color:var(--text); border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">CSV</button>
       <button type="button" id="saveFormatVcfBtn" style="flex:1 1 0; margin:0; padding:13px; background:var(--card2); color:var(--text); border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">VCF</button>
     </div>
+    <div style="font-size:12px; color:var(--muted); margin-top:20px; line-height:normal; text-align:center;">الصور تصدر فقط مع ملفات VCF</div>
   </div>
 </div>
 
@@ -1227,6 +1234,33 @@ function buildTypeParam(type){
     return 'TYPE=' + t;
   }
   return 'X-CUSTOM(CHARSET=UTF-8,ENCODING=QUOTED-PRINTABLE,' + encodeQuotedPrintable(t) + ')';
+}
+
+// يصغّر صورة data URL موجودة إلى حد أقصى معيّن (بدون تكبير إذا كانت أصغر أصلاً)، تُستخدم فقط عند التصدير لمحاكاة أبعاد جوجل دون المساس بالصورة المخزّنة أصلاً بالتطبيق
+function resizeDataUrlToSquare(dataUrl, maxSize){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const outSize = Math.min(maxSize, side);
+      if(outSize === side && img.width === img.height){
+        resolve(dataUrl);
+        return;
+      }
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = outSize;
+      canvas.height = outSize;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+      resolve(canvas.toDataURL('image/jpeg', 0.90));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
 }
 
 function buildVCF(contactsArr){
@@ -2281,9 +2315,9 @@ $('#menuSortOpt').addEventListener('click', () => {
 $('#menuSaveOpt').addEventListener('click', () => {
   $('#listMenuDropdown').style.display = 'none';
   const { list, scope } = getExportScopeContacts();
-  $('#saveFormatSubtitle').textContent = scope === 'all'
-    ? 'بأي صيغة تريد تصدير جهات الاتصال؟'
-    : 'بأي صيغة تريد تصدير ' + list.length + ' جهات اتصال؟';
+  $('#saveFormatTitle').textContent = scope === 'all'
+    ? 'اختر صيغة الحفظ'
+    : 'تصدير ' + list.length + ' جهات اتصال';
   $('#saveFormatModalOverlay').style.display = 'flex';
 });
 function closeSaveFormatModal(){
@@ -2298,6 +2332,13 @@ $('#saveFormatCsvBtn').addEventListener('click', () => {
   closeSaveFormatModal();
   exportContactsCsv();
 });
+function setExportPhotoSize(size){
+  selectedExportPhotoSize = size;
+  $('#photoSize512Btn').style.borderColor = size === 512 ? 'var(--accent)' : 'transparent';
+  $('#photoSize720Btn').style.borderColor = size === 720 ? 'var(--accent)' : 'transparent';
+}
+$('#photoSize512Btn').addEventListener('click', () => setExportPhotoSize(512));
+$('#photoSize720Btn').addEventListener('click', () => setExportPhotoSize(720));
 
 $('#menuDupOpt').addEventListener('click', () => {
   $('#listMenuDropdown').style.display = 'none';
@@ -3144,10 +3185,22 @@ function getExportScopeContacts(){
   return { list: contacts, scope: 'all' };
 }
 
-function exportContacts(){
+let selectedExportPhotoSize = 720;
+
+async function exportContacts(){
   const { list, scope } = getExportScopeContacts();
   if(list.length === 0){ toast('لا توجد جهات اتصال للتصدير'); return; }
-  const vcfText = buildVCF(list);
+  let exportList = list;
+  if(selectedExportPhotoSize === 512){
+    const hasPhotos = list.some(c => c.photo);
+    if(hasPhotos) toast('جارٍ تجهيز الملف...');
+    exportList = await Promise.all(list.map(async c => {
+      if(!c.photo) return c;
+      const resized = await resizeDataUrlToSquare(c.photo, 512);
+      return Object.assign({}, c, { photo: resized });
+    }));
+  }
+  const vcfText = buildVCF(exportList);
   const blob = new Blob([vcfText], {type:'text/vcard;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
