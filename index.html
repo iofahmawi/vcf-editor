@@ -384,8 +384,9 @@
         <img id="f-photo" style="display:none; width:86px; height:86px; border-radius:20px; object-fit:cover; box-shadow: var(--shadow-sm);">
         <div id="photoPlaceholder" style="width:86px; height:86px; border-radius:20px; border:2px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; font-weight:700;">إضافة صورة</div>
       </div>
-      <div id="photoMenu" style="display:none; justify-content:center; gap:14px; margin:12px 0 0;">
+      <div id="photoMenu" style="display:none; justify-content:center; gap:10px; margin:15px 0 0; flex-wrap:wrap;">
         <button type="button" class="link-btn" id="photoChangeOpt" style="color:var(--accent); background: var(--card2);">تغيير الصورة</button>
+        <button type="button" class="link-btn" id="photoUrlOpt" style="color:var(--accent); background: var(--card2);">من رابط</button>
         <button type="button" class="link-btn" id="photoRemoveOpt" style="color:var(--danger); background: rgba(239, 68, 68, 0.1);">حذف الصورة</button>
       </div>
       <input type="file" id="photoInput" accept="image/*" style="display:none;">
@@ -459,6 +460,21 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div id="photoUrlModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إضافة صورة من رابط</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;">الصق رابط الصورة المباشر</div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label>الرابط</label>
+      <input type="url" id="photoUrlModalInput" inputmode="url" placeholder="https://" style="direction:ltr; text-align:left; font-size:14px; padding:13px 14px; line-height:normal;">
+    </div>
+    <div style="display:flex; gap:8px; margin-top:18px;">
+      <button type="button" id="photoUrlModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="photoUrlModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">إضافة</button>
+    </div>
+  </div>
+</div>
 
 <div id="prefixModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
@@ -909,6 +925,8 @@ function parseVCF(text){
             if(m) fmt = m[1].toLowerCase();
           }
           cur.photo = 'data:image/' + fmt + ';base64,' + value.replace(/\s+/g,'');
+        }else if(/^https?:\/\//i.test(value.trim())){
+          cur.photoUrl = value.trim();
         }
         break;
       }
@@ -1003,6 +1021,7 @@ function parseCSVGoogle(text){
   const nicknameIdx = idx('Nickname'), fileAsIdx = idx('File As');
   const orgIdx = idx('Organization Name'), titleIdx = idx('Organization Title'), deptIdx = idx('Organization Department');
   const bdayIdx = idx('Birthday'), notesIdx = idx('Notes'), labelsIdx = idx('Labels');
+  const photoIdx = idx('Photo');
 
   const cards = [];
   for(let r = 1; r < rows.length; r++){
@@ -1064,7 +1083,8 @@ function parseCSVGoogle(text){
       id: 'c'+Math.random().toString(36).slice(2,9),
       fn, nickname: get(nicknameIdx), org: get(orgIdx), dept: get(deptIdx), title: get(titleIdx),
       note: get(notesIdx), adrs, categories, bday: normalizeBdayForInput(get(bdayIdx)),
-      phones, emails, urls, rawExtra: [], version: '3.0', photo: null
+      phones, emails, urls, rawExtra: [], version: '3.0', photo: null,
+      photoUrl: get(photoIdx) || null
     });
   }
   return cards;
@@ -1290,7 +1310,7 @@ async function loadFiles(fileList){
     return;
   }
 
-  // دمج بسيط بدون أي حذف أو دمج تلقائي لجهات الاتصال، فقط تجميعها كلها في قائمة واحدة
+  // عرض جهات الاتصال فوراً بدون انتظار جلب الصور
   contacts = allParsed;
   refreshPrefixOptions();
   renderList();
@@ -1302,6 +1322,13 @@ async function loadFiles(fileList){
     toast('تم تحميل ' + allParsed.length + ' جهة اتصال من ' + files.length + ' ملفات');
   }else{
     toast('تم تحميل ' + allParsed.length + ' جهة اتصال');
+  }
+
+  const photoUrlCount = allParsed.filter(c => c.photoUrl).length;
+  if(photoUrlCount > 0){
+    const photoResult = await fetchPhotosFromUrls(allParsed);
+    renderList();
+    toast('تم جلب ' + photoResult.success + ' من ' + photoResult.attempted + ' صورة');
   }
 }
 
@@ -1785,29 +1812,28 @@ function refreshPhotoPreview(c){
   const placeholder = $('#photoPlaceholder');
   const menu = $('#photoMenu');
   const removeOpt = $('#photoRemoveOpt');
+  const changeOpt = $('#photoChangeOpt');
   menu.style.display = 'none';
   if(c.photo){
     photoEl.src = c.photo;
     photoEl.style.display = 'block';
     placeholder.style.display = 'none';
     removeOpt.style.display = 'inline-block';
+    changeOpt.textContent = 'تغيير الصورة';
   } else {
     photoEl.removeAttribute('src');
     photoEl.style.display = 'none';
     placeholder.style.display = 'flex';
     removeOpt.style.display = 'none';
+    changeOpt.textContent = 'رفع صورة';
   }
 }
 
 $('#photoWrap').addEventListener('click', () => {
   const c = contacts.find(x => x.id === currentId);
   if(!c) return;
-  if(!c.photo){
-    $('#photoInput').click();
-  } else {
-    const menu = $('#photoMenu');
-    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
-  }
+  const menu = $('#photoMenu');
+  menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
 });
 
 $('#photoChangeOpt').addEventListener('click', () => {
@@ -1821,6 +1847,101 @@ $('#photoRemoveOpt').addEventListener('click', () => {
   c.photo = null;
   refreshPhotoPreview(c);
 });
+
+$('#photoUrlOpt').addEventListener('click', () => {
+  $('#photoMenu').style.display = 'none';
+  $('#photoUrlModalInput').value = '';
+  $('#photoUrlModalOverlay').style.display = 'flex';
+});
+function closePhotoUrlModal(){
+  $('#photoUrlModalOverlay').style.display = 'none';
+}
+$('#photoUrlModalCancel').addEventListener('click', closePhotoUrlModal);
+$('#photoUrlModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'photoUrlModalOverlay') closePhotoUrlModal(); });
+$('#photoUrlModalConfirm').addEventListener('click', async () => {
+  const url = $('#photoUrlModalInput').value.trim();
+  if(!url){ toast('أدخل رابط الصورة'); return; }
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  const btn = $('#photoUrlModalConfirm');
+  const originalText = btn.textContent;
+  btn.textContent = 'جارٍ الجلب...';
+  btn.disabled = true;
+  try{
+    const res = await fetch(url, { mode: 'cors' });
+    if(!res.ok) throw new Error('bad response');
+    const blob = await res.blob();
+    const dataUrl = await new Promise((resolve, reject) => {
+      blobToSquarePhotoDataURL(blob, resolve, reject);
+    });
+    c.photo = dataUrl;
+    refreshPhotoPreview(c);
+    closePhotoUrlModal();
+    toast('تمت إضافة الصورة');
+  }catch(err){
+    toast('تعذّر جلب الصورة من هذا الرابط');
+  }finally{
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+});
+
+function blobToSquarePhotoDataURL(blob, callback, errback){
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    img.onload = () => {
+      const MAX = 720;
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const outSize = Math.min(MAX, side);
+      const canvas = document.createElement('canvas');
+      canvas.width = outSize;
+      canvas.height = outSize;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+      callback(canvas.toDataURL('image/jpeg', 0.90));
+    };
+    img.onerror = () => errback && errback();
+    img.src = ev.target.result;
+  };
+  reader.onerror = () => errback && errback();
+  reader.readAsDataURL(blob);
+}
+
+// يحاول جلب صور جهات الاتصال المستوردة من CSV جوجل (رابط فقط بدون بيانات صورة فعلية)
+// عبر طلب كل رابط وتحويله لصورة مربعة مضمّنة؛ يتجاهل بصمت أي رابط يفشل (حجب CORS، انتهاء صلاحية، إلخ)
+async function fetchPhotosFromUrls(cards){
+  const targets = cards.filter(c => c.photoUrl && !c.photo);
+  if(targets.length === 0) return { attempted: 0, success: 0 };
+  let success = 0;
+  const CONCURRENCY = 6;
+  let cursor = 0;
+  async function worker(){
+    while(cursor < targets.length){
+      const card = targets[cursor++];
+      try{
+        const res = await fetch(card.photoUrl, { mode: 'cors' });
+        if(res.ok){
+          const blob = await res.blob();
+          const dataUrl = await new Promise((resolve, reject) => {
+            blobToSquarePhotoDataURL(blob, resolve, reject);
+          });
+          card.photo = dataUrl;
+          success++;
+        }
+      }catch(err){
+        // تجاهل وانتقل للجهة التالية
+      }
+      delete card.photoUrl;
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, targets.length) }, worker));
+  return { attempted: targets.length, success };
+}
 
 function fileToSquarePhotoDataURL(file, callback){
   const img = new Image();
