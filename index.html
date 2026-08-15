@@ -52,7 +52,7 @@
     backdrop-filter: blur(8px);
     display:flex; align-items:center; justify-content:space-between;
     border-bottom: 1px solid var(--border);
-    box-shadow: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.012);
   }
   header h1{
     font-family:var(--font-display);
@@ -199,8 +199,10 @@
     font-size:13.5px; font-family:var(--font-body); transition: all 0.2s; line-height:1.6;
   }
   input:focus, textarea:focus, select:focus{ outline:none; border-color:var(--accent); background:transparent; box-shadow: none; }
-  .merge-custom-name::placeholder{ color: #C4CBD6; }
-  #unifyGroupSearch::placeholder, #unifyGroupValue::placeholder{ color: #C4CBD6; }
+  .merge-custom-name::placeholder{ color: #A9B1BE; }
+  #unifyGroupSearch::placeholder, #unifyGroupValue::placeholder{ color: #A9B1BE; }
+  #bulkPhotoSearch::placeholder{ color: #A9B1BE; }
+  #search::placeholder{ color: #A9B1BE; }
   #unifyGroupValue{ padding-top:8px; padding-bottom:8px; line-height:2; }
   .merge-custom-name{ border:none !important; border-radius:0 !important; transition: background 0.2s; }
   .merge-custom-name:focus{ background:var(--card2); }
