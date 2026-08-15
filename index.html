@@ -164,7 +164,7 @@
     background:var(--card2); color:var(--accent);
     display:flex; align-items:center; justify-content:center;
     font-family:var(--font-display); font-weight:800; font-size:15px;
-    overflow:hidden;
+    overflow:hidden; cursor:pointer;
   }
   .contact-avatar img{ width:100%; height:100%; object-fit:cover; }
   .contact-info{ min-width:0; flex:1; }
@@ -319,6 +319,7 @@
   <div style="position:relative; display:inline-block;">
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
     <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:130px; z-index:30; overflow:hidden;">
+      <button type="button" class="link-btn" id="menuUndoOpt" disabled style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border); opacity:0.4; cursor:default;">تراجع</button>
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
       <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">إدارة المجموعات</button>
@@ -387,7 +388,7 @@
         <div id="photoPlaceholder" style="width:86px; height:86px; border-radius:20px; border:2px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; font-weight:700;">إضافة صورة</div>
       </div>
       <div id="photoMenu" style="display:none; justify-content:center; gap:10px; margin:15px 0 0; flex-wrap:wrap;">
-        <button type="button" class="link-btn" id="photoChangeOpt" style="color:var(--accent); background: var(--card2);">تغيير الصورة</button>
+        <button type="button" class="link-btn" id="photoChangeOpt" style="color:var(--accent); background: var(--card2);">من الجهاز</button>
         <button type="button" class="link-btn" id="photoUrlOpt" style="color:var(--accent); background: var(--card2);">من رابط</button>
         <button type="button" class="link-btn" id="photoRemoveOpt" style="color:var(--danger); background: rgba(239, 68, 68, 0.1);">حذف الصورة</button>
       </div>
@@ -477,6 +478,34 @@
     </div>
   </div>
 </div>
+
+<div id="listPhotoMenuOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div id="listPhotoMenuName" style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:16px; color:var(--text); text-align:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></div>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:8px;">
+      <button type="button" id="listPhotoChangeOpt" style="background:var(--card2); color:var(--accent); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">من الجهاز</button>
+      <button type="button" id="listPhotoUrlOpt" style="background:var(--card2); color:var(--accent); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">من رابط</button>
+      <button type="button" id="listPhotoRemoveOpt" style="display:none; background:rgba(239,68,68,0.1); color:var(--danger); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">حذف الصورة</button>
+    </div>
+    <button type="button" id="listPhotoMenuCancel" style="width:100%; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">إلغاء</button>
+  </div>
+</div>
+
+<div id="listPhotoUrlModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إضافة صورة من رابط</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;">الصق رابط الصورة المباشر</div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label>الرابط</label>
+      <input type="url" id="listPhotoUrlModalInput" inputmode="url" placeholder="https://" style="direction:ltr; text-align:left; font-size:14px; padding:13px 14px; line-height:normal;">
+    </div>
+    <div style="display:flex; gap:8px; margin-top:18px;">
+      <button type="button" id="listPhotoUrlModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="listPhotoUrlModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">إضافة</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="listPhotoInput" accept="image/*" style="display:none;">
 
 <div id="prefixModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
@@ -638,6 +667,36 @@
 
 <script>
 let contacts = [];
+
+let undoSnapshot = null;
+
+function saveUndoSnapshot(description){
+  undoSnapshot = { contacts: JSON.parse(JSON.stringify(contacts)), description };
+  const btn = $('#menuUndoOpt');
+  if(btn){
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+  }
+}
+
+function performUndo(){
+  if(!undoSnapshot) return;
+  contacts = undoSnapshot.contacts;
+  const desc = undoSnapshot.description;
+  undoSnapshot = null;
+  const btn = $('#menuUndoOpt');
+  if(btn){
+    btn.disabled = true;
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'default';
+  }
+  refreshPrefixOptions();
+  renderList($('#search').value);
+  if(typeof renderDuplicates === 'function') renderDuplicates();
+  toast('تم التراجع عن ' + desc);
+}
+
 let currentId = null;
 
 const $ = (sel) => document.querySelector(sel);
@@ -1590,6 +1649,14 @@ function renderList(filter=''){
         openEdit(c.id);
       });
     }
+    const avatarEl = row.querySelector('.contact-avatar');
+    if(avatarEl){
+      avatarEl.addEventListener('click', (e) => {
+        if(selectionMode) return; // نترك السلوك الافتراضي (تحديد) أثناء وضع التحديد الجماعي
+        e.stopPropagation();
+        openListPhotoMenu(c.id);
+      });
+    }
     const headerEl = row.querySelector('.contact-row-header');
     headerEl.addEventListener('touchstart', (e) => startLongPress(c.id), {passive:true});
     headerEl.addEventListener('touchend', cancelLongPress);
@@ -1676,6 +1743,7 @@ $('#deleteSelectedModalCancel').addEventListener('click', () => { $('#deleteSele
 $('#deleteSelectedModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteSelectedModalOverlay') $('#deleteSelectedModalOverlay').style.display = 'none'; });
 $('#deleteSelectedModalConfirm').addEventListener('click', () => {
   const count = selectedIds.size;
+  saveUndoSnapshot('حذف ' + count + ' جهة اتصال');
   contacts = contacts.filter(c => !selectedIds.has(c.id));
   $('#deleteSelectedModalOverlay').style.display = 'none';
   exitSelectionMode();
@@ -1742,6 +1810,7 @@ $('#removeGroupModalConfirm').addEventListener('click', () => {
 $('#prefixDeleteModalConfirm').addEventListener('click', () => {
   const matched = getFilteredContacts($('#search').value);
   const matchedIds = new Set(matched.map(c => c.id));
+  saveUndoSnapshot('حذف ' + matched.length + ' جهة اتصال');
   contacts = contacts.filter(c => !matchedIds.has(c.id));
   closePrefixDeleteModal();
   $('#prefixFilter').value = '';
@@ -1769,6 +1838,7 @@ $('#prefixModalInput').addEventListener('keydown', (e) => { if(e.key === 'Enter'
 $('#prefixModalConfirm').addEventListener('click', () => {
   const oldPrefix = $('#prefixModalOverlay').dataset.oldPrefix;
   const np = $('#prefixModalInput').value.trim();
+  saveUndoSnapshot('استبدال البادئة');
   let count = 0;
   for(const c of contacts){
     for(const p of c.phones){
@@ -1859,13 +1929,13 @@ function refreshPhotoPreview(c){
     photoEl.style.display = 'block';
     placeholder.style.display = 'none';
     removeOpt.style.display = 'inline-block';
-    changeOpt.textContent = 'تغيير الصورة';
+    changeOpt.textContent = 'من الجهاز';
   } else {
     photoEl.removeAttribute('src');
     photoEl.style.display = 'none';
     placeholder.style.display = 'flex';
     removeOpt.style.display = 'none';
-    changeOpt.textContent = 'رفع صورة';
+    changeOpt.textContent = 'من الجهاز';
   }
 }
 
@@ -2017,6 +2087,90 @@ $('#photoInput').addEventListener('change', (e) => {
     refreshPhotoPreview(c);
   });
   e.target.value = '';
+});
+
+// قائمة سريعة لتغيير/حذف صورة جهة اتصال واحدة عند الضغط على صورتها بالشاشة الرئيسية،
+// منفصلة تماماً عن آلية الصورة بشاشة التعديل (currentId) لتفادي أي تعارض بينهما.
+let listPhotoTargetId = null;
+function openListPhotoMenu(id){
+  const c = contacts.find(x => x.id === id);
+  if(!c) return;
+  listPhotoTargetId = id;
+  $('#listPhotoMenuName').textContent = 'تعديل الصورة';
+  $('#listPhotoRemoveOpt').style.display = c.photo ? 'block' : 'none';
+  $('#listPhotoMenuOverlay').style.display = 'flex';
+}
+function closeListPhotoMenu(){
+  $('#listPhotoMenuOverlay').style.display = 'none';
+}
+$('#listPhotoMenuCancel').addEventListener('click', closeListPhotoMenu);
+$('#listPhotoMenuOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoMenuOverlay') closeListPhotoMenu(); });
+
+$('#listPhotoChangeOpt').addEventListener('click', () => {
+  closeListPhotoMenu();
+  $('#listPhotoInput').click();
+});
+$('#listPhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  const c = contacts.find(x => x.id === listPhotoTargetId);
+  if(!c) return;
+  saveUndoSnapshot('تغيير صورة ' + (c.fn || 'جهة الاتصال'));
+  fileToSquarePhotoDataURL(file, (dataUrl) => {
+    c.photo = dataUrl;
+    renderList($('#search').value);
+    toast('تم تغيير الصورة');
+  });
+});
+
+$('#listPhotoRemoveOpt').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === listPhotoTargetId);
+  closeListPhotoMenu();
+  if(!c) return;
+  saveUndoSnapshot('حذف صورة ' + (c.fn || 'جهة الاتصال'));
+  c.photo = null;
+  renderList($('#search').value);
+  toast('تم حذف الصورة');
+});
+
+$('#listPhotoUrlOpt').addEventListener('click', () => {
+  closeListPhotoMenu();
+  $('#listPhotoUrlModalInput').value = '';
+  $('#listPhotoUrlModalOverlay').style.display = 'flex';
+});
+function closeListPhotoUrlModal(){
+  $('#listPhotoUrlModalOverlay').style.display = 'none';
+}
+$('#listPhotoUrlModalCancel').addEventListener('click', closeListPhotoUrlModal);
+$('#listPhotoUrlModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoUrlModalOverlay') closeListPhotoUrlModal(); });
+$('#listPhotoUrlModalConfirm').addEventListener('click', async () => {
+  const url = $('#listPhotoUrlModalInput').value.trim();
+  if(!url){ toast('أدخل رابط الصورة'); return; }
+  const c = contacts.find(x => x.id === listPhotoTargetId);
+  if(!c) return;
+  const btn = $('#listPhotoUrlModalConfirm');
+  const originalText = btn.textContent;
+  btn.textContent = 'جارٍ الجلب...';
+  btn.disabled = true;
+  try{
+    const res = await fetch(url, { mode: 'cors' });
+    if(!res.ok) throw new Error('bad response');
+    const blob = await res.blob();
+    const dataUrl = await new Promise((resolve, reject) => {
+      blobToSquarePhotoDataURL(blob, resolve, reject);
+    });
+    saveUndoSnapshot('تغيير صورة ' + (c.fn || 'جهة الاتصال'));
+    c.photo = dataUrl;
+    renderList($('#search').value);
+    closeListPhotoUrlModal();
+    toast('تمت إضافة الصورة');
+  }catch(err){
+    toast('تعذّر جلب الصورة من هذا الرابط');
+  }finally{
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
 });
 
 function autosizeTypeText(inp){
@@ -2281,6 +2435,8 @@ $('#deleteModalCancel').addEventListener('click', () => { $('#deleteModalOverlay
 $('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay') $('#deleteModalOverlay').style.display = 'none'; });
 $('#deleteModalConfirm').addEventListener('click', () => {
   $('#deleteModalOverlay').style.display = 'none';
+  const deletedContact = contacts.find(x => x.id === currentId);
+  saveUndoSnapshot('حذف ' + (deletedContact?.fn || 'جهة الاتصال'));
   contacts = contacts.filter(x => x.id !== currentId);
   currentId = null;
   refreshPrefixOptions();
@@ -2308,6 +2464,12 @@ document.addEventListener('click', (e) => {
   if(dd.style.display === 'block' && !dd.contains(e.target) && e.target.id !== 'listMenuBtn'){
     dd.style.display = 'none';
   }
+});
+
+$('#menuUndoOpt').addEventListener('click', () => {
+  if(!undoSnapshot) return;
+  $('#listMenuDropdown').style.display = 'none';
+  performUndo();
 });
 
 $('#menuSortOpt').addEventListener('click', () => {
@@ -2493,6 +2655,7 @@ $('#bulkPhotoCancel').addEventListener('click', closeBulkPhotoModal);
 $('#bulkPhotoModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'bulkPhotoModalOverlay') closeBulkPhotoModal(); });
 $('#bulkPhotoConfirm').addEventListener('click', () => {
   if(bulkPhotoSelectedIds.size === 0) return;
+  saveUndoSnapshot(bulkPhotoDataUrl ? 'تغيير الصور' : 'حذف الصور');
   let count = 0;
   contacts.forEach(c => {
     if(bulkPhotoSelectedIds.has(c.id)){ c.photo = bulkPhotoDataUrl || null; count++; }
@@ -2622,6 +2785,7 @@ $('#unifyGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id =
 $('#unifyGroupConfirm').addEventListener('click', () => {
   if(unifyGroupSelectedIds.size === 0) return;
   const val = $('#unifyGroupValue').value.trim();
+  saveUndoSnapshot(val ? ('إضافة مجموعة "' + val + '" إلى ' + unifyGroupSelectedIds.size + ' جهة اتصال') : ('إزالة مجموعات ' + unifyGroupSelectedIds.size + ' جهة اتصال'));
   let count = 0;
   contacts.forEach(c => {
     if(unifyGroupSelectedIds.has(c.id)){
@@ -2750,6 +2914,7 @@ function finalizeIntraPhoneMerge(){
   if(!pendingIntraPhoneMerge) return;
   const { contactId, norm, chosen } = pendingIntraPhoneMerge;
   const c = contacts.find(x => x.id === contactId);
+  saveUndoSnapshot('دمج الرقم المكرر' + (c?.fn ? (' - ' + c.fn) : ''));
   if(c){
     let kept = false;
     c.phones = c.phones.filter(p => {
@@ -2786,6 +2951,7 @@ function mergeIntraContactDuplicate(contactId, norm){
 function mergeAllIntraContactDuplicates(){
   const intraDups = findIntraContactDuplicatePhones();
   if(!intraDups.length) return;
+  saveUndoSnapshot('دمج ' + intraDups.length + ' حالة تكرار داخل نفس الجهة');
   for(const d of intraDups){
     const c = contacts.find(x => x.id === d.contactId);
     if(!c) continue;
@@ -3167,6 +3333,7 @@ $('#mergeModalConfirm').addEventListener('click', () => {
 });
 
 function finalizeMerge(plan){
+  saveUndoSnapshot('دمج ' + (plan.merged.fn || 'جهة الاتصال'));
   contacts = contacts.filter(c => !plan.sourceIds.includes(c.id) || c.id === plan.merged.id);
   const idx = contacts.findIndex(c => c.id === plan.merged.id);
   if(idx !== -1){
