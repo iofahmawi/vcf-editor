@@ -361,6 +361,7 @@
     <div style="display:flex; align-items:center; justify-content:space-between; margin:10px 2px 4px;">
       <div class="summary" id="summaryText" style="margin:0;"></div>
       <div style="display:flex; align-items:center; gap:9px;">
+        <button type="button" class="link-btn" id="prefixSelectedBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; min-width:0; white-space:nowrap;">تعديل البادئة</button>
         <button type="button" class="link-btn merge-selected" id="mergeSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">دمج</button>
         <button type="button" class="link-btn delete-selected" id="deleteSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">حذف</button>
       </div>
@@ -1705,6 +1706,28 @@ function toggleSelect(id){
   renderList($('#search').value);
 }
 
+function computeSelectionCommonPrefix(){
+  const selected = contacts.filter(c => selectedIds.has(c.id));
+  if(selected.length === 0) return '';
+  const allDigits = [];
+  for(const c of selected){
+    if(c.phones.length === 0) return '';
+    for(const p of c.phones){
+      const d = p.value.replace(/\D/g,'');
+      if(!d) return '';
+      allDigits.push(d);
+    }
+  }
+  let prefix = allDigits[0];
+  for(let i=1;i<allDigits.length;i++){
+    let j=0;
+    while(j<prefix.length && j<allDigits[i].length && prefix[j]===allDigits[i][j]) j++;
+    prefix = prefix.slice(0,j);
+    if(!prefix) return '';
+  }
+  return prefix.length >= 2 ? prefix : '';
+}
+
 function syncFilterUI(){
   const searchVal = $('#search').value.trim();
   const searchActive = !!searchVal;
@@ -1719,6 +1742,7 @@ function syncFilterUI(){
   $('#summaryText').style.display = 'block';
   $('#mergeSelectedBtn').style.display = (selectionMode && selectedIds.size >= 2 && selectedIds.size <= 5) ? 'inline-block' : 'none';
   $('#deleteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
+  $('#prefixSelectedBtn').style.display = (selectionMode && computeSelectionCommonPrefix()) ? 'inline-block' : 'none';
   if(selectionMode){
     $('#deleteSelectedBtn').textContent = 'حذف';
   }
@@ -1758,6 +1782,12 @@ $('#prefixReplaceBtn').addEventListener('click', () => {
   const oldPrefix = $('#search').value.trim().replace(/\D/g,'');
   if(!oldPrefix) return;
   openPrefixModal(oldPrefix);
+});
+
+$('#prefixSelectedBtn').addEventListener('click', () => {
+  const commonPrefix = computeSelectionCommonPrefix();
+  if(!commonPrefix) return;
+  openPrefixModal(commonPrefix, Array.from(selectedIds));
 });
 
 $('#prefixDeleteBtn').addEventListener('click', () => {
@@ -1818,8 +1848,9 @@ $('#prefixDeleteModalConfirm').addEventListener('click', () => {
   toast('تم حذف ' + matched.length + ' جهة اتصال');
 });
 
-function openPrefixModal(oldPrefix){
+function openPrefixModal(oldPrefix, scopeIds){
   $('#prefixModalOverlay').dataset.oldPrefix = oldPrefix;
+  $('#prefixModalOverlay').dataset.scopeIds = scopeIds ? JSON.stringify(scopeIds) : '';
   $('#prefixModalDesc').textContent = 'تعديل البادئة "' + oldPrefix + '" إلى:';
   $('#prefixModalInput').value = '';
   $('#prefixModalOverlay').style.display = 'flex';
@@ -1834,9 +1865,12 @@ $('#prefixModalInput').addEventListener('keydown', (e) => { if(e.key === 'Enter'
 $('#prefixModalConfirm').addEventListener('click', () => {
   const oldPrefix = $('#prefixModalOverlay').dataset.oldPrefix;
   const np = $('#prefixModalInput').value.trim();
+  const scopeIdsRaw = $('#prefixModalOverlay').dataset.scopeIds;
+  const scopeIds = scopeIdsRaw ? JSON.parse(scopeIdsRaw) : null;
+  const targetContacts = scopeIds ? contacts.filter(c => scopeIds.includes(c.id)) : contacts;
   saveUndoSnapshot('استبدال البادئة');
   let count = 0;
-  for(const c of contacts){
+  for(const c of targetContacts){
     for(const p of c.phones){
       const digits = p.value.replace(/\D/g,'');
       if(digits.startsWith(oldPrefix)){
@@ -1845,6 +1879,7 @@ $('#prefixModalConfirm').addEventListener('click', () => {
       }
     }
   }
+  if(scopeIds) exitSelectionMode();
   $('#prefixFilter').value = '';
   syncFilterUI();
   refreshPrefixOptions();
