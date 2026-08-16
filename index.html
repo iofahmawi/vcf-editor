@@ -2263,11 +2263,14 @@ function closeListPhotoMenu(){
   listPhotoTargetId = null;
   listPhotoDraft = null;
 }
-// إغلاق عبر واجهة المستخدم (إلغاء / نقر خارج النافذة / تأكيد): يخفي النافذة
-// فوراً ثم يسحب مُدخل السجل الذي أضفناه عند الفتح حتى يبقى السجل متزامناً.
+// إغلاق عبر واجهة المستخدم (إلغاء / نقر خارج النافذة / تأكيد): يسحب مُدخل
+// السجل الذي أضفناه عند الفتح (بصمت، بلا renderScreenUI حتى لا نصفّر تمرير
+// القائمة). الفحص بالأسفل يمنع التنفيذ مرتين لو أطلق الجهاز حدثي لمس/نقر
+// لنفس الضغطة (وهو ما كان يُسرّب مُدخلاً إضافياً من السجل ويُصعّب الخروج لاحقاً).
 function closeListPhotoMenuViaUI(){
+  if($('#listPhotoMenuOverlay').style.display === 'none') return;
   closeListPhotoMenu();
-  suppressNextPopstate = true;
+  suppressNextPopstateSilent = true;
   goBack();
 }
 $('#listPhotoMenuOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoMenuOverlay') closeListPhotoMenuViaUI(); });
@@ -3660,6 +3663,9 @@ function decideBackAction(){
 // عندما نستدعي goBack() بأنفسنا (بعد أن قررنا بالفعل عبر decideBackAction
 // أننا نريد المغادرة)، لا داعي لتكرار نفس القرار داخل معالج popstate.
 let suppressNextPopstate = false;
+// مثل suppressNextPopstate لكن بدون استدعاء renderScreenUI: تُستخدم عند إغلاق
+// نافذة منبثقة (كتعديل الصورة) لا تغيّر الشاشة، حتى لا نصفّر تمرير القائمة.
+let suppressNextPopstateSilent = false;
 
 $('#backBtn').addEventListener('click', () => {
   const stayed = decideBackAction();
@@ -3686,6 +3692,11 @@ $('#exitListModalConfirm').addEventListener('click', () => {
 safeReplaceState({ screen: 'home' }, '', '#home');
 
 window.addEventListener('popstate', (e) => {
+  if(suppressNextPopstateSilent){
+    suppressNextPopstateSilent = false;
+    return;
+  }
+
   if(suppressNextPopstate){
     suppressNextPopstate = false;
     const target = (e.state && e.state.screen) || 'home';
