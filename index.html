@@ -2256,14 +2256,22 @@ function openListPhotoMenu(id){
   $('#listPhotoUrlInline').value = '';
   updateListPhotoPreview();
   $('#listPhotoMenuOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'photo' }, '', '#list');
 }
 function closeListPhotoMenu(){
   $('#listPhotoMenuOverlay').style.display = 'none';
   listPhotoTargetId = null;
   listPhotoDraft = null;
 }
-$('#listPhotoMenuOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoMenuOverlay') closeListPhotoMenu(); });
-$('#listPhotoMenuCancelBtn').addEventListener('click', closeListPhotoMenu);
+// إغلاق عبر واجهة المستخدم (إلغاء / نقر خارج النافذة / تأكيد): يخفي النافذة
+// فوراً ثم يسحب مُدخل السجل الذي أضفناه عند الفتح حتى يبقى السجل متزامناً.
+function closeListPhotoMenuViaUI(){
+  closeListPhotoMenu();
+  suppressNextPopstate = true;
+  goBack();
+}
+$('#listPhotoMenuOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoMenuOverlay') closeListPhotoMenuViaUI(); });
+$('#listPhotoMenuCancelBtn').addEventListener('click', closeListPhotoMenuViaUI);
 
 $('#listPhotoRemoveOpt').addEventListener('click', () => {
   listPhotoDraft = null;
@@ -2307,14 +2315,14 @@ $('#listPhotoUrlInline').addEventListener('change', async () => {
 
 $('#listPhotoMenuConfirmBtn').addEventListener('click', () => {
   const c = contacts.find(x => x.id === listPhotoTargetId);
-  if(!c){ closeListPhotoMenu(); return; }
+  if(!c){ closeListPhotoMenuViaUI(); return; }
   const before = c.photo || null;
   const after = listPhotoDraft;
-  if(before === after){ closeListPhotoMenu(); return; }
+  if(before === after){ closeListPhotoMenuViaUI(); return; }
   saveUndoSnapshot(after ? ('تغيير صورة ' + (c.fn || 'جهة الاتصال')) : ('حذف صورة ' + (c.fn || 'جهة الاتصال')));
   c.photo = after;
   renderList($('#search').value);
-  closeListPhotoMenu();
+  closeListPhotoMenuViaUI();
   toast(after ? 'تم تغيير الصورة' : 'تم حذف الصورة');
 });
 
@@ -3682,6 +3690,11 @@ window.addEventListener('popstate', (e) => {
     suppressNextPopstate = false;
     const target = (e.state && e.state.screen) || 'home';
     renderScreenUI(target);
+    return;
+  }
+
+  if($('#listPhotoMenuOverlay').style.display !== 'none'){
+    closeListPhotoMenu();
     return;
   }
 
