@@ -2728,7 +2728,7 @@ function renderBulkPhotoList(){
     return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
       <input type="checkbox" class="bulkPhotoItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
       <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
-      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto;">${escapeHtml(c.fn)}</span>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; line-height:1.6;">${escapeHtml(c.fn)}</span>
     </label>`;
   }).join('');
   list.querySelectorAll('.bulkPhotoItem').forEach(cb => {
@@ -2872,7 +2872,7 @@ function renderUnifyGroupList(){
     return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
       <input type="checkbox" class="unifyGroupItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
       <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
-      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto;">${escapeHtml(c.fn)}</span>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; line-height:1.6;">${escapeHtml(c.fn)}</span>
     </label>`;
   }).join('');
   list.querySelectorAll('.unifyGroupItem').forEach(cb => {
