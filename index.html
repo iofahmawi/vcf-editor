@@ -481,29 +481,23 @@
 
 <div id="listPhotoMenuOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; padding-top:21px; padding-bottom:21px; box-shadow:0 12px 32px rgba(0,0,0,.18);">
-    <div style="width:140px; height:140px; margin:0 auto 20px; border-radius:22px; overflow:hidden; background:var(--card2); display:flex; align-items:center; justify-content:center;">
+    <div style="width:140px; height:140px; margin:0 auto; border-radius:22px; overflow:hidden; background:var(--card2); display:flex; align-items:center; justify-content:center;">
       <img id="listPhotoMenuImg" style="display:none; width:100%; height:100%; object-fit:cover;">
       <svg id="listPhotoMenuPlaceholder" width="52" height="52" viewBox="0 0 24 24" fill="var(--muted)"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4v-1z"/></svg>
     </div>
-    <div style="display:flex; gap:8px; margin-bottom:11px;">
-      <button type="button" id="listPhotoChangeOpt" style="flex:1 1 0; background:var(--card2); color:var(--accent); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">من الجهاز</button>
-      <button type="button" id="listPhotoUrlOpt" style="flex:1 1 0; background:var(--card2); color:var(--accent); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">من رابط</button>
+    <div style="text-align:center; margin:17px 0;">
+      <button type="button" class="link-btn" id="listPhotoRemoveOpt" style="display:none; color:var(--danger); background:none;">حذف الصورة</button>
     </div>
-    <button type="button" id="listPhotoRemoveOpt" style="display:none; width:100%; background:rgba(239,68,68,0.1); color:var(--danger); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">حذف الصورة</button>
-  </div>
-</div>
-
-<div id="listPhotoUrlModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
-  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
-    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إضافة صورة من رابط</div>
-    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;">الصق رابط الصورة المباشر</div>
-    <div class="field-group" style="margin-bottom:0;">
-      <label>الرابط</label>
-      <input type="url" id="listPhotoUrlModalInput" inputmode="url" placeholder="https://" style="direction:ltr; text-align:left; font-size:14px; padding:13px 14px; line-height:normal;">
+    <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:10px; border:1.07px solid var(--border-light); border-radius:10px;">
+      <button type="button" id="listPhotoChangeOpt" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:13px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center;">اختر ملفاً من جهازك</button>
     </div>
-    <div style="display:flex; gap:8px; margin-top:18px;">
-      <button type="button" id="listPhotoUrlModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
-      <button type="button" id="listPhotoUrlModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">إضافة</button>
+    <div class="field-group" style="margin-bottom:18px;">
+      <label>أو من رابط</label>
+      <input type="url" id="listPhotoUrlInline" inputmode="url" placeholder="https://" style="direction:ltr; text-align:left; font-size:14px; padding:13px 14px; line-height:normal;">
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="listPhotoMenuCancelBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">إلغاء</button>
+      <button type="button" id="listPhotoMenuConfirmBtn" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تأكيد</button>
     </div>
   </div>
 </div>
@@ -2094,76 +2088,65 @@ $('#photoInput').addEventListener('change', (e) => {
 // قائمة سريعة لتغيير/حذف صورة جهة اتصال واحدة عند الضغط على صورتها بالشاشة الرئيسية،
 // منفصلة تماماً عن آلية الصورة بشاشة التعديل (currentId) لتفادي أي تعارض بينهما.
 let listPhotoTargetId = null;
-function openListPhotoMenu(id){
-  const c = contacts.find(x => x.id === id);
-  if(!c) return;
-  listPhotoTargetId = id;
+let listPhotoDraft = null; // القيمة التي سيتم حفظها فعلياً عند الضغط على "تأكيد"
+
+function updateListPhotoPreview(){
   const img = $('#listPhotoMenuImg');
   const placeholder = $('#listPhotoMenuPlaceholder');
-  if(c.photo){
-    img.src = c.photo;
+  if(listPhotoDraft){
+    img.src = listPhotoDraft;
     img.style.display = 'block';
     placeholder.style.display = 'none';
+    $('#listPhotoRemoveOpt').style.display = 'inline-block';
   } else {
     img.removeAttribute('src');
     img.style.display = 'none';
     placeholder.style.display = 'block';
+    $('#listPhotoRemoveOpt').style.display = 'none';
   }
-  $('#listPhotoRemoveOpt').style.display = c.photo ? 'block' : 'none';
+}
+
+function openListPhotoMenu(id){
+  const c = contacts.find(x => x.id === id);
+  if(!c) return;
+  listPhotoTargetId = id;
+  listPhotoDraft = c.photo || null;
+  $('#listPhotoUrlInline').value = '';
+  updateListPhotoPreview();
   $('#listPhotoMenuOverlay').style.display = 'flex';
 }
 function closeListPhotoMenu(){
   $('#listPhotoMenuOverlay').style.display = 'none';
+  listPhotoTargetId = null;
+  listPhotoDraft = null;
 }
 $('#listPhotoMenuOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoMenuOverlay') closeListPhotoMenu(); });
+$('#listPhotoMenuCancelBtn').addEventListener('click', closeListPhotoMenu);
+
+$('#listPhotoRemoveOpt').addEventListener('click', () => {
+  listPhotoDraft = null;
+  updateListPhotoPreview();
+});
 
 $('#listPhotoChangeOpt').addEventListener('click', () => {
-  closeListPhotoMenu();
   $('#listPhotoInput').click();
 });
 $('#listPhotoInput').addEventListener('change', (e) => {
   const file = e.target.files[0];
   e.target.value = '';
   if(!file) return;
-  const c = contacts.find(x => x.id === listPhotoTargetId);
-  if(!c) return;
-  saveUndoSnapshot('تغيير صورة ' + (c.fn || 'جهة الاتصال'));
   fileToSquarePhotoDataURL(file, (dataUrl) => {
-    c.photo = dataUrl;
-    renderList($('#search').value);
-    toast('تم تغيير الصورة');
+    listPhotoDraft = dataUrl;
+    $('#listPhotoUrlInline').value = '';
+    updateListPhotoPreview();
   });
 });
 
-$('#listPhotoRemoveOpt').addEventListener('click', () => {
-  const c = contacts.find(x => x.id === listPhotoTargetId);
-  closeListPhotoMenu();
-  if(!c) return;
-  saveUndoSnapshot('حذف صورة ' + (c.fn || 'جهة الاتصال'));
-  c.photo = null;
-  renderList($('#search').value);
-  toast('تم حذف الصورة');
-});
-
-$('#listPhotoUrlOpt').addEventListener('click', () => {
-  closeListPhotoMenu();
-  $('#listPhotoUrlModalInput').value = '';
-  $('#listPhotoUrlModalOverlay').style.display = 'flex';
-});
-function closeListPhotoUrlModal(){
-  $('#listPhotoUrlModalOverlay').style.display = 'none';
-}
-$('#listPhotoUrlModalCancel').addEventListener('click', closeListPhotoUrlModal);
-$('#listPhotoUrlModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoUrlModalOverlay') closeListPhotoUrlModal(); });
-$('#listPhotoUrlModalConfirm').addEventListener('click', async () => {
-  const url = $('#listPhotoUrlModalInput').value.trim();
-  if(!url){ toast('أدخل رابط الصورة'); return; }
-  const c = contacts.find(x => x.id === listPhotoTargetId);
-  if(!c) return;
-  const btn = $('#listPhotoUrlModalConfirm');
-  const originalText = btn.textContent;
-  btn.textContent = 'جارٍ الجلب...';
-  btn.disabled = true;
+$('#listPhotoUrlInline').addEventListener('change', async () => {
+  const input = $('#listPhotoUrlInline');
+  const url = input.value.trim();
+  if(!url) return;
+  input.disabled = true;
   try{
     const res = await fetch(url, { mode: 'cors' });
     if(!res.ok) throw new Error('bad response');
@@ -2171,17 +2154,26 @@ $('#listPhotoUrlModalConfirm').addEventListener('click', async () => {
     const dataUrl = await new Promise((resolve, reject) => {
       blobToSquarePhotoDataURL(blob, resolve, reject);
     });
-    saveUndoSnapshot('تغيير صورة ' + (c.fn || 'جهة الاتصال'));
-    c.photo = dataUrl;
-    renderList($('#search').value);
-    closeListPhotoUrlModal();
-    toast('تمت إضافة الصورة');
+    listPhotoDraft = dataUrl;
+    updateListPhotoPreview();
   }catch(err){
     toast('تعذّر جلب الصورة من هذا الرابط');
   }finally{
-    btn.textContent = originalText;
-    btn.disabled = false;
+    input.disabled = false;
   }
+});
+
+$('#listPhotoMenuConfirmBtn').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === listPhotoTargetId);
+  if(!c){ closeListPhotoMenu(); return; }
+  const before = c.photo || null;
+  const after = listPhotoDraft;
+  if(before === after){ closeListPhotoMenu(); return; }
+  saveUndoSnapshot(after ? ('تغيير صورة ' + (c.fn || 'جهة الاتصال')) : ('حذف صورة ' + (c.fn || 'جهة الاتصال')));
+  c.photo = after;
+  renderList($('#search').value);
+  closeListPhotoMenu();
+  toast(after ? 'تم تغيير الصورة' : 'تم حذف الصورة');
 });
 
 function autosizeTypeText(inp){
