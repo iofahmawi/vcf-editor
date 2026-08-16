@@ -519,6 +519,18 @@
   </div>
 </div>
 
+<div id="multiPrefixModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:380px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 94px); display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">تعديل البادئة</div>
+    <div style="font-size:12.5px; color:var(--muted); margin:10px 0 14px; line-height:1.6; text-align:center;">البادئة هي الأرقام الأولى من الرقم التي تريد تعديلها أو إزالتها<br>اترك الحقول فارغة إذا كنت لا تريد إجراء أي تعديل</div>
+    <div id="multiPrefixList" style="overflow-y:auto; flex:1; margin-bottom:14px;"></div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="multiPrefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="multiPrefixModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
 <div id="exitListModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">الخروج من جهات الاتصال</div>
@@ -1706,26 +1718,49 @@ function toggleSelect(id){
   renderList($('#search').value);
 }
 
+function longestCommonPrefixLen(a, b){
+  let j = 0;
+  while(j < a.length && j < b.length && a[j] === b[j]) j++;
+  return j;
+}
+
 function computeSelectionCommonPrefix(){
   const selected = contacts.filter(c => selectedIds.has(c.id));
   if(selected.length === 0) return '';
-  const allDigits = [];
-  for(const c of selected){
-    if(c.phones.length === 0) return '';
-    for(const p of c.phones){
-      const d = p.value.replace(/\D/g,'');
-      if(!d) return '';
-      allDigits.push(d);
+  const numberLists = selected.map(c => c.phones.map(p => p.value.replace(/\D/g,'')).filter(Boolean));
+  if(numberLists.some(list => list.length === 0)) return '';
+
+  if(numberLists.length === 1){
+    // جهة واحدة محددة: لازم كل أرقامها تشترك بنفس البادئة، تفادياً لاختيار رقم عشوائي بينها
+    let prefix = numberLists[0][0];
+    for(let i = 1; i < numberLists[0].length; i++){
+      prefix = prefix.slice(0, longestCommonPrefixLen(prefix, numberLists[0][i]));
+      if(!prefix) return '';
     }
+    return prefix.length >= 2 ? prefix : '';
   }
-  let prefix = allDigits[0];
-  for(let i=1;i<allDigits.length;i++){
-    let j=0;
-    while(j<prefix.length && j<allDigits[i].length && prefix[j]===allDigits[i][j]) j++;
-    prefix = prefix.slice(0,j);
-    if(!prefix) return '';
+
+  // جهتان فأكثر: يكفي رقم واحد على الأقل من كل جهة يشترك بالبادئة
+  let best = '';
+  for(const candidate of numberLists[0]){
+    let prefixLen = candidate.length;
+    for(let i = 1; i < numberLists.length; i++){
+      let bestForThisContact = 0;
+      for(const num of numberLists[i]){
+        const len = longestCommonPrefixLen(candidate, num);
+        if(len > bestForThisContact) bestForThisContact = len;
+      }
+      prefixLen = Math.min(prefixLen, bestForThisContact);
+      if(prefixLen === 0) break;
+    }
+    if(prefixLen > best.length) best = candidate.slice(0, prefixLen);
   }
-  return prefix.length >= 2 ? prefix : '';
+  return best.length >= 2 ? best : '';
+}
+
+function selectionHasAnyPhone(){
+  const selected = contacts.filter(c => selectedIds.has(c.id));
+  return selected.some(c => c.phones.some(p => p.value.replace(/\D/g,'')));
 }
 
 function syncFilterUI(){
@@ -1742,7 +1777,7 @@ function syncFilterUI(){
   $('#summaryText').style.display = 'block';
   $('#mergeSelectedBtn').style.display = (selectionMode && selectedIds.size >= 2 && selectedIds.size <= 5) ? 'inline-block' : 'none';
   $('#deleteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
-  $('#prefixSelectedBtn').style.display = (selectionMode && computeSelectionCommonPrefix()) ? 'inline-block' : 'none';
+  $('#prefixSelectedBtn').style.display = (selectionMode && selectionHasAnyPhone()) ? 'inline-block' : 'none';
   if(selectionMode){
     $('#deleteSelectedBtn').textContent = 'حذف';
   }
@@ -1785,9 +1820,7 @@ $('#prefixReplaceBtn').addEventListener('click', () => {
 });
 
 $('#prefixSelectedBtn').addEventListener('click', () => {
-  const commonPrefix = computeSelectionCommonPrefix();
-  if(!commonPrefix) return;
-  openPrefixModal(commonPrefix, Array.from(selectedIds));
+  if(selectionHasAnyPhone()) openMultiPrefixModal(Array.from(selectedIds));
 });
 
 $('#prefixDeleteBtn').addEventListener('click', () => {
@@ -1886,6 +1919,70 @@ $('#prefixModalConfirm').addEventListener('click', () => {
   renderList($('#search').value);
   toast('تم تعديل ' + count + ' رقم');
   closePrefixModal();
+});
+
+let multiPrefixScopeIds = [];
+function openMultiPrefixModal(scopeIds){
+  multiPrefixScopeIds = scopeIds;
+  const list = $('#multiPrefixList');
+  const rows = [];
+  const selected = contacts.filter(c => scopeIds.includes(c.id));
+  selected.forEach(c => {
+    c.phones.forEach((p, idx) => {
+      if(!p.value.replace(/\D/g,'')) return;
+      rows.push({ contactId: c.id, phoneIndex: idx, contactName: c.fn || '(بدون اسم)', value: p.value });
+    });
+  });
+  list.innerHTML = rows.map((r, i) => {
+    const isLast = i === rows.length - 1;
+    return `<div style="padding:12px 0;" data-contact-id="${r.contactId}" data-phone-index="${r.phoneIndex}">
+      <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:8px;">
+        <div style="font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto;">${escapeHtml(r.contactName)}</div>
+        <div style="direction:ltr; text-align:left; font-size:14px; font-weight:700; color:var(--text); flex:0 0 auto; white-space:nowrap;">${escapeHtml(r.value)}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="tel" class="mp-old" inputmode="tel" placeholder="البادئة الحالية" style="flex:1 1 0; min-width:0; direction:ltr; text-align:right; font-size:14px; padding:13px 14px; line-height:normal;">
+        <span style="color:var(--muted); font-size:14px; flex:0 0 auto; position:relative; top:-2px;">←</span>
+        <input type="tel" class="mp-new" inputmode="tel" placeholder="البادئة الجديدة" style="flex:1 1 0; min-width:0; direction:ltr; text-align:right; font-size:14px; padding:13px 14px; line-height:normal;">
+      </div>
+    </div>`;
+  }).join('');
+  $('#multiPrefixModalOverlay').style.display = 'flex';
+}
+function closeMultiPrefixModal(){
+  $('#multiPrefixModalOverlay').style.display = 'none';
+  multiPrefixScopeIds = [];
+}
+$('#multiPrefixModalCancel').addEventListener('click', closeMultiPrefixModal);
+$('#multiPrefixModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'multiPrefixModalOverlay') closeMultiPrefixModal(); });
+$('#multiPrefixModalConfirm').addEventListener('click', () => {
+  const rows = Array.from($('#multiPrefixList').children);
+  const targetContacts = contacts.filter(c => multiPrefixScopeIds.includes(c.id));
+  saveUndoSnapshot('استبدال البادئة');
+  let count = 0;
+  let mismatched = 0;
+  rows.forEach(row => {
+    const contactId = row.dataset.contactId;
+    const phoneIndex = parseInt(row.dataset.phoneIndex, 10);
+    const oldVal = row.querySelector('.mp-old').value.trim().replace(/\D/g,'');
+    const newVal = row.querySelector('.mp-new').value.trim();
+    if(!oldVal || !newVal) return;
+    const c = targetContacts.find(x => x.id === contactId);
+    if(!c || !c.phones[phoneIndex]) return;
+    const digits = c.phones[phoneIndex].value.replace(/\D/g,'');
+    if(digits.startsWith(oldVal)){
+      c.phones[phoneIndex].value = newVal + digits.slice(oldVal.length);
+      count++;
+    } else {
+      mismatched++;
+    }
+  });
+  exitSelectionMode();
+  syncFilterUI();
+  refreshPrefixOptions();
+  renderList($('#search').value);
+  toast(count ? ('تم تعديل ' + count + ' رقم' + (mismatched ? (' — ' + mismatched + ' لا يبدأ بالبادئة المدخلة') : '')) : 'لم يتم تعديل أي رقم');
+  closeMultiPrefixModal();
 });
 
 function escapeHtml(s){
