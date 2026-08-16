@@ -735,7 +735,7 @@ function renderScreenUI(name){
   $('#headerDeleteBtn').style.display = name === 'edit' ? 'inline-flex' : 'none';
   $('#mergeAllIntraBtn').style.display = name === 'duplicates' ? 'inline-flex' : 'none';
   $('#listMenuBtn').style.display = name === 'list' ? 'inline-block' : 'none';
-  $('#listMenuDropdown').style.display = 'none';
+  closeListMenuDropdown();
   $('#mainHeader').style.display = name === 'home' ? 'none' : 'flex';
   const scroller = $('#screens');
   if(name === 'list' && expandedContactId){
@@ -2621,34 +2621,54 @@ $('#fabAdd').addEventListener('click', () => {
   openEdit(c.id);
 });
 
+function openListMenuDropdown(){
+  $('#listMenuDropdown').style.display = 'block';
+  safePushState({ screen: 'list', menu: true }, '', '#list');
+}
+// إغلاق بلا سحب من السجل: يُستخدم فقط عند تنظيف الحالة أثناء تبدّل الشاشة
+// نفسه (renderScreenUI) أو قبل نافيغيشن فوري لشاشة أخرى (كشف التكرار) حتى
+// لا نُصادف نفس سباق التوقيت بين goBack() و pushState الذي واجهناه سابقاً.
+function closeListMenuDropdown(){
+  $('#listMenuDropdown').style.display = 'none';
+}
+// إغلاق عبر أي إجراء بالواجهة يبقينا على نفس الشاشة (نقر خارج القائمة، أو
+// اختيار عنصر يفتح نافذة منبثقة لا يغادر شاشة القائمة): يسحب مُدخل السجل
+// الذي أضفناه عند الفتح، بصمت وبفحص يمنع التكرار — بنفس نمط نافذة الصورة.
+function closeListMenuDropdownAndSync(){
+  if($('#listMenuDropdown').style.display === 'none') return;
+  closeListMenuDropdown();
+  suppressNextPopstateSilent = true;
+  goBack();
+}
 $('#listMenuBtn').addEventListener('click', (e) => {
   e.stopPropagation();
   const dd = $('#listMenuDropdown');
-  dd.style.display = dd.style.display === 'block' ? 'none' : 'block';
+  if(dd.style.display === 'block') closeListMenuDropdownAndSync();
+  else openListMenuDropdown();
 });
 document.addEventListener('click', (e) => {
   const dd = $('#listMenuDropdown');
   if(dd.style.display === 'block' && !dd.contains(e.target) && e.target.id !== 'listMenuBtn'){
-    dd.style.display = 'none';
+    closeListMenuDropdownAndSync();
   }
 });
 
 $('#menuUndoOpt').addEventListener('click', () => {
   if(!undoSnapshot) return;
-  $('#listMenuDropdown').style.display = 'none';
+  closeListMenuDropdownAndSync();
   performUndo();
 });
 
 $('#menuSortOpt').addEventListener('click', () => {
   sortReversed = !sortReversed;
   $('#menuSortOpt').textContent = sortReversed ? 'فرز أبجدي' : 'فرز عكسي';
-  $('#listMenuDropdown').style.display = 'none';
+  closeListMenuDropdownAndSync();
   renderList($('#search').value);
   if(listFilterActive()) pushFilterGuard();
 });
 
 $('#menuSaveOpt').addEventListener('click', () => {
-  $('#listMenuDropdown').style.display = 'none';
+  closeListMenuDropdownAndSync();
   const { list, scope } = getExportScopeContacts();
   $('#saveFormatTitle').textContent = scope === 'all'
     ? 'اختر صيغة الحفظ'
@@ -2676,7 +2696,7 @@ $('#photoSize512Btn').addEventListener('click', () => setExportPhotoSize(512));
 $('#photoSize720Btn').addEventListener('click', () => setExportPhotoSize(720));
 
 $('#menuDupOpt').addEventListener('click', () => {
-  $('#listMenuDropdown').style.display = 'none';
+  closeListMenuDropdown();
   showScreen('duplicates');
   renderDuplicates();
 });
@@ -2685,7 +2705,7 @@ let bulkPhotoSelectedIds = new Set();
 let bulkPhotoDataUrl = null;
 
 $('#menuBulkPhotoOpt').addEventListener('click', () => {
-  $('#listMenuDropdown').style.display = 'none';
+  closeListMenuDropdownAndSync();
   openBulkPhotoModal();
 });
 
@@ -2835,7 +2855,7 @@ $('#bulkPhotoConfirm').addEventListener('click', () => {
 let unifyGroupSelectedIds = new Set();
 
 $('#menuUnifyGroupOpt').addEventListener('click', () => {
-  $('#listMenuDropdown').style.display = 'none';
+  closeListMenuDropdownAndSync();
   openUnifyGroupModal();
 });
 function openUnifyGroupModal(){
@@ -3717,6 +3737,11 @@ window.addEventListener('popstate', (e) => {
 
   if($('#listPhotoMenuOverlay').style.display !== 'none'){
     closeListPhotoMenu();
+    return;
+  }
+
+  if($('#listMenuDropdown').style.display !== 'none'){
+    closeListMenuDropdown();
     return;
   }
 
