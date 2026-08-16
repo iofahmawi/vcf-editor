@@ -1710,11 +1710,22 @@ function exitSelectionMode(){
   syncFilterUI();
   renderList($('#search').value);
 }
+// يُستدعى عند إنهاء وضع التحديد من أي مكان غير معالج popstate (أي أن مُدخل
+// selectionGuard ما زال أعلى السجل ولم يُستهلك بعد): ينهي وضع التحديد ثم
+// يسحب ذلك المُدخل بصمت (بلا renderScreenUI) حتى لا يبقى "يتيماً" يكسر
+// عدّاد ضغطات الخروج لاحقاً (وهذا بالضبط ما كان يسبب الحاجة لضغطات إضافية
+// أو نتيجة غير متوقعة عند الخروج بعد استخدام وضع التحديد).
+function exitSelectionModeAndSync(){
+  if(!selectionMode) return;
+  exitSelectionMode();
+  suppressNextPopstateSilent = true;
+  goBack();
+}
 
 function toggleSelect(id){
   if(selectedIds.has(id)) selectedIds.delete(id);
   else selectedIds.add(id);
-  if(selectedIds.size === 0){ exitSelectionMode(); return; }
+  if(selectedIds.size === 0){ exitSelectionModeAndSync(); return; }
   syncFilterUI();
   renderList($('#search').value);
 }
@@ -1802,7 +1813,7 @@ $('#deleteSelectedModalConfirm').addEventListener('click', () => {
   saveUndoSnapshot('حذف ' + count + ' جهة اتصال');
   contacts = contacts.filter(c => !selectedIds.has(c.id));
   $('#deleteSelectedModalOverlay').style.display = 'none';
-  exitSelectionMode();
+  exitSelectionModeAndSync();
   refreshPrefixOptions();
   renderList($('#search').value);
   toast('تم حذف ' + count + ' جهة اتصال');
@@ -1913,7 +1924,7 @@ $('#prefixModalConfirm').addEventListener('click', () => {
       }
     }
   }
-  if(scopeIds) exitSelectionMode();
+  if(scopeIds) exitSelectionModeAndSync();
   $('#prefixFilter').value = '';
   syncFilterUI();
   refreshPrefixOptions();
@@ -1980,7 +1991,7 @@ $('#multiPrefixModalConfirm').addEventListener('click', () => {
       mismatched++;
     }
   });
-  exitSelectionMode();
+  exitSelectionModeAndSync();
   syncFilterUI();
   refreshPrefixOptions();
   renderList($('#search').value);
@@ -3638,7 +3649,7 @@ function pushFilterGuard(){
 //   تنقّل حقيقي يجب أن يُترجم إلى تراجع في سجل المتصفح → نُرجع false.
 function decideBackAction(){
   if(screens.list.classList.contains('active') && selectionMode){
-    exitSelectionMode();
+    exitSelectionModeAndSync();
     return true;
   }
   if(screens.edit.classList.contains('active')){
