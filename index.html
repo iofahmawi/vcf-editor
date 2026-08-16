@@ -1918,6 +1918,7 @@ $('#prefixModalConfirm').addEventListener('click', () => {
   syncFilterUI();
   refreshPrefixOptions();
   renderList($('#search').value);
+  if(scopeIds) scrollToContactRow(scopeIds[0]);
   toast('تم تعديل ' + count + ' رقم');
   closePrefixModal();
 });
@@ -1959,6 +1960,7 @@ $('#multiPrefixModalOverlay').addEventListener('click', (e) => { if(e.target.id 
 $('#multiPrefixModalConfirm').addEventListener('click', () => {
   const rows = Array.from($('#multiPrefixList').children);
   const targetContacts = contacts.filter(c => multiPrefixScopeIds.includes(c.id));
+  const returnToId = multiPrefixScopeIds[0];
   saveUndoSnapshot('استبدال البادئة');
   let count = 0;
   let mismatched = 0;
@@ -1982,12 +1984,19 @@ $('#multiPrefixModalConfirm').addEventListener('click', () => {
   syncFilterUI();
   refreshPrefixOptions();
   renderList($('#search').value);
+  scrollToContactRow(returnToId);
   toast(count ? ('تم تعديل ' + count + ' رقم' + (mismatched ? (' — ' + mismatched + ' لا يبدأ بالبادئة المدخلة') : '')) : 'لم يتم تعديل أي رقم');
   closeMultiPrefixModal();
 });
 
 function escapeHtml(s){
   return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function scrollToContactRow(id){
+  if(!id) return;
+  const target = $('.contact-row[data-id="' + CSS.escape(String(id)) + '"]');
+  if(target) target.scrollIntoView({ block: 'center' });
 }
 
 function updateSearchAddTermBtn(){
