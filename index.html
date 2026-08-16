@@ -1967,7 +1967,7 @@ $('#multiPrefixModalConfirm').addEventListener('click', () => {
     const phoneIndex = parseInt(row.dataset.phoneIndex, 10);
     const oldVal = row.querySelector('.mp-old').value.trim().replace(/\D/g,'');
     const newVal = row.querySelector('.mp-new').value.trim();
-    if(!oldVal || !newVal) return;
+    if(!oldVal) return;
     const c = targetContacts.find(x => x.id === contactId);
     if(!c || !c.phones[phoneIndex]) return;
     const digits = c.phones[phoneIndex].value.replace(/\D/g,'');
