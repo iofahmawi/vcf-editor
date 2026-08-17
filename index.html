@@ -2854,9 +2854,40 @@ $('#menuUndoOpt').addEventListener('click', () => {
 $('#menuSortOpt').addEventListener('click', () => {
   sortReversed = !sortReversed;
   $('#menuSortOpt').textContent = sortReversed ? 'فرز أبجدي' : 'فرز عكسي';
-  closeListMenuDropdownAndSync();
   renderList($('#search').value);
-  if(listFilterActive()) pushFilterGuard();
+  // الفرز العكسي يُعتبر فلتراً فعالاً (listFilterActive)، فبعد إغلاق القائمة
+  // (والتي تركت مُدخل حماية بالسجل من فتحها) قد نحتاج تفعيل مُدخل حماية
+  // الفلتر. الاستدعاء القديم كان يستخدم closeListMenuDropdownAndSync (تسحب
+  // مُدخل القائمة عبر goBack غير متزامن) ثم فوراً pushFilterGuard (تدفع
+  // مُدخلاً جديداً بنفس اللفة التزامنية) — هذا تزامن خاطئ بين goBack()
+  // وpushState يُفسد سجل المتصفح ويُعطّل تأكيد الخروج لاحقاً (نفس فئة عطل
+  // شاشة التكرار المُصلح سابقاً). لذا نستبدل مُدخل القائمة نفسه بمُدخل الفلتر
+  // مباشرة (بلا goBack إطلاقاً) حين نحتاج فتح فلتر جديد، ونسحبه بصمت (goBack
+  // بمفرده، بلا push بعده) حين لا نحتاج أي مُدخل جديد.
+  closeListMenuDropdown();
+  if(listFilterActive()){
+    if(!filterGuardActive){
+      filterGuardActive = true;
+      safeReplaceState({ screen: 'list', filterGuard: true }, '', '#list');
+    } else {
+      suppressPopstateSilentCount++;
+      goBack();
+    }
+  } else {
+    // القائمة كانت قد فُتحت (فأضافت مُدخلاً)، وقد تكون فُتحت فوق مُدخل حماية
+    // فلتر قائم أصلاً من فرز عكسي سابق (filterGuardActive) صار الآن غير
+    // لازم لأن الفلتر تعطّل بهذا الضغط بالذات. نسحب مُدخل القائمة دائماً،
+    // ونسحب مُدخل الفلتر الزائد معه أيضاً إن وُجد — بصمت وبسلسلة متتالية من
+    // goBack() فقط (بلا أي pushState وسطها)، فهذا النمط آمن ولا يسبب سباق
+    // التوقيت الذي واجهناه عند خلط goBack مع pushState.
+    suppressPopstateSilentCount++;
+    goBack();
+    if(filterGuardActive){
+      filterGuardActive = false;
+      suppressPopstateSilentCount++;
+      goBack();
+    }
+  }
 });
 
 $('#menuSaveOpt').addEventListener('click', () => {
