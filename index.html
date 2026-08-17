@@ -2837,13 +2837,13 @@ $('#menuSortOpt').addEventListener('click', () => {
 });
 
 $('#menuSaveOpt').addEventListener('click', () => {
-  closeListMenuDropdownAndSync();
+  closeListMenuDropdown();
   const { list, scope } = getExportScopeContacts();
   $('#saveFormatTitle').textContent = scope === 'all'
     ? 'اختر صيغة الحفظ'
     : 'تصدير ' + list.length + ' جهات اتصال';
   $('#saveFormatModalOverlay').style.display = 'flex';
-  safePushState({ screen: 'list', modal: 'saveFormat' }, '', '#list');
+  safeReplaceState({ screen: 'list', modal: 'saveFormat' }, '', '#list');
 });
 function closeSaveFormatModal(){
   if($('#saveFormatModalOverlay').style.display === 'none') return;
@@ -2878,7 +2878,7 @@ let bulkPhotoSelectedIds = new Set();
 let bulkPhotoDataUrl = null;
 
 $('#menuBulkPhotoOpt').addEventListener('click', () => {
-  closeListMenuDropdownAndSync();
+  closeListMenuDropdown();
   openBulkPhotoModal();
 });
 
@@ -2891,7 +2891,7 @@ function openBulkPhotoModal(){
   renderBulkPhotoList();
   updateBulkPhotoConfirmState();
   $('#bulkPhotoModalOverlay').style.display = 'flex';
-  safePushState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
+  safeReplaceState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
   setTimeout(() => $('#bulkPhotoSearch').focus(), 50);
 }
 function closeBulkPhotoModal(){
@@ -3032,7 +3032,7 @@ $('#bulkPhotoConfirm').addEventListener('click', () => {
 let unifyGroupSelectedIds = new Set();
 
 $('#menuUnifyGroupOpt').addEventListener('click', () => {
-  closeListMenuDropdownAndSync();
+  closeListMenuDropdown();
   openUnifyGroupModal();
 });
 function openUnifyGroupModal(){
@@ -3042,7 +3042,7 @@ function openUnifyGroupModal(){
   renderUnifyGroupList();
   updateUnifyGroupConfirmState();
   $('#unifyGroupModalOverlay').style.display = 'flex';
-  safePushState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
+  safeReplaceState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
   setTimeout(() => $('#unifyGroupSearch').focus(), 50);
 }
 function closeUnifyGroupModal(){
