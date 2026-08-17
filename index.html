@@ -134,19 +134,37 @@
   .summary{ color:var(--muted); font-size:13.5px; font-weight:700; margin:10px 4px 6px; }
 
   .contact-row{
-    padding:12px 14px; margin:10px 0; border-radius:12px;
+    position:relative; margin:10px 0; border-radius:12px;
+    overflow:hidden; box-shadow: var(--shadow-sm);
+  }
+  .contact-row-delete-action{
+    position:absolute; inset:0; background:var(--danger); color:#fff;
+    opacity:0; pointer-events:none; z-index:0;
+  }
+  .contact-row-delete-action svg{
+    position:absolute; left:22px; top:50%; width:20px; height:20px; transform:translateY(-50%);
+  }
+  .contact-row-edit-action{
+    position:absolute; inset:0; background:var(--accent); color:#fff;
+    opacity:0; pointer-events:none; z-index:0;
+  }
+  .contact-row-edit-action svg{
+    position:absolute; right:22px; top:50%; width:20px; height:20px; transform:translateY(-50%);
+  }
+  .contact-row-surface{
+    position:relative; z-index:1; padding:12px 14px; border-radius:12px;
     border:1px solid var(--border); background:var(--card);
-    cursor:pointer; box-shadow: var(--shadow-sm);
-    transition: transform 0.15s, box-shadow 0.15s;
+    cursor:pointer; transition: transform 0.15s, box-shadow 0.15s;
     -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
+    touch-action: pan-y;
   }
   .contact-expand, .contact-expand *{
     -webkit-touch-callout:default; -webkit-user-select:text; user-select:text;
   }
   .contact-row-header{ display:flex; align-items:center; gap:12px; }
-  .contact-row:active{ transform: scale(0.98); }
-  .contact-row.expanded:active{ transform: none; }
-  .contact-row.selected{ border-color:var(--accent); background:var(--card); }
+  .contact-row-surface:active{ transform: scale(0.98); }
+  .contact-row.expanded .contact-row-surface:active{ transform: none; }
+  .contact-row.selected .contact-row-surface{ border-color:var(--accent); background:var(--card); }
   .contact-checkbox{
     flex:0 0 22px; width:22px; height:22px; border-radius:50%;
     border:2px solid var(--border); background:var(--card);
@@ -724,6 +742,7 @@ function performUndo(){
 }
 
 let currentId = null;
+let swipeDeleteTargetId = null;
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -741,7 +760,7 @@ const titles = { home: 'جهات الإتصال', list: 'جهات الاتصال
 
 // تحديث الواجهة فقط لعرض شاشة معيّنة (بدون لمس سجل المتصفح إطلاقاً)
 function renderScreenUI(name){
-  if(name !== 'list' && selectionMode){ selectionMode = false; selectedIds.clear(); if(typeof updateScrollTopBtn === 'function') updateScrollTopBtn(); }
+  if(name !== 'list'){ if(typeof closeOpenSwipe === 'function') closeOpenSwipe(); if(selectionMode){ selectionMode = false; selectedIds.clear(); } if(typeof updateScrollTopBtn === 'function') updateScrollTopBtn(); }
   Object.values(screens).forEach(s=>s.classList.remove('active'));
   screens[name].classList.add('active');
   $('#screenTitle').textContent = titles[name];
@@ -1649,21 +1668,34 @@ function renderList(filter=''){
       ? `<button type="button" class="contact-expand-edit-icon" data-edit-id="${escapeAttr(c.id)}" aria-label="تعديل جهة الاتصال"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>`
       : '';
     row.innerHTML = `
-      <div class="contact-row-header">
-        ${checkboxHtml}
-        <div class="contact-avatar">${avatarInner}</div>
-        <div class="contact-info">
-          <div class="contact-name"${realNameLine ? ' style="margin-bottom:10px;"' : ''}>${escapeHtml(displayName)}</div>
-          ${realNameLine}
-          <div class="contact-sub">${escapeHtml(sub)}</div>
-        </div>
-        ${editIconHtml}
+      <div class="contact-row-delete-action" data-swipe-delete="${escapeAttr(c.id)}" aria-label="حذف">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
       </div>
-      ${expandHtml}
+      <div class="contact-row-edit-action" data-swipe-edit="${escapeAttr(c.id)}" aria-label="تعديل">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </div>
+      <div class="contact-row-surface">
+        <div class="contact-row-header">
+          ${checkboxHtml}
+          <div class="contact-avatar">${avatarInner}</div>
+          <div class="contact-info">
+            <div class="contact-name"${realNameLine ? ' style="margin-bottom:10px;"' : ''}>${escapeHtml(displayName)}</div>
+            ${realNameLine}
+            <div class="contact-sub">${escapeHtml(sub)}</div>
+          </div>
+          ${editIconHtml}
+        </div>
+        ${expandHtml}
+      </div>
     `;
 
     row.querySelector('.contact-row-header').addEventListener('click', () => {
       if(longPressTriggered){ longPressTriggered = false; return; }
+      if(openSwipeRow){
+        const wasThisRow = openSwipeRow.id === c.id;
+        closeOpenSwipe();
+        if(wasThisRow) return; // أول ضغطة تُغلق الزر المكشوف فقط، دون تنفيذ إجراء آخر
+      }
       if(selectionMode){ toggleSelect(c.id); return; }
       expandedContactId = (expandedContactId === c.id) ? null : c.id;
       renderList($('#search').value);
@@ -1691,8 +1723,95 @@ function renderList(filter=''){
     headerEl.addEventListener('mouseup', cancelLongPress);
     headerEl.addEventListener('mouseleave', cancelLongPress);
 
+    // سحب البطاقة لليمين لكشف الحذف خلفها (يمين = تتحرك البطاقة يمين ويظهر
+    // الخلفية الحمراء وأيقونة الحذف). معطّل أثناء التحديد الجماعي أو التوسيع.
+    if(!selectionMode && !isExpanded){
+      wireRowSwipe(row, c.id);
+    }
+
     list.appendChild(row);
   }
+}
+
+const SWIPE_ACTION_WIDTH = 64;   // موضع استقرار البطاقة عند التفعيل (تتوسط الأيقونة هذه المسافة)
+const SWIPE_TRIGGER_WIDTH = 72;  // مسافة السحب لتفعيل تأكيد الحذف
+const SWIPE_MAX_DRAG = 96;
+let openSwipeRow = null; // { id, surface, action }
+
+function closeOpenSwipe(){
+  if(!openSwipeRow) return;
+  const { surface, action } = openSwipeRow;
+  surface.style.transition = 'transform .2s ease';
+  action.style.transition = 'opacity .2s ease';
+  surface.style.transform = 'translateX(0)';
+  action.style.opacity = '0';
+  action.style.pointerEvents = 'none';
+  openSwipeRow = null;
+}
+
+function wireRowSwipe(row, id){
+  const surface = row.querySelector('.contact-row-surface');
+  const deleteAction = row.querySelector('.contact-row-delete-action');
+  const editAction = row.querySelector('.contact-row-edit-action');
+  if(!surface || !deleteAction || !editAction) return;
+  let startX = 0, startY = 0, dx = 0, active = false, decided = false, isHorizontal = false;
+
+  row.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    startX = t.clientX; startY = t.clientY; dx = 0; active = true; decided = false; isHorizontal = false;
+    surface.style.transition = 'none';
+    deleteAction.style.transition = 'none';
+    editAction.style.transition = 'none';
+  }, { passive:true });
+
+  row.addEventListener('touchmove', (e) => {
+    if(!active) return;
+    const t = e.touches[0];
+    const rawDx = t.clientX - startX;
+    const rawDy = t.clientY - startY;
+    if(!decided){
+      if(Math.abs(rawDx) < 8 && Math.abs(rawDy) < 8) return;
+      decided = true;
+      isHorizontal = Math.abs(rawDx) > Math.abs(rawDy);
+      if(isHorizontal) cancelLongPress();
+    }
+    if(!isHorizontal) return;
+    e.preventDefault();
+    const pos = Math.max(-SWIPE_MAX_DRAG, Math.min(rawDx, SWIPE_MAX_DRAG));
+    dx = pos;
+    surface.style.transform = `translateX(${pos}px)`;
+    if(pos >= 0){
+      deleteAction.style.opacity = String(Math.min(1, pos / SWIPE_ACTION_WIDTH));
+      editAction.style.opacity = '0';
+    } else {
+      editAction.style.opacity = String(Math.min(1, -pos / SWIPE_ACTION_WIDTH));
+      deleteAction.style.opacity = '0';
+    }
+  }, { passive:false });
+
+  const finish = () => {
+    if(!active) return;
+    active = false;
+    if(!isHorizontal) return;
+    surface.style.transition = 'transform .2s ease';
+    deleteAction.style.transition = 'opacity .2s ease';
+    editAction.style.transition = 'opacity .2s ease';
+    surface.style.transform = 'translateX(0)';
+    deleteAction.style.opacity = '0';
+    editAction.style.opacity = '0';
+    if(dx > SWIPE_TRIGGER_WIDTH){
+      deleteContactFromList(id);
+    } else if(dx < -SWIPE_TRIGGER_WIDTH){
+      openEdit(id);
+    }
+  };
+  row.addEventListener('touchend', finish, { passive:true });
+  row.addEventListener('touchcancel', finish, { passive:true });
+}
+
+function deleteContactFromList(id){
+  swipeDeleteTargetId = id;
+  $('#deleteModalOverlay').style.display = 'flex';
 }
 
 function startLongPress(id){
@@ -1716,6 +1835,7 @@ function enterSelectionMode(){
   selectionMode = true;
   selectedIds.clear();
   expandedContactId = null;
+  closeOpenSwipe();
   syncFilterUI();
   safePushState({ screen: 'list', selectionGuard: true }, '', '#list');
 }
@@ -1820,7 +1940,7 @@ function updateScrollTopBtn(){
   const shouldShow = selectionMode && screens.list.classList.contains('active') && scroller && scroller.scrollTop > 200;
   scrollTopBtn.classList.toggle('show', !!shouldShow);
 }
-$('#screens').addEventListener('scroll', () => { if(selectionMode) updateScrollTopBtn(); }, { passive:true });
+$('#screens').addEventListener('scroll', () => { if(selectionMode) updateScrollTopBtn(); if(openSwipeRow) closeOpenSwipe(); }, { passive:true });
 scrollTopBtn.addEventListener('click', () => {
   const scroller = $('#screens');
   if(scroller) scroller.scrollTo({ top:0, behavior:'smooth' });
@@ -2629,17 +2749,26 @@ function deleteCurrentContact(){
   $('#deleteModalOverlay').style.display = 'flex';
 }
 
-$('#deleteModalCancel').addEventListener('click', () => { $('#deleteModalOverlay').style.display = 'none'; });
-$('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay') $('#deleteModalOverlay').style.display = 'none'; });
+$('#deleteModalCancel').addEventListener('click', () => { $('#deleteModalOverlay').style.display = 'none'; swipeDeleteTargetId = null; closeOpenSwipe(); });
+$('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay'){ $('#deleteModalOverlay').style.display = 'none'; swipeDeleteTargetId = null; closeOpenSwipe(); } });
 $('#deleteModalConfirm').addEventListener('click', () => {
   $('#deleteModalOverlay').style.display = 'none';
-  const deletedContact = contacts.find(x => x.id === currentId);
+  const targetId = swipeDeleteTargetId || currentId;
+  const fromList = !!swipeDeleteTargetId;
+  const deletedContact = contacts.find(x => x.id === targetId);
   saveUndoSnapshot('حذف ' + (deletedContact?.fn || 'جهة الاتصال'));
-  contacts = contacts.filter(x => x.id !== currentId);
-  currentId = null;
-  refreshPrefixOptions();
-  renderList($('#search').value);
-  goBack();
+  contacts = contacts.filter(x => x.id !== targetId);
+  swipeDeleteTargetId = null;
+  openSwipeRow = null;
+  if(fromList){
+    refreshPrefixOptions();
+    renderList($('#search').value);
+  } else {
+    currentId = null;
+    refreshPrefixOptions();
+    renderList($('#search').value);
+    goBack();
+  }
   toast('تم الحذف');
 });
 
