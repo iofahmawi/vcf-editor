@@ -1826,7 +1826,7 @@ function startLongPress(id){
     // the trailing click on the (now removed) element to clear this flag —
     // clear it ourselves shortly after instead of relying on that click.
     setTimeout(() => { longPressTriggered = false; }, 350);
-  }, 480);
+  }, 240);
 }
 function cancelLongPress(){
   if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
