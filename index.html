@@ -2843,9 +2843,13 @@ $('#menuSaveOpt').addEventListener('click', () => {
     ? 'اختر صيغة الحفظ'
     : 'تصدير ' + list.length + ' جهات اتصال';
   $('#saveFormatModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'saveFormat' }, '', '#list');
 });
 function closeSaveFormatModal(){
+  if($('#saveFormatModalOverlay').style.display === 'none') return;
   $('#saveFormatModalOverlay').style.display = 'none';
+  suppressNextPopstateSilent = true;
+  goBack();
 }
 $('#saveFormatModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'saveFormatModalOverlay') closeSaveFormatModal(); });
 $('#saveFormatVcfBtn').addEventListener('click', () => {
@@ -2887,10 +2891,14 @@ function openBulkPhotoModal(){
   renderBulkPhotoList();
   updateBulkPhotoConfirmState();
   $('#bulkPhotoModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
   setTimeout(() => $('#bulkPhotoSearch').focus(), 50);
 }
 function closeBulkPhotoModal(){
+  if($('#bulkPhotoModalOverlay').style.display === 'none') return;
   $('#bulkPhotoModalOverlay').style.display = 'none';
+  suppressNextPopstateSilent = true;
+  goBack();
 }
 
 function bulkPhotoMatchContacts(query){
@@ -3034,10 +3042,14 @@ function openUnifyGroupModal(){
   renderUnifyGroupList();
   updateUnifyGroupConfirmState();
   $('#unifyGroupModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
   setTimeout(() => $('#unifyGroupSearch').focus(), 50);
 }
 function closeUnifyGroupModal(){
+  if($('#unifyGroupModalOverlay').style.display === 'none') return;
   $('#unifyGroupModalOverlay').style.display = 'none';
+  suppressNextPopstateSilent = true;
+  goBack();
 }
 function unifyGroupMatchContacts(query){
   const f = query.trim().toLowerCase();
@@ -3917,6 +3929,21 @@ window.addEventListener('popstate', (e) => {
   if($('#multiPrefixModalOverlay').style.display !== 'none'){
     $('#multiPrefixModalOverlay').style.display = 'none';
     multiPrefixScopeIds = [];
+    return;
+  }
+
+  if($('#saveFormatModalOverlay').style.display !== 'none'){
+    $('#saveFormatModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#bulkPhotoModalOverlay').style.display !== 'none'){
+    $('#bulkPhotoModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#unifyGroupModalOverlay').style.display !== 'none'){
+    $('#unifyGroupModalOverlay').style.display = 'none';
     return;
   }
 
