@@ -2051,10 +2051,14 @@ function openPrefixModal(oldPrefix, scopeIds){
   $('#prefixModalDesc').textContent = 'تعديل البادئة "' + oldPrefix + '" إلى:';
   $('#prefixModalInput').value = '';
   $('#prefixModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'prefix' }, '', '#list');
   setTimeout(() => { $('#prefixModalInput').focus(); $('#prefixModalInput').select(); }, 50);
 }
 function closePrefixModal(){
+  if($('#prefixModalOverlay').style.display === 'none') return;
   $('#prefixModalOverlay').style.display = 'none';
+  suppressNextPopstateSilent = true;
+  goBack();
 }
 $('#prefixModalCancel').addEventListener('click', closePrefixModal);
 $('#prefixModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'prefixModalOverlay') closePrefixModal(); });
@@ -2113,10 +2117,14 @@ function openMultiPrefixModal(scopeIds){
     </div>`;
   }).join('');
   $('#multiPrefixModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'multiPrefix' }, '', '#list');
 }
 function closeMultiPrefixModal(){
+  if($('#multiPrefixModalOverlay').style.display === 'none') return;
   $('#multiPrefixModalOverlay').style.display = 'none';
   multiPrefixScopeIds = [];
+  suppressNextPopstateSilent = true;
+  goBack();
 }
 $('#multiPrefixModalCancel').addEventListener('click', closeMultiPrefixModal);
 $('#multiPrefixModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'multiPrefixModalOverlay') closeMultiPrefixModal(); });
@@ -3898,6 +3906,17 @@ window.addEventListener('popstate', (e) => {
 
   if($('#listPhotoMenuOverlay').style.display !== 'none'){
     closeListPhotoMenu();
+    return;
+  }
+
+  if($('#prefixModalOverlay').style.display !== 'none'){
+    $('#prefixModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#multiPrefixModalOverlay').style.display !== 'none'){
+    $('#multiPrefixModalOverlay').style.display = 'none';
+    multiPrefixScopeIds = [];
     return;
   }
 
