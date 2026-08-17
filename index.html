@@ -1855,7 +1855,7 @@ function exitSelectionMode(){
 function exitSelectionModeAndSync(){
   if(!selectionMode) return;
   exitSelectionMode();
-  suppressNextPopstateSilent = true;
+  suppressPopstateSilentCount++;
   goBack();
 }
 
@@ -2057,7 +2057,7 @@ function openPrefixModal(oldPrefix, scopeIds){
 function closePrefixModal(){
   if($('#prefixModalOverlay').style.display === 'none') return;
   $('#prefixModalOverlay').style.display = 'none';
-  suppressNextPopstateSilent = true;
+  suppressPopstateSilentCount++;
   goBack();
 }
 $('#prefixModalCancel').addEventListener('click', closePrefixModal);
@@ -2123,7 +2123,7 @@ function closeMultiPrefixModal(){
   if($('#multiPrefixModalOverlay').style.display === 'none') return;
   $('#multiPrefixModalOverlay').style.display = 'none';
   multiPrefixScopeIds = [];
-  suppressNextPopstateSilent = true;
+  suppressPopstateSilentCount++;
   goBack();
 }
 $('#multiPrefixModalCancel').addEventListener('click', closeMultiPrefixModal);
@@ -2441,7 +2441,7 @@ function closeListPhotoMenu(){
 function closeListPhotoMenuViaUI(){
   if($('#listPhotoMenuOverlay').style.display === 'none') return;
   closeListPhotoMenu();
-  suppressNextPopstateSilent = true;
+  suppressPopstateSilentCount++;
   goBack();
 }
 $('#listPhotoMenuOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoMenuOverlay') closeListPhotoMenuViaUI(); });
@@ -2806,7 +2806,7 @@ function closeListMenuDropdown(){
 function closeListMenuDropdownAndSync(){
   if($('#listMenuDropdown').style.display === 'none') return;
   closeListMenuDropdown();
-  suppressNextPopstateSilent = true;
+  suppressPopstateSilentCount++;
   goBack();
 }
 $('#listMenuBtn').addEventListener('click', (e) => {
@@ -2848,7 +2848,7 @@ $('#menuSaveOpt').addEventListener('click', () => {
 function closeSaveFormatModal(){
   if($('#saveFormatModalOverlay').style.display === 'none') return;
   $('#saveFormatModalOverlay').style.display = 'none';
-  suppressNextPopstateSilent = true;
+  suppressPopstateSilentCount++;
   goBack();
 }
 $('#saveFormatModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'saveFormatModalOverlay') closeSaveFormatModal(); });
@@ -2897,7 +2897,7 @@ function openBulkPhotoModal(){
 function closeBulkPhotoModal(){
   if($('#bulkPhotoModalOverlay').style.display === 'none') return;
   $('#bulkPhotoModalOverlay').style.display = 'none';
-  suppressNextPopstateSilent = true;
+  suppressPopstateSilentCount++;
   goBack();
 }
 
@@ -3048,7 +3048,7 @@ function openUnifyGroupModal(){
 function closeUnifyGroupModal(){
   if($('#unifyGroupModalOverlay').style.display === 'none') return;
   $('#unifyGroupModalOverlay').style.display = 'none';
-  suppressNextPopstateSilent = true;
+  suppressPopstateSilentCount++;
   goBack();
 }
 function unifyGroupMatchContacts(query){
@@ -3877,7 +3877,12 @@ function decideBackAction(){
 let suppressNextPopstate = false;
 // مثل suppressNextPopstate لكن بدون استدعاء renderScreenUI: تُستخدم عند إغلاق
 // نافذة منبثقة (كتعديل الصورة) لا تغيّر الشاشة، حتى لا نصفّر تمرير القائمة.
-let suppressNextPopstateSilent = false;
+// عدّاد لا قيمة منطقية: أحياناً يُستدعى goBack() الصامت مرتين متتاليتين بنفس
+// اللفة التزامنية (مثلاً exitSelectionModeAndSync ثم closeMultiPrefixModal)،
+// فيصل أول popstate فقط قبل أن يُعاد ضبط علم منطقي واحد، فيسقط الـpopstate
+// الثاني في المعالج العام ويُظهر نافذة تأكيد الخروج خطأً. العدّاد يستوعب أي
+// عدد من عمليات الرجوع الصامتة المتراكمة بصرف النظر عن ترتيب وصول الأحداث.
+let suppressPopstateSilentCount = 0;
 
 $('#backBtn').addEventListener('click', () => {
   const stayed = decideBackAction();
@@ -3904,8 +3909,8 @@ $('#exitListModalConfirm').addEventListener('click', () => {
 safeReplaceState({ screen: 'home' }, '', '#home');
 
 window.addEventListener('popstate', (e) => {
-  if(suppressNextPopstateSilent){
-    suppressNextPopstateSilent = false;
+  if(suppressPopstateSilentCount > 0){
+    suppressPopstateSilentCount--;
     return;
   }
 
