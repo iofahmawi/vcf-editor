@@ -136,7 +136,10 @@
   .contact-row{
     position:relative; margin:10px 0; border-radius:12px;
     overflow:hidden; box-shadow: var(--shadow-sm);
+    transition: transform 0.15s;
   }
+  .contact-row:active{ transform: scale(0.98); }
+  .contact-row.expanded:active{ transform: none; }
   .contact-row-delete-action{
     position:absolute; inset:0; background:var(--danger); color:#fff;
     opacity:0; pointer-events:none; z-index:0;
