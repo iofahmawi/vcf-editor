@@ -223,6 +223,8 @@
   #bulkPhotoSearch::placeholder{ color: #B6BEC9; }
   #search::placeholder{ color: #B6BEC9; }
   .mp-old::placeholder, .mp-new::placeholder{ color: #B6BEC9; }
+  #nameFormatSearch::placeholder, #nameFormatValue::placeholder{ color: #B6BEC9; }
+  #listPhotoUrlInline::placeholder{ color: #B6BEC9; }
   #unifyGroupValue{ padding-top:8px; padding-bottom:8px; line-height:2; }
   .merge-custom-name{ border:none !important; border-radius:0 !important; transition: background 0.2s; }
   .merge-custom-name:focus{ background:var(--card2); }
@@ -352,11 +354,12 @@
   <div style="position:relative; display:inline-block;">
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
     <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:130px; z-index:30; overflow:hidden;">
-      <button type="button" class="link-btn" id="menuUndoOpt" disabled style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border); opacity:0.4; cursor:default;">تراجع</button>
+      <button type="button" class="link-btn" id="menuUndoOpt" disabled style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border); cursor:default;"><span id="menuUndoOptText" style="opacity:0.4;">تراجع</span></button>
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
       <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">إدارة المجموعات</button>
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصور</button>
+      <button type="button" class="link-btn" id="menuNameFormatOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصيغة</button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
     </div>
   </div>
@@ -710,6 +713,42 @@
   </div>
 </div>
 
+<div id="nameFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصيغة</div>
+
+    <input type="text" id="nameFormatSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+      <button type="button" id="nameFormatSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
+      <span id="nameFormatCount" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+
+    <div id="nameFormatListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
+      <div id="nameFormatList" style="max-height:34vh; overflow-y:auto;"></div>
+    </div>
+
+    <div class="field-group" style="margin-bottom:14px;">
+      <label>الصيغة الجديدة</label>
+      <input type="text" id="nameFormatValue" placeholder="الكلمة التي ستحل محل الكلمة المطابقة في الاسم">
+    </div>
+
+    <div style="margin:2px 0 14px;">
+      <label style="display:block; font-size:12.5px; color:var(--muted); margin-bottom:12px;">توحيد نمط الأحرف</label>
+      <div style="display:flex; gap:8px;">
+        <button type="button" id="caseStyleTitle" data-case="title" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; transition: all 0.15s;">Aa</button>
+        <button type="button" id="caseStyleUpper" data-case="upper" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; transition: all 0.15s;">AA</button>
+        <button type="button" id="caseStyleLower" data-case="lower" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:11px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; transition: all 0.15s;">aa</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="nameFormatCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="nameFormatConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let contacts = [];
 
@@ -720,8 +759,9 @@ function saveUndoSnapshot(description){
   const btn = $('#menuUndoOpt');
   if(btn){
     btn.disabled = false;
-    btn.style.opacity = '1';
     btn.style.cursor = 'pointer';
+    const txt = $('#menuUndoOptText');
+    if(txt) txt.style.opacity = '1';
   }
 }
 
@@ -733,8 +773,9 @@ function performUndo(){
   const btn = $('#menuUndoOpt');
   if(btn){
     btn.disabled = true;
-    btn.style.opacity = '0.4';
     btn.style.cursor = 'default';
+    const txt = $('#menuUndoOptText');
+    if(txt) txt.style.opacity = '0.4';
   }
   refreshPrefixOptions();
   renderList($('#search').value);
@@ -1505,6 +1546,29 @@ $('#newFileBtn').addEventListener('click', () => {
 // و"إحسان" و"آدم" أيضاً).
 function normalizeArabic(s){
   return s.replace(/[أإآا]/g, 'ا');
+}
+
+// يستبدل كل تكرار للكلمة/النص المطابق (بعد تطبيع الألف وتجاهل حالة الأحرف) داخل النص الأصلي
+// بالنص البديل، مع الحفاظ على بقية النص كما هو (وليس استبدال النص كاملاً).
+function normalizedReplaceAll(original, query, replacement){
+  if(!original || !query) return original;
+  const normOrig = normalizeArabic(original.toLowerCase());
+  const normQuery = normalizeArabic(query.toLowerCase());
+  if(!normQuery) return original;
+  let result = '';
+  let i = 0;
+  let changed = false;
+  while(i < original.length){
+    if(normOrig.slice(i, i + normQuery.length) === normQuery){
+      result += replacement;
+      i += normQuery.length;
+      changed = true;
+    } else {
+      result += original[i];
+      i++;
+    }
+  }
+  return changed ? result : original;
 }
 
 function getFilteredContacts(filter=''){
@@ -3245,6 +3309,194 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
   toast(val ? ('تم إضافة المجموعة إلى ' + count + ' جهة اتصال') : ('تم إزالة مجموعة ' + count + ' جهة اتصال'));
 });
 
+let nameFormatSelectedIds = new Set();
+
+$('#menuNameFormatOpt').addEventListener('click', () => {
+  closeListMenuDropdown();
+  openNameFormatModal();
+});
+function openNameFormatModal(){
+  nameFormatSelectedIds = new Set();
+  $('#nameFormatSearch').value = '';
+  $('#nameFormatValue').value = '';
+  selectedCaseStyle = null;
+  updateCaseStyleButtonsUI();
+  renderNameFormatList();
+  updateNameFormatConfirmState();
+  $('#nameFormatModalOverlay').style.display = 'flex';
+  safeReplaceState({ screen: 'list', modal: 'nameFormat' }, '', '#list');
+  setTimeout(() => $('#nameFormatSearch').focus(), 50);
+}
+function closeNameFormatModal(){
+  if($('#nameFormatModalOverlay').style.display === 'none') return;
+  $('#nameFormatModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+function nameFormatMatchContacts(query){
+  const f = normalizeArabic(query.trim().toLowerCase());
+  if(!f) return [];
+  return contacts.filter(c => {
+    const hay = normalizeArabic([
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
+      ...c.phones.map(p => p.value),
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
+    ].join(' ').toLowerCase());
+    return hay.includes(f);
+  });
+}
+function renderNameFormatList(){
+  const q = $('#nameFormatSearch').value.trim();
+  const list = $('#nameFormatList');
+  const listWrap = $('#nameFormatListWrap');
+  const countEl = $('#nameFormatCount');
+  const selectAllBtn = $('#nameFormatSelectAll');
+
+  if(!q){
+    listWrap.style.display = 'none';
+    list.innerHTML = '';
+    countEl.textContent = '';
+    selectAllBtn.style.display = 'none';
+    updateNameFormatConfirmState();
+    return;
+  }
+  listWrap.style.display = 'block';
+
+  const matched = nameFormatMatchContacts(q);
+  selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+
+  if(!matched.length){
+    list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
+    countEl.textContent = '';
+    updateNameFormatConfirmState();
+    return;
+  }
+
+  const matchedIds = new Set(matched.map(c => c.id));
+  nameFormatSelectedIds.forEach(id => { if(!matchedIds.has(id)) nameFormatSelectedIds.delete(id); });
+
+  list.innerHTML = matched.map((c, idx) => {
+    const checked = nameFormatSelectedIds.has(c.id) ? 'checked' : '';
+    const isLast = idx === matched.length - 1;
+    const avatarInner = c.photo
+      ? `<img src="${c.photo}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
+    return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
+      <input type="checkbox" class="nameFormatItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
+      <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; line-height:1.6;">${escapeHtml(c.fn)}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.nameFormatItem').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) nameFormatSelectedIds.add(cb.dataset.id);
+      else nameFormatSelectedIds.delete(cb.dataset.id);
+      updateNameFormatCountAndSelectAll(matched);
+      updateNameFormatConfirmState();
+    });
+  });
+
+  updateNameFormatCountAndSelectAll(matched);
+  updateNameFormatConfirmState();
+}
+function updateNameFormatCountAndSelectAll(matched){
+  const countEl = $('#nameFormatCount');
+  const selectAllBtn = $('#nameFormatSelectAll');
+  const allSelected = matched.length > 0 && matched.every(c => nameFormatSelectedIds.has(c.id));
+  countEl.textContent = nameFormatSelectedIds.size + ' من ' + matched.length + ' محدد';
+  selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
+}
+
+$('#nameFormatSearch').addEventListener('input', renderNameFormatList);
+$('#nameFormatSearch').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#nameFormatSearch').blur(); }
+});
+
+$('#nameFormatSelectAll').addEventListener('click', () => {
+  const q = $('#nameFormatSearch').value.trim();
+  const matched = nameFormatMatchContacts(q);
+  const allSelected = matched.length > 0 && matched.every(c => nameFormatSelectedIds.has(c.id));
+  if(allSelected) matched.forEach(c => nameFormatSelectedIds.delete(c.id));
+  else matched.forEach(c => nameFormatSelectedIds.add(c.id));
+  renderNameFormatList();
+});
+
+function updateNameFormatConfirmState(){
+  const btn = $('#nameFormatConfirm');
+  const ready = !!selectedCaseStyle || (nameFormatSelectedIds.size > 0 && $('#nameFormatValue').value.trim().length > 0);
+  btn.style.opacity = ready ? '1' : '.5';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+}
+$('#nameFormatValue').addEventListener('input', updateNameFormatConfirmState);
+
+// يحول أول حرف من كل كلمة لاتينية إلى كبير وبقية أحرفها إلى صغيرة، ولا يمس الأحرف العربية أو الأرقام
+function toTitleCase(s){
+  return s.replace(/[A-Za-zÀ-ÖØ-öø-ÿ]+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+let selectedCaseStyle = null;
+function updateCaseStyleButtonsUI(){
+  ['caseStyleTitle','caseStyleUpper','caseStyleLower'].forEach(id => {
+    const btn = $('#' + id);
+    const active = btn.dataset.case === selectedCaseStyle;
+    btn.style.background = active ? 'var(--accent)' : 'var(--card2)';
+    btn.style.color = active ? '#FFFFFF' : 'var(--text)';
+  });
+}
+function applyCaseStyleToAll(style){
+  saveUndoSnapshot('توحيد نمط الأحرف لكل الأسماء');
+  let count = 0;
+  contacts.forEach(c => {
+    if(!c.fn) return;
+    let newFn;
+    if(style === 'title') newFn = toTitleCase(c.fn);
+    else if(style === 'upper') newFn = c.fn.toUpperCase();
+    else newFn = c.fn.toLowerCase();
+    if(newFn !== c.fn){
+      c.fn = newFn;
+      count++;
+    }
+  });
+  renderList($('#search').value);
+  toast('تم توحيد نمط ' + count + ' اسم');
+}
+['caseStyleTitle','caseStyleUpper','caseStyleLower'].forEach(id => {
+  $('#' + id).addEventListener('click', () => {
+    const style = $('#' + id).dataset.case;
+    selectedCaseStyle = (selectedCaseStyle === style) ? null : style;
+    updateCaseStyleButtonsUI();
+    updateNameFormatConfirmState();
+  });
+});
+
+$('#nameFormatCancel').addEventListener('click', closeNameFormatModal);
+$('#nameFormatModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'nameFormatModalOverlay') closeNameFormatModal(); });
+$('#nameFormatConfirm').addEventListener('click', () => {
+  if(selectedCaseStyle){
+    applyCaseStyleToAll(selectedCaseStyle);
+    closeNameFormatModal();
+    return;
+  }
+  const val = $('#nameFormatValue').value.trim();
+  const query = $('#nameFormatSearch').value.trim();
+  if(nameFormatSelectedIds.size === 0 || !val || !query) return;
+  saveUndoSnapshot('تعديل صيغة اسم ' + nameFormatSelectedIds.size + ' جهة اتصال');
+  let count = 0;
+  contacts.forEach(c => {
+    if(nameFormatSelectedIds.has(c.id)){
+      const newFn = normalizedReplaceAll(c.fn || '', query, val);
+      if(newFn !== c.fn){
+        c.fn = newFn;
+        count++;
+      }
+    }
+  });
+  closeNameFormatModal();
+  renderList($('#search').value);
+  toast('تم تعديل صيغة ' + count + ' جهة اتصال');
+});
+
 function normalizePhoneForDup(v){
   let d = (v||'').replace(/\D/g,'');
   if(!d) return '';
@@ -4017,6 +4269,11 @@ window.addEventListener('popstate', (e) => {
 
   if($('#unifyGroupModalOverlay').style.display !== 'none'){
     $('#unifyGroupModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#nameFormatModalOverlay').style.display !== 'none'){
+    $('#nameFormatModalOverlay').style.display = 'none';
     return;
   }
 
