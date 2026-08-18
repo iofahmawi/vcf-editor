@@ -1500,8 +1500,15 @@ $('#newFileBtn').addEventListener('click', () => {
 // يقارن أرقام الهاتف مع رقم بحث مدخل، مع التعامل مع تكافؤ رمز الدولة
 // الأردني (962) مع الصفر المحلي في بداية الرقم؛ فبحث "962" يطابق أي رقم
 // محلي (0...) لأن كل الأرقام المحلية تنتمي لنفس رمز الدولة، وبالعكس.
+// تسامح بالبحث العربي: يعامل أ/إ/آ/ا كحرف واحد، بحيث كتابة أي منها تُظهر
+// النتائج التي تحتوي أياً من الأشكال الأخرى (مثال: كتابة "ا" تُطابق "أحمد"
+// و"إحسان" و"آدم" أيضاً).
+function normalizeArabic(s){
+  return s.replace(/[أإآا]/g, 'ا');
+}
+
 function getFilteredContacts(filter=''){
-  const f = filter.trim().toLowerCase();
+  const f = normalizeArabic(filter.trim().toLowerCase());
   const isNumericSearch = /^\+?\d+$/.test(filter.trim());
   const digitsSearch = isNumericSearch ? filter.trim().replace(/\D/g,'') : '';
   const terms = f.split('+').map(s => s.trim()).filter(Boolean);
@@ -1510,14 +1517,14 @@ function getFilteredContacts(filter=''){
     if(isNumericSearch){
       return c.phones.some(p => p.value.replace(/\D/g,'').startsWith(digitsSearch));
     }
-    const hay = [
+    const hay = normalizeArabic([
       c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.phones.map(p => PHONE_LABELS[p.type] || p.type || ''),
       ...c.emails.map(e => e.value),
       ...(c.urls || []).map(u => u.value),
       ...(c.adrs || []).map(a => a.value)
-    ].join(' ').toLowerCase();
+    ].join(' ').toLowerCase());
     if(terms.length > 1){
       // في البحث المركب، أي جزء رقمي (مثل 079) يجب أن يطابق بداية رقم هاتف فعلي
       // وليس أي ظهور للرقم في أي حقل نصي آخر
@@ -1605,7 +1612,7 @@ function buildContactExpandHtml(c){
 function renderList(filter=''){
   const list = $('#contactList');
   list.innerHTML = '';
-  const f = filter.trim().toLowerCase();
+  const f = normalizeArabic(filter.trim().toLowerCase());
   const filtered = getFilteredContacts(filter).slice().sort((a,b) => sortReversed ? b.fn.localeCompare(a.fn, 'ar') : a.fn.localeCompare(b.fn, 'ar'));
 
   const isNumericSearch = /^\+?\d+$/.test(filter.trim());
@@ -1640,10 +1647,10 @@ function renderList(filter=''){
       matchedPhone = c.phones.find(p => p.value.replace(/\D/g,'').startsWith(digitsForRow));
     }
     if(!matchedPhone && f){
-      matchedPhone = c.phones.find(p => p.value.toLowerCase().includes(f));
+      matchedPhone = c.phones.find(p => normalizeArabic(p.value.toLowerCase()).includes(f));
     }
     if(!matchedPhone && f){
-      matchedPhone = c.phones.find(p => (PHONE_LABELS[p.type] || p.type || '').toLowerCase().includes(f));
+      matchedPhone = c.phones.find(p => normalizeArabic((PHONE_LABELS[p.type] || p.type || '').toLowerCase()).includes(f));
     }
     const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
     // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
@@ -1652,7 +1659,7 @@ function renderList(filter=''){
     let displayName = c.fn;
     let realNameLine = '';
     if(f && c.nickname){
-      const matchesNickname = searchTermsForRow.some(t => c.nickname.toLowerCase().includes(t) && !c.fn.toLowerCase().includes(t));
+      const matchesNickname = searchTermsForRow.some(t => normalizeArabic(c.nickname.toLowerCase()).includes(t) && !normalizeArabic(c.fn.toLowerCase()).includes(t));
       if(matchesNickname){
         displayName = c.nickname;
         realNameLine = `<div class="contact-realname">${escapeHtml(c.fn)}</div>`;
@@ -2123,9 +2130,9 @@ function openMultiPrefixModal(scopeIds){
   list.innerHTML = rows.map((r, i) => {
     const isLast = i === rows.length - 1;
     return `<div style="padding:12px 0;" data-contact-id="${r.contactId}" data-phone-index="${r.phoneIndex}">
-      <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:8px;">
-        <div style="font-size:12px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto;">${escapeHtml(r.contactName)}</div>
-        <div style="direction:ltr; text-align:left; font-size:14px; font-weight:700; color:var(--text); flex:0 0 auto; white-space:nowrap;">${escapeHtml(r.value)}</div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:7px;">
+        <div style="font-size:12px; line-height:1.7; padding-bottom:1px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto;">${escapeHtml(r.contactName)}</div>
+        <div style="direction:ltr; text-align:left; font-size:14px; font-weight:700; line-height:1.7; color:var(--text); flex:0 0 auto; white-space:nowrap;">${escapeHtml(r.value)}</div>
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
         <input type="tel" class="mp-old" inputmode="tel" placeholder="البادئة الحالية" style="flex:1 1 0; min-width:0; direction:ltr; text-align:right; font-size:14px; padding:13px 14px; line-height:normal;">
@@ -2963,16 +2970,16 @@ function closeBulkPhotoModal(){
 }
 
 function bulkPhotoMatchContacts(query){
-  const f = query.trim().toLowerCase();
+  const f = normalizeArabic(query.trim().toLowerCase());
   if(!f) return [];
   return contacts.filter(c => {
-    const hay = [
+    const hay = normalizeArabic([
       c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.emails.map(e => e.value),
       ...(c.urls || []).map(u => u.value),
       ...(c.adrs || []).map(a => a.value)
-    ].join(' ').toLowerCase();
+    ].join(' ').toLowerCase());
     return hay.includes(f);
   });
 }
@@ -3113,16 +3120,16 @@ function closeUnifyGroupModal(){
   goBack();
 }
 function unifyGroupMatchContacts(query){
-  const f = query.trim().toLowerCase();
+  const f = normalizeArabic(query.trim().toLowerCase());
   if(!f) return [];
   return contacts.filter(c => {
-    const hay = [
+    const hay = normalizeArabic([
       c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
       ...c.phones.map(p => p.value),
       ...c.emails.map(e => e.value),
       ...(c.urls || []).map(u => u.value),
       ...(c.adrs || []).map(a => a.value)
-    ].join(' ').toLowerCase();
+    ].join(' ').toLowerCase());
     return hay.includes(f);
   });
 }
