@@ -612,6 +612,7 @@
     <div style="display:flex; gap:8px;">
       <button type="button" id="photoSize512Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">512×512</button>
       <button type="button" id="photoSize720Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">720×720</button>
+      <button type="button" id="photoSize1080Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">1080×1080</button>
     </div>
     <div style="margin:18px 0 14px;"></div>
     <div id="saveFormatSubtitle" style="font-size:13.5px; color:var(--muted); margin:0 0 14px; line-height:1.6; text-align:center;">صيغة الملف</div>
@@ -2472,7 +2473,7 @@ function blobToSquarePhotoDataURL(blob, callback, errback){
   const reader = new FileReader();
   reader.onload = (ev) => {
     img.onload = () => {
-      const MAX = 720;
+      const MAX = 1080;
       const side = Math.min(img.width, img.height);
       const sx = (img.width - side) / 2;
       const sy = (img.height - side) / 2;
@@ -2529,7 +2530,7 @@ function fileToSquarePhotoDataURL(file, callback){
   const reader = new FileReader();
   reader.onload = (ev) => {
     img.onload = () => {
-      const MAX = 720;
+      const MAX = 1080;
       const side = Math.min(img.width, img.height);
       const sx = (img.width - side) / 2;
       const sy = (img.height - side) / 2;
@@ -3075,9 +3076,11 @@ function setExportPhotoSize(size){
   selectedExportPhotoSize = size;
   $('#photoSize512Btn').style.borderColor = size === 512 ? 'var(--accent)' : 'transparent';
   $('#photoSize720Btn').style.borderColor = size === 720 ? 'var(--accent)' : 'transparent';
+  $('#photoSize1080Btn').style.borderColor = size === 1080 ? 'var(--accent)' : 'transparent';
 }
 $('#photoSize512Btn').addEventListener('click', () => setExportPhotoSize(512));
 $('#photoSize720Btn').addEventListener('click', () => setExportPhotoSize(720));
+$('#photoSize1080Btn').addEventListener('click', () => setExportPhotoSize(1080));
 
 $('#menuDupOpt').addEventListener('click', () => {
   // القائمة المنسدلة أُغلقت للتو دون سحب مُدخل السجل الذي أضافته عند فتحها
@@ -3511,7 +3514,10 @@ $('#nameFormatSelectAll').addEventListener('click', () => {
 
 function updateNameFormatConfirmState(){
   const btn = $('#nameFormatConfirm');
-  const ready = !!selectedCaseStyle || (nameFormatSelectedIds.size > 0 && $('#nameFormatValue').value.trim().length > 0);
+  const valueInput = $('#nameFormatValue');
+  valueInput.disabled = !!selectedCaseStyle;
+  valueInput.style.opacity = selectedCaseStyle ? '0.45' : '1';
+  const ready = nameFormatSelectedIds.size > 0 && (!!selectedCaseStyle || $('#nameFormatValue').value.trim().length > 0);
   btn.style.opacity = ready ? '1' : '.5';
   btn.style.pointerEvents = ready ? 'auto' : 'none';
 }
@@ -3530,11 +3536,11 @@ function updateCaseStyleButtonsUI(){
     btn.style.color = active ? '#FFFFFF' : 'var(--text)';
   });
 }
-function applyCaseStyleToAll(style){
-  saveUndoSnapshot('توحيد نمط الأحرف لكل الأسماء');
+function applyCaseStyleToSelected(style){
+  saveUndoSnapshot('توحيد نمط الأحرف لـ' + nameFormatSelectedIds.size + ' جهة اتصال');
   let count = 0;
   contacts.forEach(c => {
-    if(!c.fn) return;
+    if(!nameFormatSelectedIds.has(c.id) || !c.fn) return;
     let newFn;
     if(style === 'title') newFn = toTitleCase(c.fn);
     else if(style === 'upper') newFn = c.fn.toUpperCase();
@@ -3559,14 +3565,15 @@ function applyCaseStyleToAll(style){
 $('#nameFormatCancel').addEventListener('click', closeNameFormatModal);
 $('#nameFormatModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'nameFormatModalOverlay') closeNameFormatModal(); });
 $('#nameFormatConfirm').addEventListener('click', () => {
+  if(nameFormatSelectedIds.size === 0) return;
   if(selectedCaseStyle){
-    applyCaseStyleToAll(selectedCaseStyle);
+    applyCaseStyleToSelected(selectedCaseStyle);
     closeNameFormatModal();
     return;
   }
   const val = $('#nameFormatValue').value.trim();
   const query = $('#nameFormatSearch').value.trim();
-  if(nameFormatSelectedIds.size === 0 || !val || !query) return;
+  if(!val || !query) return;
   saveUndoSnapshot('تعديل صيغة اسم ' + nameFormatSelectedIds.size + ' جهة اتصال');
   let count = 0;
   contacts.forEach(c => {
@@ -4156,12 +4163,12 @@ async function exportContacts(){
   const { list, scope } = getExportScopeContacts();
   if(list.length === 0){ toast('لا توجد جهات اتصال للتصدير'); return; }
   let exportList = list;
-  if(selectedExportPhotoSize === 512){
+  {
     const hasPhotos = list.some(c => c.photo);
     if(hasPhotos) toast('جارٍ تجهيز الملف...');
     exportList = await Promise.all(list.map(async c => {
       if(!c.photo) return c;
-      const resized = await resizeDataUrlToSquare(c.photo, 512);
+      const resized = await resizeDataUrlToSquare(c.photo, selectedExportPhotoSize);
       return Object.assign({}, c, { photo: resized });
     }));
   }
