@@ -693,7 +693,7 @@
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">إدارة المجموعات</div>
 
-    <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+    <input type="text" id="unifyGroupSearch" placeholder="جهات الاتصال أو المجموعات" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="unifyGroupSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
@@ -3275,6 +3275,7 @@ function closeUnifyGroupModal(){
 function unifyGroupMatchContacts(query){
   const f = normalizeArabic(query.trim().toLowerCase());
   if(!f) return [];
+  if(f === 'الكل' || f === 'كل' || f === 'الجميع' || f === 'جميع') return contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
   return contacts.filter(c => {
     const hay = normalizeArabic([
       c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
