@@ -693,7 +693,7 @@
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">إدارة المجموعات</div>
 
-    <input type="text" id="unifyGroupSearch" placeholder="جهات الاتصال أو المجموعات" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+    <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال أو المجموعات" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="unifyGroupSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
@@ -705,7 +705,7 @@
     </div>
 
     <div class="field-group" style="margin-bottom:14px;">
-      <label>اسم المجموعة</label>
+      <label id="unifyGroupValueLabel">اسم المجموعة</label>
       <input type="text" id="unifyGroupValue" placeholder="اترك الحقل فارغاً للإزالة">
     </div>
 
@@ -3251,6 +3251,8 @@ $('#bulkPhotoConfirm').addEventListener('click', () => {
 });
 
 let unifyGroupSelectedIds = new Set();
+let unifyGroupMode = false;
+let unifyGroupActiveGroupName = null;
 
 $('#menuUnifyGroupOpt').addEventListener('click', () => {
   closeListMenuDropdown();
@@ -3258,13 +3260,36 @@ $('#menuUnifyGroupOpt').addEventListener('click', () => {
 });
 function openUnifyGroupModal(){
   unifyGroupSelectedIds = new Set();
+  unifyGroupMode = false;
+  unifyGroupActiveGroupName = null;
   $('#unifyGroupSearch').value = '';
   $('#unifyGroupValue').value = '';
+  setUnifyGroupFieldMode(false);
   renderUnifyGroupList();
   updateUnifyGroupConfirmState();
   $('#unifyGroupModalOverlay').style.display = 'flex';
   safeReplaceState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
   setTimeout(() => $('#unifyGroupSearch').focus(), 50);
+}
+// يبدّل شكل ووظيفة حقل "اسم المجموعة": وضع عادي (إضافة مجموعة لجهات محددة)
+// أو وضع مجموعة (تغيير اسم المجموعة المطابقة تماماً لنص البحث أو إزالتها).
+function setUnifyGroupFieldMode(isGroupMode, groupName){
+  const label = $('#unifyGroupValueLabel');
+  const input = $('#unifyGroupValue');
+  const entering = isGroupMode && !unifyGroupMode;
+  const leaving = !isGroupMode && unifyGroupMode;
+  unifyGroupMode = isGroupMode;
+  unifyGroupActiveGroupName = isGroupMode ? groupName : null;
+  if(isGroupMode){
+    label.textContent = 'تغيير اسم المجموعة "' + groupName + '"';
+    input.placeholder = 'اترك الحقل فارغاً لإزالة المجموعة';
+    if(entering) input.value = groupName;
+  } else {
+    label.textContent = 'اسم المجموعة';
+    input.placeholder = 'اترك الحقل فارغاً للإزالة';
+    if(leaving) input.value = '';
+  }
+  return entering;
 }
 function closeUnifyGroupModal(){
   if($('#unifyGroupModalOverlay').style.display === 'none') return;
@@ -3299,12 +3324,19 @@ function renderUnifyGroupList(){
     list.innerHTML = '';
     countEl.textContent = '';
     selectAllBtn.style.display = 'none';
+    setUnifyGroupFieldMode(false);
     updateUnifyGroupConfirmState();
     return;
   }
   listWrap.style.display = 'block';
 
-  const matched = unifyGroupMatchContacts(q);
+  // إذا كان نص البحث يطابق اسم مجموعة موجودة تماماً، ننتقل لوضع "تعديل المجموعة"
+  // ونعرض أعضاءها فقط، بدل البحث النصي العادي في كل الحقول.
+  const groupMembers = getContactsWithCategory(q);
+  const isGroupMode = groupMembers.length > 0;
+  const enteringGroupMode = setUnifyGroupFieldMode(isGroupMode, q);
+
+  const matched = isGroupMode ? groupMembers : unifyGroupMatchContacts(q);
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
 
   if(!matched.length){
@@ -3316,6 +3348,8 @@ function renderUnifyGroupList(){
 
   const matchedIds = new Set(matched.map(c => c.id));
   unifyGroupSelectedIds.forEach(id => { if(!matchedIds.has(id)) unifyGroupSelectedIds.delete(id); });
+  // عند الدخول لوضع المجموعة نحدد كل أعضائها تلقائياً (يمكن إلغاء تحديد أي منهم يدوياً)
+  if(enteringGroupMode){ matched.forEach(c => unifyGroupSelectedIds.add(c.id)); }
 
   list.innerHTML = matched.map((c, idx) => {
     const checked = unifyGroupSelectedIds.has(c.id) ? 'checked' : '';
@@ -3375,6 +3409,38 @@ $('#unifyGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id =
 $('#unifyGroupConfirm').addEventListener('click', () => {
   if(unifyGroupSelectedIds.size === 0) return;
   const val = $('#unifyGroupValue').value.trim();
+
+  if(unifyGroupMode && unifyGroupActiveGroupName){
+    // وضع تعديل مجموعة: نستبدل اسم المجموعة القديم بالاسم الجديد (أو نحذفه لو الحقل فارغ)
+    // مع الحفاظ على باقي مجموعات كل جهة اتصال.
+    const oldName = unifyGroupActiveGroupName;
+    const oldLower = oldName.toLowerCase();
+    saveUndoSnapshot(val ? ('تغيير اسم المجموعة "' + oldName + '" إلى "' + val + '" لـ ' + unifyGroupSelectedIds.size + ' جهة اتصال') : ('إزالة مجموعة "' + oldName + '" من ' + unifyGroupSelectedIds.size + ' جهة اتصال'));
+    let renameCount = 0;
+    contacts.forEach(c => {
+      if(!unifyGroupSelectedIds.has(c.id)) return;
+      const existing = (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean);
+      const idx = existing.findIndex(g => g.toLowerCase() === oldLower);
+      if(idx === -1) return;
+      if(val){
+        // لو الاسم الجديد موجود أصلاً ضمن مجموعات الجهة، نكتفي بحذف القديم لتفادي التكرار
+        if(existing.some((g, i) => i !== idx && g.toLowerCase() === val.toLowerCase())){
+          existing.splice(idx, 1);
+        } else {
+          existing[idx] = val;
+        }
+      } else {
+        existing.splice(idx, 1);
+      }
+      c.categories = existing.join('، ');
+      renameCount++;
+    });
+    closeUnifyGroupModal();
+    renderList($('#search').value);
+    toast(val ? ('تم تغيير اسم المجموعة لـ ' + renameCount + ' جهة اتصال') : ('تم إزالة المجموعة من ' + renameCount + ' جهة اتصال'));
+    return;
+  }
+
   saveUndoSnapshot(val ? ('إضافة مجموعة "' + val + '" إلى ' + unifyGroupSelectedIds.size + ' جهة اتصال') : ('إزالة مجموعات ' + unifyGroupSelectedIds.size + ' جهة اتصال'));
   let count = 0;
   contacts.forEach(c => {
