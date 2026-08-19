@@ -1916,7 +1916,6 @@ wireContactListDelegation();
 function deleteContactFromList(id){
   swipeDeleteTargetId = id;
   $('#deleteModalOverlay').style.display = 'flex';
-  pushModalGuard('delete');
 }
 
 function startLongPress(id){
@@ -2062,7 +2061,6 @@ $('#deleteSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size === 0) return;
   $('#deleteSelectedModalDesc').textContent = 'هل تريد حذف ' + selectedIds.size + ' جهة اتصال محددة؟';
   $('#deleteSelectedModalOverlay').style.display = 'flex';
-  pushModalGuard('deleteSelected');
 });
 $('#mergeSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size < 2 || selectedIds.size > 5) return;
@@ -2070,17 +2068,13 @@ $('#mergeSelectedBtn').addEventListener('click', () => {
   exitSelectionModeAndSync();
   startMerge(ids);
 });
-$('#deleteSelectedModalCancel').addEventListener('click', () => { $('#deleteSelectedModalOverlay').style.display = 'none'; popModalGuardSilently(); });
-$('#deleteSelectedModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteSelectedModalOverlay'){ $('#deleteSelectedModalOverlay').style.display = 'none'; popModalGuardSilently(); } });
+$('#deleteSelectedModalCancel').addEventListener('click', () => { $('#deleteSelectedModalOverlay').style.display = 'none'; });
+$('#deleteSelectedModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteSelectedModalOverlay') $('#deleteSelectedModalOverlay').style.display = 'none'; });
 $('#deleteSelectedModalConfirm').addEventListener('click', () => {
   const count = selectedIds.size;
   saveUndoSnapshot('حذف ' + count + ' جهة اتصال');
   contacts = contacts.filter(c => !selectedIds.has(c.id));
   $('#deleteSelectedModalOverlay').style.display = 'none';
-  // أولاً: سحب مُدخل نافذة التأكيد بصمت (دُفع عند فتحها)، ثم إنهاء وضع
-  // التحديد كالمعتاد (يسحب مُدخل التحديد الخاص به بدوره).
-  suppressPopstateSilentCount++;
-  goBack();
   exitSelectionModeAndSync();
   refreshPrefixOptions();
   renderList($('#search').value);
@@ -2112,12 +2106,9 @@ $('#prefixDeleteBtn').addEventListener('click', () => {
 function openPrefixDeleteModal(count){
   $('#prefixDeleteModalDesc').textContent = 'هل تريد حذف ' + count + ' جهة اتصال من النتائج الحالية؟';
   $('#prefixDeleteModalOverlay').style.display = 'flex';
-  pushModalGuard('prefixDelete');
 }
 function closePrefixDeleteModal(){
-  if($('#prefixDeleteModalOverlay').style.display === 'none') return;
   $('#prefixDeleteModalOverlay').style.display = 'none';
-  popModalGuardSilently();
 }
 $('#prefixDeleteModalCancel').addEventListener('click', closePrefixDeleteModal);
 $('#prefixDeleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'prefixDeleteModalOverlay') closePrefixDeleteModal(); });
@@ -2128,12 +2119,9 @@ $('#removeGroupBtn').addEventListener('click', () => {
   if(matched.length === 0) return;
   $('#removeGroupModalDesc').textContent = 'هل تريد إزالة مجموعة "' + term + '" من ' + matched.length + ' جهة اتصال؟';
   $('#removeGroupModalOverlay').style.display = 'flex';
-  pushModalGuard('removeGroup');
 });
 function closeRemoveGroupModal(){
-  if($('#removeGroupModalOverlay').style.display === 'none') return;
   $('#removeGroupModalOverlay').style.display = 'none';
-  popModalGuardSilently();
 }
 $('#removeGroupModalCancel').addEventListener('click', closeRemoveGroupModal);
 $('#removeGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'removeGroupModalOverlay') closeRemoveGroupModal(); });
@@ -2411,12 +2399,9 @@ $('#photoUrlOpt').addEventListener('click', () => {
   $('#photoMenu').style.display = 'none';
   $('#photoUrlModalInput').value = '';
   $('#photoUrlModalOverlay').style.display = 'flex';
-  pushModalGuard('photoUrl');
 });
 function closePhotoUrlModal(){
-  if($('#photoUrlModalOverlay').style.display === 'none') return;
   $('#photoUrlModalOverlay').style.display = 'none';
-  popModalGuardSilently();
 }
 $('#photoUrlModalCancel').addEventListener('click', closePhotoUrlModal);
 $('#photoUrlModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'photoUrlModalOverlay') closePhotoUrlModal(); });
@@ -2906,11 +2891,10 @@ function finalizeCurrentContact(){
 
 function deleteCurrentContact(){
   $('#deleteModalOverlay').style.display = 'flex';
-  pushModalGuard('delete');
 }
 
-$('#deleteModalCancel').addEventListener('click', () => { $('#deleteModalOverlay').style.display = 'none'; swipeDeleteTargetId = null; closeOpenSwipe(); popModalGuardSilently(); });
-$('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay'){ $('#deleteModalOverlay').style.display = 'none'; swipeDeleteTargetId = null; closeOpenSwipe(); popModalGuardSilently(); } });
+$('#deleteModalCancel').addEventListener('click', () => { $('#deleteModalOverlay').style.display = 'none'; swipeDeleteTargetId = null; closeOpenSwipe(); });
+$('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay'){ $('#deleteModalOverlay').style.display = 'none'; swipeDeleteTargetId = null; closeOpenSwipe(); } });
 $('#deleteModalConfirm').addEventListener('click', () => {
   $('#deleteModalOverlay').style.display = 'none';
   const targetId = swipeDeleteTargetId || currentId;
@@ -2923,15 +2907,10 @@ $('#deleteModalConfirm').addEventListener('click', () => {
   if(fromList){
     refreshPrefixOptions();
     renderList($('#search').value);
-    popModalGuardSilently();
   } else {
     currentId = null;
     refreshPrefixOptions();
     renderList($('#search').value);
-    // أولاً: سحب مُدخل نافذة التأكيد بصمت (دُفع عند فتحها). ثانياً: الرجوع
-    // الفعلي الطبيعي للخروج من شاشة التعديل، تماماً كما كان يحدث سابقاً.
-    suppressPopstateSilentCount++;
-    goBack();
     goBack();
   }
   toast('تم الحذف');
@@ -3658,7 +3637,6 @@ function openIntraPhoneMergeModal(contactId, norm){
   group.appendChild(customInput);
 
   $('#mergeModalOverlay').style.display = 'flex';
-  pushModalGuard('merge');
 }
 
 function finalizeIntraPhoneMerge(){
@@ -4059,16 +4037,13 @@ function openMergeModal(plan){
   }
 
   $('#mergeModalOverlay').style.display = 'flex';
-  pushModalGuard('merge');
 }
 
 function closeMergeModal(){
-  if($('#mergeModalOverlay').style.display === 'none') return;
   $('#mergeModalOverlay').style.display = 'none';
   pendingMergeIds = null;
   pendingIntraPhoneMerge = null;
   mergeModalMode = 'contacts';
-  popModalGuardSilently();
 }
 $('#mergeModalCancel').addEventListener('click', closeMergeModal);
 $('#mergeModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'mergeModalOverlay') closeMergeModal(); });
@@ -4076,7 +4051,6 @@ $('#mergeModalConfirm').addEventListener('click', () => {
   if(mergeModalMode === 'intraPhone'){
     if(!pendingIntraPhoneMerge) return;
     $('#mergeModalOverlay').style.display = 'none';
-    popModalGuardSilently();
     finalizeIntraPhoneMerge();
     mergeModalMode = 'contacts';
     return;
@@ -4084,7 +4058,6 @@ $('#mergeModalConfirm').addEventListener('click', () => {
   if(!pendingMergeIds) return;
   const plan = buildMergePlan(pendingMergeIds, pendingMergeChoices);
   $('#mergeModalOverlay').style.display = 'none';
-  popModalGuardSilently();
   finalizeMerge(plan);
 });
 
@@ -4296,39 +4269,6 @@ $('#exitListModalConfirm').addEventListener('click', () => {
 // ضغطة رجوع وأنت فيها تخرج من التطبيق مباشرة بلا تأكيد.
 safeReplaceState({ screen: 'home' }, '', '#home');
 
-// إغلاق نافذة منبثقة عبر الرجوع الفعلي بالجهاز يستهلك مُدخل حماية الشاشة
-// الحالية تلقائياً (المتصفح نفسه من يفعل هذا، قبل وصولنا لهذا المعالج) دون
-// أن نكون قد أضفنا ذلك المُدخل أصلاً عند فتح النافذة. نُعوّض هذا بإعادة دفع
-// مُدخل حماية جديد للشاشة الحالية بعد إغلاق أي نافذة كهذه، وإلا يُستنفد سجل
-// المتصفح تدريجياً ويصبح زر الخروج الفعلي بلا استجابة بعد عدة دورات.
-function currentScreenName(){
-  if(screens.list.classList.contains('active')) return 'list';
-  if(screens.duplicates.classList.contains('active')) return 'duplicates';
-  if(screens.edit.classList.contains('active')) return 'edit';
-  return 'home';
-}
-function repushScreenGuard(){
-  const name = currentScreenName();
-  safePushState({ screen: name, guard: true }, '', '#' + name);
-}
-
-// نوافذ التأكيد (حذف/إزالة/دمج...) التي تُفتح مباشرة من زر داخل الشاشة (لا من
-// قائمة منسدلة أضافت مُدخلها الخاص مسبقاً) تحتاج مُدخل سجل مخصص بها عند
-// الفتح، وإلا فحذف الحماية أعلى السجل عند الفتح تصبح ملكاً "مُستعاراً" من
-// الشاشة نفسها ويسهل اختلال العد بعد تكرار فتح/إغلاق عبر زر الرجوع. الفتح:
-// يدفع مُدخلاً جديداً. الإغلاق عبر أي تفاعل بالواجهة (إلغاء، نقر خارج
-// النافذة، تأكيد): يسحب ذلك المُدخل بصمت. الإغلاق عبر زر الرجوع الفعلي:
-// المتصفح يكون قد سحب المُدخل تلقائياً قبل وصولنا لمعالج popstate، فلا حاجة
-// لأي شيء إضافي هناك سوى إخفاء النافذة.
-function pushModalGuard(modalId){
-  const name = currentScreenName();
-  safePushState({ screen: name, modal: modalId }, '', '#' + name);
-}
-function popModalGuardSilently(){
-  suppressPopstateSilentCount++;
-  goBack();
-}
-
 window.addEventListener('popstate', (e) => {
   if(suppressPopstateSilentCount > 0){
     suppressPopstateSilentCount--;
@@ -4347,13 +4287,6 @@ window.addEventListener('popstate', (e) => {
     return;
   }
 
-  if($('#photoUrlModalOverlay').style.display !== 'none'){
-    // المتصفح سحب مُدخل هذه النافذة تلقائياً قبل وصولنا هنا (دُفع عند
-    // الفتح عبر pushModalGuard)، فلا داعي لأي سحب/دفع إضافي بالسجل.
-    $('#photoUrlModalOverlay').style.display = 'none';
-    return;
-  }
-
   if($('#prefixModalOverlay').style.display !== 'none'){
     $('#prefixModalOverlay').style.display = 'none';
     return;
@@ -4367,58 +4300,21 @@ window.addEventListener('popstate', (e) => {
 
   if($('#saveFormatModalOverlay').style.display !== 'none'){
     $('#saveFormatModalOverlay').style.display = 'none';
-    repushScreenGuard();
     return;
   }
 
   if($('#bulkPhotoModalOverlay').style.display !== 'none'){
     $('#bulkPhotoModalOverlay').style.display = 'none';
-    repushScreenGuard();
     return;
   }
 
   if($('#unifyGroupModalOverlay').style.display !== 'none'){
     $('#unifyGroupModalOverlay').style.display = 'none';
-    repushScreenGuard();
     return;
   }
 
   if($('#nameFormatModalOverlay').style.display !== 'none'){
     $('#nameFormatModalOverlay').style.display = 'none';
-    repushScreenGuard();
-    return;
-  }
-
-  if($('#deleteModalOverlay').style.display !== 'none'){
-    $('#deleteModalOverlay').style.display = 'none';
-    swipeDeleteTargetId = null;
-    closeOpenSwipe();
-    return;
-  }
-
-  if($('#prefixDeleteModalOverlay').style.display !== 'none'){
-    $('#prefixDeleteModalOverlay').style.display = 'none';
-    return;
-  }
-
-  if($('#removeGroupModalOverlay').style.display !== 'none'){
-    $('#removeGroupModalOverlay').style.display = 'none';
-    return;
-  }
-
-  if($('#deleteSelectedModalOverlay').style.display !== 'none'){
-    $('#deleteSelectedModalOverlay').style.display = 'none';
-    return;
-  }
-
-  if($('#mergeModalOverlay').style.display !== 'none'){
-    // المتصفح سحب مُدخل هذه النافذة تلقائياً (دُفع عند الفتح عبر
-    // pushModalGuard)، فنكتفي بإخفائها وتصفير حالتها دون استدعاء
-    // closeMergeModal() (يسحب مُدخلاً إضافياً لا وجود له هنا).
-    $('#mergeModalOverlay').style.display = 'none';
-    pendingMergeIds = null;
-    pendingIntraPhoneMerge = null;
-    mergeModalMode = 'contacts';
     return;
   }
 
