@@ -1916,6 +1916,7 @@ wireContactListDelegation();
 function deleteContactFromList(id){
   swipeDeleteTargetId = id;
   $('#deleteModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'delete' }, '', '#list');
 }
 
 function startLongPress(id){
@@ -2061,20 +2062,39 @@ $('#deleteSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size === 0) return;
   $('#deleteSelectedModalDesc').textContent = 'هل تريد حذف ' + selectedIds.size + ' جهة اتصال محددة؟';
   $('#deleteSelectedModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'deleteSelected' }, '', '#list');
 });
 $('#mergeSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size < 2 || selectedIds.size > 5) return;
   const ids = Array.from(selectedIds);
-  exitSelectionModeAndSync();
-  startMerge(ids);
+  // لا نستخدم exitSelectionModeAndSync هنا (تستدعي goBack غير المتزامنة) لأن
+  // startMerge قد يفتح نافذة الدمج فوراً بعدها بنفس اللحظة عبر safePushState؛
+  // استدعاء goBack ثم pushState متتاليين بلا انتظار popstate بينهما يُسبب
+  // تسابقاً يُفقد التزامن بين عداد suppressPopstateSilentCount والسجل الفعلي.
+  // بدلاً من ذلك: نصفّر حالة التحديد مباشرة (بلا لمس السجل)، ونمرّر
+  // replaceHistory لتستبدل startMerge/openMergeModal مُدخل الحماية الحالي
+  // بمُدخل نافذة الدمج في عملية واحدة ذرية.
+  selectionMode = false;
+  selectedIds.clear();
+  syncFilterUI();
+  renderList($('#search').value);
+  startMerge(ids, { replaceHistory: true });
 });
-$('#deleteSelectedModalCancel').addEventListener('click', () => { $('#deleteSelectedModalOverlay').style.display = 'none'; });
-$('#deleteSelectedModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteSelectedModalOverlay') $('#deleteSelectedModalOverlay').style.display = 'none'; });
+function closeDeleteSelectedModal(){
+  if($('#deleteSelectedModalOverlay').style.display === 'none') return;
+  $('#deleteSelectedModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#deleteSelectedModalCancel').addEventListener('click', closeDeleteSelectedModal);
+$('#deleteSelectedModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteSelectedModalOverlay') closeDeleteSelectedModal(); });
 $('#deleteSelectedModalConfirm').addEventListener('click', () => {
   const count = selectedIds.size;
   saveUndoSnapshot('حذف ' + count + ' جهة اتصال');
   contacts = contacts.filter(c => !selectedIds.has(c.id));
   $('#deleteSelectedModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
   exitSelectionModeAndSync();
   refreshPrefixOptions();
   renderList($('#search').value);
@@ -2106,9 +2126,13 @@ $('#prefixDeleteBtn').addEventListener('click', () => {
 function openPrefixDeleteModal(count){
   $('#prefixDeleteModalDesc').textContent = 'هل تريد حذف ' + count + ' جهة اتصال من النتائج الحالية؟';
   $('#prefixDeleteModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'prefixDelete' }, '', '#list');
 }
 function closePrefixDeleteModal(){
+  if($('#prefixDeleteModalOverlay').style.display === 'none') return;
   $('#prefixDeleteModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
 }
 $('#prefixDeleteModalCancel').addEventListener('click', closePrefixDeleteModal);
 $('#prefixDeleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'prefixDeleteModalOverlay') closePrefixDeleteModal(); });
@@ -2119,9 +2143,13 @@ $('#removeGroupBtn').addEventListener('click', () => {
   if(matched.length === 0) return;
   $('#removeGroupModalDesc').textContent = 'هل تريد إزالة مجموعة "' + term + '" من ' + matched.length + ' جهة اتصال؟';
   $('#removeGroupModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'removeGroup' }, '', '#list');
 });
 function closeRemoveGroupModal(){
+  if($('#removeGroupModalOverlay').style.display === 'none') return;
   $('#removeGroupModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
 }
 $('#removeGroupModalCancel').addEventListener('click', closeRemoveGroupModal);
 $('#removeGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'removeGroupModalOverlay') closeRemoveGroupModal(); });
@@ -2399,9 +2427,13 @@ $('#photoUrlOpt').addEventListener('click', () => {
   $('#photoMenu').style.display = 'none';
   $('#photoUrlModalInput').value = '';
   $('#photoUrlModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'edit', modal: 'photoUrl' }, '', '#edit');
 });
 function closePhotoUrlModal(){
+  if($('#photoUrlModalOverlay').style.display === 'none') return;
   $('#photoUrlModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
 }
 $('#photoUrlModalCancel').addEventListener('click', closePhotoUrlModal);
 $('#photoUrlModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'photoUrlModalOverlay') closePhotoUrlModal(); });
@@ -2891,12 +2923,23 @@ function finalizeCurrentContact(){
 
 function deleteCurrentContact(){
   $('#deleteModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'edit', modal: 'delete' }, '', '#edit');
 }
 
-$('#deleteModalCancel').addEventListener('click', () => { $('#deleteModalOverlay').style.display = 'none'; swipeDeleteTargetId = null; closeOpenSwipe(); });
-$('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay'){ $('#deleteModalOverlay').style.display = 'none'; swipeDeleteTargetId = null; closeOpenSwipe(); } });
+function closeDeleteModal(){
+  if($('#deleteModalOverlay').style.display === 'none') return;
+  $('#deleteModalOverlay').style.display = 'none';
+  swipeDeleteTargetId = null;
+  closeOpenSwipe();
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#deleteModalCancel').addEventListener('click', closeDeleteModal);
+$('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay') closeDeleteModal(); });
 $('#deleteModalConfirm').addEventListener('click', () => {
   $('#deleteModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
   const targetId = swipeDeleteTargetId || currentId;
   const fromList = !!swipeDeleteTargetId;
   const deletedContact = contacts.find(x => x.id === targetId);
@@ -3637,6 +3680,7 @@ function openIntraPhoneMergeModal(contactId, norm){
   group.appendChild(customInput);
 
   $('#mergeModalOverlay').style.display = 'flex';
+  safePushState({ screen: screens.duplicates.classList.contains('active') ? 'duplicates' : 'list', modal: 'merge' }, '', '#' + (screens.duplicates.classList.contains('active') ? 'duplicates' : 'list'));
 }
 
 function finalizeIntraPhoneMerge(){
@@ -3887,20 +3931,24 @@ let pendingMergeChoices = {};
 let pendingIntraPhoneMerge = null; // { contactId, norm, options } عند دمج تكرار داخل نفس الجهة
 let mergeModalMode = 'contacts'; // 'contacts' | 'intraPhone'
 
-function startMerge(ids){
+function startMerge(ids, opts){
   pendingMergeIds = ids;
   pendingMergeChoices = {};
   const plan = buildMergePlan(ids, pendingMergeChoices);
-  if(!plan) return;
+  if(!plan){
+    if(opts && opts.replaceHistory){ suppressPopstateSilentCount++; goBack(); }
+    return;
+  }
   const hasAnyConflict = Object.values(plan.conflicts).some(Boolean);
   if(!hasAnyConflict){
     finalizeMerge(plan);
+    if(opts && opts.replaceHistory){ suppressPopstateSilentCount++; goBack(); }
     return;
   }
-  openMergeModal(plan);
+  openMergeModal(plan, opts);
 }
 
-function openMergeModal(plan){
+function openMergeModal(plan, opts){
   mergeModalMode = 'contacts';
   $('#mergeModalTitle').textContent = 'دمج جهات الاتصال';
   $('#mergeModalSubtitle').textContent = 'يوجد تعارض — اختر ما تريد الاحتفاظ به';
@@ -4037,13 +4085,22 @@ function openMergeModal(plan){
   }
 
   $('#mergeModalOverlay').style.display = 'flex';
+  const targetScreen = screens.duplicates.classList.contains('active') ? 'duplicates' : 'list';
+  if(opts && opts.replaceHistory){
+    safeReplaceState({ screen: targetScreen, modal: 'merge' }, '', '#' + targetScreen);
+  } else {
+    safePushState({ screen: targetScreen, modal: 'merge' }, '', '#' + targetScreen);
+  }
 }
 
 function closeMergeModal(){
+  if($('#mergeModalOverlay').style.display === 'none') return;
   $('#mergeModalOverlay').style.display = 'none';
   pendingMergeIds = null;
   pendingIntraPhoneMerge = null;
   mergeModalMode = 'contacts';
+  suppressPopstateSilentCount++;
+  goBack();
 }
 $('#mergeModalCancel').addEventListener('click', closeMergeModal);
 $('#mergeModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'mergeModalOverlay') closeMergeModal(); });
@@ -4051,6 +4108,8 @@ $('#mergeModalConfirm').addEventListener('click', () => {
   if(mergeModalMode === 'intraPhone'){
     if(!pendingIntraPhoneMerge) return;
     $('#mergeModalOverlay').style.display = 'none';
+    suppressPopstateSilentCount++;
+    goBack();
     finalizeIntraPhoneMerge();
     mergeModalMode = 'contacts';
     return;
@@ -4058,6 +4117,8 @@ $('#mergeModalConfirm').addEventListener('click', () => {
   if(!pendingMergeIds) return;
   const plan = buildMergePlan(pendingMergeIds, pendingMergeChoices);
   $('#mergeModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
   finalizeMerge(plan);
 });
 
@@ -4287,6 +4348,18 @@ window.addEventListener('popstate', (e) => {
     return;
   }
 
+  if($('#deleteModalOverlay').style.display !== 'none'){
+    $('#deleteModalOverlay').style.display = 'none';
+    swipeDeleteTargetId = null;
+    closeOpenSwipe();
+    return;
+  }
+
+  if($('#deleteSelectedModalOverlay').style.display !== 'none'){
+    $('#deleteSelectedModalOverlay').style.display = 'none';
+    return;
+  }
+
   if($('#prefixModalOverlay').style.display !== 'none'){
     $('#prefixModalOverlay').style.display = 'none';
     return;
@@ -4315,6 +4388,29 @@ window.addEventListener('popstate', (e) => {
 
   if($('#nameFormatModalOverlay').style.display !== 'none'){
     $('#nameFormatModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#mergeModalOverlay').style.display !== 'none'){
+    $('#mergeModalOverlay').style.display = 'none';
+    pendingMergeIds = null;
+    pendingIntraPhoneMerge = null;
+    mergeModalMode = 'contacts';
+    return;
+  }
+
+  if($('#photoUrlModalOverlay').style.display !== 'none'){
+    $('#photoUrlModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#prefixDeleteModalOverlay').style.display !== 'none'){
+    $('#prefixDeleteModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#removeGroupModalOverlay').style.display !== 'none'){
+    $('#removeGroupModalOverlay').style.display = 'none';
     return;
   }
 
