@@ -1765,46 +1765,6 @@ function renderList(filter=''){
       </div>
     `;
 
-    row.querySelector('.contact-row-header').addEventListener('click', () => {
-      if(longPressTriggered){ longPressTriggered = false; return; }
-      if(openSwipeRow){
-        const wasThisRow = openSwipeRow.id === c.id;
-        closeOpenSwipe();
-        if(wasThisRow) return; // أول ضغطة تُغلق الزر المكشوف فقط، دون تنفيذ إجراء آخر
-      }
-      if(selectionMode){ toggleSelect(c.id); return; }
-      expandedContactId = (expandedContactId === c.id) ? null : c.id;
-      renderList($('#search').value);
-    });
-    const editBtn = row.querySelector('.contact-expand-edit-icon');
-    if(editBtn){
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openEdit(c.id);
-      });
-    }
-    const avatarEl = row.querySelector('.contact-avatar');
-    if(avatarEl){
-      avatarEl.addEventListener('click', (e) => {
-        if(selectionMode) return; // نترك السلوك الافتراضي (تحديد) أثناء وضع التحديد الجماعي
-        e.stopPropagation();
-        openListPhotoMenu(c.id);
-      });
-    }
-    const headerEl = row.querySelector('.contact-row-header');
-    headerEl.addEventListener('touchstart', (e) => startLongPress(c.id), {passive:true});
-    headerEl.addEventListener('touchend', cancelLongPress);
-    headerEl.addEventListener('touchmove', cancelLongPress);
-    headerEl.addEventListener('mousedown', (e) => startLongPress(c.id));
-    headerEl.addEventListener('mouseup', cancelLongPress);
-    headerEl.addEventListener('mouseleave', cancelLongPress);
-
-    // سحب البطاقة لليمين لكشف الحذف خلفها (يمين = تتحرك البطاقة يمين ويظهر
-    // الخلفية الحمراء وأيقونة الحذف). معطّل أثناء التحديد الجماعي أو التوسيع.
-    if(!selectionMode && !isExpanded){
-      wireRowSwipe(row, c.id);
-    }
-
     list.appendChild(row);
   }
 }
@@ -1825,65 +1785,133 @@ function closeOpenSwipe(){
   openSwipeRow = null;
 }
 
-function wireRowSwipe(row, id){
+let swipeState = null; // { id, row, surface, deleteAction, editAction, startX, startY, dx, active, decided, isHorizontal }
+
+function handleListClick(e){
+  const editIcon = e.target.closest('.contact-expand-edit-icon');
+  if(editIcon){
+    e.stopPropagation();
+    openEdit(editIcon.dataset.editId);
+    return;
+  }
+  const avatar = e.target.closest('.contact-avatar');
+  if(avatar && !selectionMode){
+    e.stopPropagation();
+    const row = avatar.closest('.contact-row');
+    if(row) openListPhotoMenu(row.dataset.id);
+    return;
+  }
+  const header = e.target.closest('.contact-row-header');
+  if(!header) return;
+  const row = header.closest('.contact-row');
+  if(!row) return;
+  const id = row.dataset.id;
+  if(longPressTriggered){ longPressTriggered = false; return; }
+  if(openSwipeRow){
+    const wasThisRow = openSwipeRow.id === id;
+    closeOpenSwipe();
+    if(wasThisRow) return; // أول ضغطة تُغلق الزر المكشوف فقط، دون تنفيذ إجراء آخر
+  }
+  if(selectionMode){ toggleSelect(id); return; }
+  expandedContactId = (expandedContactId === id) ? null : id;
+  renderList($('#search').value);
+}
+
+function handleListTouchStart(e){
+  const header = e.target.closest('.contact-row-header');
+  const row = e.target.closest('.contact-row');
+  if(!row) return;
+  const id = row.dataset.id;
+  if(header) startLongPress(id);
+
+  // سحب البطاقة لليمين/اليسار لكشف الحذف/التعديل خلفها. معطّل أثناء التحديد
+  // الجماعي أو التوسيع (نفحص الحالة الفعلية الآن بدل الاعتماد على وقت التصيير).
+  if(selectionMode || row.classList.contains('expanded')) return;
   const surface = row.querySelector('.contact-row-surface');
   const deleteAction = row.querySelector('.contact-row-delete-action');
   const editAction = row.querySelector('.contact-row-edit-action');
   if(!surface || !deleteAction || !editAction) return;
-  let startX = 0, startY = 0, dx = 0, active = false, decided = false, isHorizontal = false;
-
-  row.addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    startX = t.clientX; startY = t.clientY; dx = 0; active = true; decided = false; isHorizontal = false;
-    surface.style.transition = 'none';
-    deleteAction.style.transition = 'none';
-    editAction.style.transition = 'none';
-  }, { passive:true });
-
-  row.addEventListener('touchmove', (e) => {
-    if(!active) return;
-    const t = e.touches[0];
-    const rawDx = t.clientX - startX;
-    const rawDy = t.clientY - startY;
-    if(!decided){
-      if(Math.abs(rawDx) < 8 && Math.abs(rawDy) < 8) return;
-      decided = true;
-      isHorizontal = Math.abs(rawDx) > Math.abs(rawDy);
-      if(isHorizontal) cancelLongPress();
-    }
-    if(!isHorizontal) return;
-    e.preventDefault();
-    const pos = Math.max(-SWIPE_MAX_DRAG, Math.min(rawDx, SWIPE_MAX_DRAG));
-    dx = pos;
-    surface.style.transform = `translateX(${pos}px)`;
-    if(pos >= 0){
-      deleteAction.style.opacity = String(Math.min(1, pos / SWIPE_ACTION_WIDTH));
-      editAction.style.opacity = '0';
-    } else {
-      editAction.style.opacity = String(Math.min(1, -pos / SWIPE_ACTION_WIDTH));
-      deleteAction.style.opacity = '0';
-    }
-  }, { passive:false });
-
-  const finish = () => {
-    if(!active) return;
-    active = false;
-    if(!isHorizontal) return;
-    surface.style.transition = 'transform .2s ease';
-    deleteAction.style.transition = 'opacity .2s ease';
-    editAction.style.transition = 'opacity .2s ease';
-    surface.style.transform = 'translateX(0)';
-    deleteAction.style.opacity = '0';
-    editAction.style.opacity = '0';
-    if(dx > SWIPE_TRIGGER_WIDTH){
-      deleteContactFromList(id);
-    } else if(dx < -SWIPE_TRIGGER_WIDTH){
-      openEdit(id);
-    }
-  };
-  row.addEventListener('touchend', finish, { passive:true });
-  row.addEventListener('touchcancel', finish, { passive:true });
+  const t = e.touches[0];
+  swipeState = { id, row, surface, deleteAction, editAction, startX: t.clientX, startY: t.clientY, dx: 0, active: true, decided: false, isHorizontal: false };
+  surface.style.transition = 'none';
+  deleteAction.style.transition = 'none';
+  editAction.style.transition = 'none';
 }
+
+function handleListTouchMove(e){
+  cancelLongPress(); // أي تحرك يُلغي الضغط المطوّل فورًا، مطابقة للسلوك الأصلي
+  const s = swipeState;
+  if(!s || !s.active) return;
+  const t = e.touches[0];
+  const rawDx = t.clientX - s.startX;
+  const rawDy = t.clientY - s.startY;
+  if(!s.decided){
+    if(Math.abs(rawDx) < 8 && Math.abs(rawDy) < 8) return;
+    s.decided = true;
+    s.isHorizontal = Math.abs(rawDx) > Math.abs(rawDy);
+  }
+  if(!s.isHorizontal) return;
+  e.preventDefault();
+  const pos = Math.max(-SWIPE_MAX_DRAG, Math.min(rawDx, SWIPE_MAX_DRAG));
+  s.dx = pos;
+  s.surface.style.transform = `translateX(${pos}px)`;
+  if(pos >= 0){
+    s.deleteAction.style.opacity = String(Math.min(1, pos / SWIPE_ACTION_WIDTH));
+    s.editAction.style.opacity = '0';
+  } else {
+    s.editAction.style.opacity = String(Math.min(1, -pos / SWIPE_ACTION_WIDTH));
+    s.deleteAction.style.opacity = '0';
+  }
+}
+
+function handleListTouchEnd(){
+  cancelLongPress();
+  const s = swipeState;
+  if(!s) return;
+  swipeState = null;
+  if(!s.active) return;
+  s.active = false;
+  if(!s.isHorizontal) return;
+  s.surface.style.transition = 'transform .2s ease';
+  s.deleteAction.style.transition = 'opacity .2s ease';
+  s.editAction.style.transition = 'opacity .2s ease';
+  s.surface.style.transform = 'translateX(0)';
+  s.deleteAction.style.opacity = '0';
+  s.editAction.style.opacity = '0';
+  if(s.dx > SWIPE_TRIGGER_WIDTH){
+    deleteContactFromList(s.id);
+  } else if(s.dx < -SWIPE_TRIGGER_WIDTH){
+    openEdit(s.id);
+  }
+}
+
+function handleListMouseDown(e){
+  const header = e.target.closest('.contact-row-header');
+  if(!header) return;
+  const row = header.closest('.contact-row');
+  if(!row) return;
+  startLongPress(row.dataset.id);
+}
+
+function handleListMouseOut(e){
+  const header = e.target.closest('.contact-row-header');
+  if(!header) return;
+  if(header.contains(e.relatedTarget)) return; // ما زال داخل نفس الهيدر
+  cancelLongPress();
+}
+
+function wireContactListDelegation(){
+  const list = $('#contactList');
+  list.addEventListener('click', handleListClick);
+  list.addEventListener('touchstart', handleListTouchStart, { passive:true });
+  list.addEventListener('touchmove', handleListTouchMove, { passive:false });
+  list.addEventListener('touchend', handleListTouchEnd, { passive:true });
+  list.addEventListener('touchcancel', handleListTouchEnd, { passive:true });
+  list.addEventListener('mousedown', handleListMouseDown);
+  list.addEventListener('mouseout', handleListMouseOut);
+  document.addEventListener('mouseup', cancelLongPress);
+}
+wireContactListDelegation();
 
 function deleteContactFromList(id){
   swipeDeleteTargetId = id;
@@ -3680,7 +3708,7 @@ function renderDuplicates(){
   $('#dupSummaryText').textContent = total
     ? total + ' حالة تكرار'
     : 'لا توجد أرقام مكررة';
-  $('#mergeAllIntraBtn').style.display = intraDups.length ? 'inline-flex' : 'none';
+  $('#mergeAllIntraBtn').style.display = (screens.duplicates.classList.contains('active') && intraDups.length) ? 'inline-flex' : 'none';
 
   if(intraDups.length){
     const sectionTitle = document.createElement('div');
