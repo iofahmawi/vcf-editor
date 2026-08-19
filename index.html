@@ -2065,7 +2065,7 @@ $('#deleteSelectedBtn').addEventListener('click', () => {
 $('#mergeSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size < 2 || selectedIds.size > 5) return;
   const ids = Array.from(selectedIds);
-  exitSelectionMode();
+  exitSelectionModeAndSync();
   startMerge(ids);
 });
 $('#deleteSelectedModalCancel').addEventListener('click', () => { $('#deleteSelectedModalOverlay').style.display = 'none'; });
