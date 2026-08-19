@@ -1673,6 +1673,10 @@ function buildContactExpandHtml(c){
   return `<div class="contact-expand">${groups.join('')}</div>`;
 }
 
+function updateSelectionSummaryText(){
+  $('#summaryText').textContent = selectedIds.size + ' \u00A0محدد';
+}
+
 function renderList(filter=''){
   const list = $('#contactList');
   list.innerHTML = '';
@@ -1935,7 +1939,14 @@ function toggleSelect(id){
   else selectedIds.add(id);
   if(selectedIds.size === 0){ exitSelectionModeAndSync(); return; }
   syncFilterUI();
-  renderList($('#search').value);
+  const row = document.querySelector(`.contact-row[data-id="${CSS.escape(id)}"]`);
+  const needsFullRender = !row || !row.querySelector('.contact-checkbox');
+  if(needsFullRender){
+    renderList($('#search').value);
+  } else {
+    row.classList.toggle('selected', selectedIds.has(id));
+    updateSelectionSummaryText();
+  }
 }
 
 function longestCommonPrefixLen(a, b){
