@@ -2012,7 +2012,7 @@ function updateScrollTopBtn(){
   const shouldShow = selectionMode && screens.list.classList.contains('active') && scroller && scroller.scrollTop > 200;
   scrollTopBtn.classList.toggle('show', !!shouldShow);
 }
-$('#screens').addEventListener('scroll', () => { if(selectionMode) updateScrollTopBtn(); if(openSwipeRow) closeOpenSwipe(); }, { passive:true });
+$('#screens').addEventListener('scroll', () => { if(selectionMode) updateScrollTopBtn(); if(openSwipeRow) closeOpenSwipe(); if($('#listMenuDropdown').style.display === 'block') closeListMenuDropdownAndSync(); }, { passive:true });
 scrollTopBtn.addEventListener('click', () => {
   const scroller = $('#screens');
   if(scroller) scroller.scrollTo({ top:0, behavior:'smooth' });
