@@ -4417,10 +4417,23 @@ function decideBackAction(){
   }
   if(screens.list.classList.contains('active') && listFilterActive()){
     clearListFilters();
+    // نفس علة مُدخل حماية القائمة أدناه: زر رجوع الجهاز يسحب مُدخل حماية
+    // الفلتر تلقائياً قبل وصوله لفرع popstate المطابق؛ زر الرجوع بالواجهة
+    // يستدعي هذه الدالة مباشرة فيبقيه عالقاً إن لم نسحبه بصمت هنا.
+    suppressPopstateSilentCount++;
+    goBack();
     return true;
   }
   if(screens.list.classList.contains('active')){
     $('#exitListModalOverlay').style.display = 'flex';
+    // زر رجوع الجهاز الفعلي يسحب مُدخل حماية القائمة تلقائياً قبل الوصول
+    // لهذا الفرع (فيسقط بالمعالج العام أدناه). زر الرجوع بالواجهة يستدعي
+    // decideBackAction() مباشرة دون أي تراجع فعلي بالسجل، فيبقى مُدخل
+    // الحماية عالقاً أعلى السجل. لولا هذا السحب الصامت هنا، سيحتاج "خروج"
+    // لاحقاً لضغطتين فعليتين (سحب الحماية أولاً ثم مغادرة القائمة فعلياً)
+    // فيبدو للمستخدم أن الزر لا يستجيب من أول ضغطة.
+    suppressPopstateSilentCount++;
+    goBack();
     return true;
   }
   // نحن في الرئيسية: لا شيء يُفقد هنا، فليخرج مباشرة بلا تأكيد
