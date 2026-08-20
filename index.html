@@ -364,9 +364,14 @@
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
     </div>
   </div>
-  <button class="link-btn" id="headerDeleteBtn" aria-label="حذف" style="display:none; color:var(--danger); background: rgba(239, 68, 68, 0.07); width:36px; height:36px; padding:0; border-radius:10px; align-items:center; justify-content:center;">
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
-  </button>
+  <div id="headerEditActions" style="display:flex; gap:8px;">
+    <button class="link-btn" id="headerStarBtn" aria-label="تفضيل" style="display:none; color:#F5B301; background: var(--card2); width:36px; height:36px; padding:0; border-radius:10px; align-items:center; justify-content:center;">
+      <svg id="headerStarIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    </button>
+    <button class="link-btn" id="headerDeleteBtn" aria-label="حذف" style="display:none; color:var(--danger); background: var(--card2); width:36px; height:36px; padding:0; border-radius:10px; align-items:center; justify-content:center;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+    </button>
+  </div>
   <button class="link-btn" id="mergeAllIntraBtn" style="display:none; color:var(--accent); font-size:13.5px; font-weight:700; background: var(--card2); padding: 0 14px; height:36px; align-items:center; justify-content:center;"><span style="position:relative; top:-2px;">دمج</span></button>
 </header>
 
@@ -813,6 +818,7 @@ function renderScreenUI(name){
   $('#screenTitle').style.display = name === 'list' ? 'none' : 'block';
   $('#headerSearchWrap').style.display = name === 'list' ? 'flex' : 'none';
   $('#backBtn').style.visibility = name === 'home' ? 'hidden' : 'visible';
+  $('#headerStarBtn').style.display = name === 'edit' ? 'inline-flex' : 'none';
   $('#headerDeleteBtn').style.display = name === 'edit' ? 'inline-flex' : 'none';
   $('#mergeAllIntraBtn').style.display = name === 'duplicates' ? 'inline-flex' : 'none';
   $('#listMenuBtn').style.display = name === 'list' ? 'inline-block' : 'none';
@@ -1696,6 +1702,31 @@ function isStarredContact(c){
   return (c.categories || '').split(',').some(tag => /starred/i.test(tag.trim()));
 }
 
+// تفعيل/تعطيل مظهر زر النجمة بأعلى شاشة التعديل حسب حالة الجهة الحالية
+function updateHeaderStarBtn(c){
+  const btn = $('#headerStarBtn');
+  if(!btn) return;
+  const starred = isStarredContact(c);
+  const svg = btn.querySelector('svg');
+  svg.setAttribute('fill', starred ? '#F5B301' : 'none');
+  svg.style.opacity = starred ? '1' : '0.55';
+}
+
+// إضافة/إزالة مجموعة starred لجهة الاتصال المفتوحة حالياً بضغطة واحدة
+function toggleStarredCurrentContact(){
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  const tags = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
+  if(isStarredContact(c)){
+    c.categories = tags.filter(tag => !/starred/i.test(tag)).join(', ');
+  } else {
+    tags.push('starred');
+    c.categories = tags.join(', ');
+  }
+  $('#f-categories').value = categoriesToDisplay(c.categories);
+  updateHeaderStarBtn(c);
+}
+
 function renderList(filter=''){
   const list = $('#contactList');
   list.innerHTML = '';
@@ -2394,6 +2425,7 @@ function openEdit(id){
   autoGrowNote();
 
   $('#f-categories').value = categoriesToDisplay(c.categories);
+  updateHeaderStarBtn(c);
   $('#f-bday').value = c.bday || '';
   $('#f-bday-display').value = c.bday ? c.bday.split('-').join('/') : '';
 
@@ -2986,6 +3018,7 @@ $('#deleteModalConfirm').addEventListener('click', () => {
   toast('تم الحذف');
 });
 
+$('#headerStarBtn').addEventListener('click', toggleStarredCurrentContact);
 $('#headerDeleteBtn').addEventListener('click', deleteCurrentContact);
 
 $('#fabAdd').addEventListener('click', () => {
