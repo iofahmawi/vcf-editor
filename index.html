@@ -1036,7 +1036,7 @@ function parseVCF(text){
         break;
       }
       case 'CATEGORIES':
-        cur.categories = unescapeVal(value).split(',').map(s => s.trim()).filter(Boolean).join('، ');
+        cur.categories = unescapeVal(value).split(',').map(s => s.trim()).filter(Boolean).join(', ');
         break;
       case 'BDAY':
         cur.bday = normalizeBdayForInput(unescapeVal(value));
@@ -1235,7 +1235,7 @@ function parseCSVGoogle(text){
 
     const rawLabels = get(labelsIdx);
     const categories = rawLabels
-      ? rawLabels.split(':::').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join('، ')
+      ? rawLabels.split(':::').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join(', ')
       : '';
 
     cards.push({
@@ -1348,7 +1348,7 @@ function parseCSVOutlook(text){
 
     const rawCats = get(catIdx);
     const categories = rawCats
-      ? rawCats.split(';').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join('، ')
+      ? rawCats.split(';').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join(', ')
       : '';
 
     cards.push({
@@ -1446,7 +1446,7 @@ function buildVCF(contactsArr){
       out += 'ADR;' + buildTypeParam(a.type) + ':;;\u200E' + escapeVal(a.value) + ';;;;\n';
     }
     if(c.categories){
-      const cats = c.categories.split(/[,،]/).map(s => s.trim()).filter(Boolean)
+      const cats = c.categories.split(',').map(s => s.trim()).filter(Boolean)
         .map(v => v.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;'));
       if(cats.length) out += 'CATEGORIES:' + cats.join(',') + '\n';
     }
@@ -1611,7 +1611,7 @@ function getFilteredContacts(filter=''){
 function getContactsWithCategory(term){
   const t = term.trim().toLowerCase();
   if(!t) return [];
-  return contacts.filter(c => (c.categories || '').split(/[,،]/).map(s => s.trim()).some(tag => tag.toLowerCase() === t));
+  return contacts.filter(c => (c.categories || '').split(',').map(s => s.trim()).some(tag => tag.toLowerCase() === t));
 }
 
 let selectionMode = false;
@@ -1684,7 +1684,7 @@ function updateSelectionSummaryText(){
 // جهة مفضلة = لديها مجموعة (CATEGORIES) تحتوي كلمة starred، وهي الطريقة التي
 // يصدّر بها جوجل جهات الاتصال المفضلة (مثال: "* Starred in Android")
 function isStarredContact(c){
-  return (c.categories || '').split(/[,،]/).some(tag => /starred/i.test(tag.trim()));
+  return (c.categories || '').split(',').some(tag => /starred/i.test(tag.trim()));
 }
 
 function renderList(filter=''){
@@ -2176,8 +2176,8 @@ $('#removeGroupModalConfirm').addEventListener('click', () => {
   const t = term.toLowerCase();
   const matched = getContactsWithCategory(term);
   matched.forEach(c => {
-    const tags = c.categories.split(/[,،]/).map(s => s.trim()).filter(Boolean).filter(tag => tag.toLowerCase() !== t);
-    c.categories = tags.join('، ');
+    const tags = c.categories.split(',').map(s => s.trim()).filter(Boolean).filter(tag => tag.toLowerCase() !== t);
+    c.categories = tags.join(', ');
   });
   closeRemoveGroupModal();
   $('#search').value = '';
@@ -3434,7 +3434,7 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
     let renameCount = 0;
     contacts.forEach(c => {
       if(!unifyGroupSelectedIds.has(c.id)) return;
-      const existing = (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean);
+      const existing = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
       const idx = existing.findIndex(g => g.toLowerCase() === oldLower);
       if(idx === -1) return;
       if(val){
@@ -3447,7 +3447,7 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
       } else {
         existing.splice(idx, 1);
       }
-      c.categories = existing.join('، ');
+      c.categories = existing.join(', ');
       renameCount++;
     });
     closeUnifyGroupModal();
@@ -3463,11 +3463,11 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
       if(val){
         // نضيف المجموعة الجديدة إلى المجموعات الحالية بدل استبدالها، مع
         // تفادي التكرار لو الجهة منضمة أصلاً لنفس المجموعة.
-        const existing = (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean);
+        const existing = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
         if(!existing.some(g => g.toLowerCase() === val.toLowerCase())){
           existing.push(val);
         }
-        c.categories = existing.join('، ');
+        c.categories = existing.join(', ');
       } else {
         // ترك الحقل فارغاً يعني إزالة كل المجموعات المنضمة لها الجهات المحددة
         c.categories = '';
@@ -3950,8 +3950,8 @@ function buildMergePlan(ids, choices){
   const dept = deptR.value;
   const title = titleR.value;
   const bday = bdayR.value;
-  const allCats = list.flatMap(c => (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean));
-  const categories = [...new Set(allCats)].join('، ');
+  const allCats = list.flatMap(c => (c.categories || '').split(',').map(s => s.trim()).filter(Boolean));
+  const categories = [...new Set(allCats)].join(', ');
   const notes = [...new Set(list.map(c => c.note).filter(v => v && v.trim()))];
   const note = notes.join('\n');
 
@@ -4296,7 +4296,7 @@ function buildCSV(contactsArr){
     const emails = c.emails.filter(e => e.value);
     const urls = (c.urls || []).filter(u => u.value);
     const adrs = (c.adrs || []).filter(a => a.value);
-    const labels = (c.categories || '').split(/[,،]/).map(s => s.trim()).filter(Boolean).join(':::');
+    const labels = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean).join(':::');
     const row = ['', '', c.fn || '', c.nickname || '', c.fn || '', c.org || '', c.title || '', c.dept || '', c.bday || '', c.note || '', labels];
     for(let i = 0; i < maxPhones; i++){ row.push(phones[i]?.type || '', phones[i]?.value || ''); }
     for(let i = 0; i < maxEmails; i++){ row.push(emails[i]?.type || '', emails[i]?.value || ''); }
