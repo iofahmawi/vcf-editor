@@ -408,6 +408,7 @@
       <div class="summary" id="summaryText" style="margin:0;"></div>
       <div style="display:flex; align-items:center; gap:9px;">
         <button type="button" class="link-btn" id="prefixSelectedBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; min-width:0; white-space:nowrap;">تعديل البادئة</button>
+        <button type="button" class="link-btn" id="favoriteSelectedBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; min-width:0; white-space:nowrap;">مفضلة</button>
         <button type="button" class="link-btn merge-selected" id="mergeSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">دمج</button>
         <button type="button" class="link-btn delete-selected" id="deleteSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">حذف</button>
       </div>
@@ -2133,6 +2134,7 @@ function syncFilterUI(){
   $('#summaryText').style.display = 'block';
   $('#mergeSelectedBtn').style.display = (selectionMode && selectedIds.size >= 2 && selectedIds.size <= 5) ? 'inline-block' : 'none';
   $('#deleteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
+  $('#favoriteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
   $('#prefixSelectedBtn').style.display = (selectionMode && selectionHasAnyPhone()) ? 'inline-block' : 'none';
   if(selectionMode){
     $('#deleteSelectedBtn').textContent = 'حذف';
@@ -2154,6 +2156,24 @@ scrollTopBtn.addEventListener('click', () => {
   if(scroller) scroller.scrollTo({ top:0, behavior:'smooth' });
 });
 
+$('#favoriteSelectedBtn').addEventListener('click', () => {
+  if(selectedIds.size === 0) return;
+  const count = selectedIds.size;
+  saveUndoSnapshot('تبديل مفضلة ' + count + ' جهة اتصال');
+  contacts.forEach(c => {
+    if(!selectedIds.has(c.id)) return;
+    const tags = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
+    if(isStarredContact(c)){
+      c.categories = tags.filter(tag => !/starred/i.test(tag)).join(', ');
+    } else {
+      tags.push('starred');
+      c.categories = tags.join(', ');
+    }
+  });
+  exitSelectionModeAndSync();
+  renderList($('#search').value);
+  toast('تم تحديث المفضلة لـ ' + count + ' جهة اتصال');
+});
 $('#deleteSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size === 0) return;
   $('#deleteSelectedModalDesc').textContent = 'هل تريد حذف ' + selectedIds.size + ' جهة اتصال محددة؟';
