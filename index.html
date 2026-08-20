@@ -199,6 +199,8 @@
   .contact-expand-edit-icon svg{ width:15px; height:15px; }
   .contact-expand-row{ display:flex; justify-content:flex-start; align-items:center; gap:8px; padding:4px 0; font-size:13.5px; }
   .contact-expand-value{ color:var(--text); direction:ltr; text-align:left; overflow-wrap:anywhere; }
+  .contact-expand-value.copyable, .contact-expand-note.copyable{ cursor:pointer; }
+  .contact-expand-value.copyable:active, .contact-expand-note.copyable:active{ opacity:0.6; }
   .contact-expand-type{ flex:0 0 auto; font-size:11.5px; color:var(--muted); }
   .contact-expand-note{ font-size:13px; color:var(--text); white-space:pre-wrap; line-height:1.6; }
 
@@ -1637,21 +1639,21 @@ function buildContactExpandHtml(c){
   const phones = c.phones.filter(p => p.value);
   if(phones.length){
     groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">أرقام الهاتف</div>${
-      phones.map(p => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(PHONE_LABELS[p.type] || p.type || '')}</span><span class="contact-expand-value">${escapeHtml(p.value)}</span></div>`).join('')
+      phones.map(p => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(PHONE_LABELS[p.type] || p.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(p.value)}">${escapeHtml(p.value)}</span></div>`).join('')
     }</div>`);
   }
 
   const emails = c.emails.filter(e => e.value);
   if(emails.length){
     groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">البريد الإلكتروني</div>${
-      emails.map(e => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(EMAIL_LABELS[e.type] || e.type || '')}</span><span class="contact-expand-value">${escapeHtml(e.value)}</span></div>`).join('')
+      emails.map(e => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(EMAIL_LABELS[e.type] || e.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(e.value)}">${escapeHtml(e.value)}</span></div>`).join('')
     }</div>`);
   }
 
   const urls = (c.urls || []).filter(u => u.value);
   if(urls.length){
     groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">الروابط</div>${
-      urls.map(u => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(URL_LABELS[u.type] || u.type || '')}</span><span class="contact-expand-value">${escapeHtml(u.value)}</span></div>`).join('')
+      urls.map(u => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(URL_LABELS[u.type] || u.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(u.value)}">${escapeHtml(u.value)}</span></div>`).join('')
     }</div>`);
   }
 
@@ -1660,7 +1662,7 @@ function buildContactExpandHtml(c){
   }
 
   if(c.categories){
-    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">المجموعات</div><div class="contact-expand-note">${escapeHtml(categoriesToDisplay(c.categories))}</div></div>`);
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">المجموعات</div><div class="contact-expand-note copyable" data-copy="${escapeAttr(categoriesToDisplay(c.categories))}">${escapeHtml(categoriesToDisplay(c.categories))}</div></div>`);
   }
 
   if(c.bday){
@@ -1670,7 +1672,7 @@ function buildContactExpandHtml(c){
   const adrs = (c.adrs || []).filter(a => a.value);
   if(adrs.length){
     groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">العناوين</div>${
-      adrs.map(a => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(ADR_LABELS[a.type] || a.type || '')}</span><span class="contact-expand-value">${escapeHtml(a.value)}</span></div>`).join('')
+      adrs.map(a => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(ADR_LABELS[a.type] || a.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(a.value)}">${escapeHtml(a.value)}</span></div>`).join('')
     }</div>`);
   }
 
@@ -1845,7 +1847,43 @@ function closeOpenSwipe(){
 
 let swipeState = null; // { id, row, surface, deleteAction, editAction, startX, startY, dx, active, decided, isHorizontal }
 
+function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text){
+  try{
+    const span = document.createElement('span');
+    span.textContent = text;
+    span.style.position = 'fixed';
+    span.style.top = '0';
+    span.style.left = '-9999px';
+    span.style.whiteSpace = 'pre';
+    document.body.appendChild(span);
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    document.body.removeChild(span);
+  } catch(err){
+    toast('تعذّر النسخ');
+  }
+}
+
 function handleListClick(e){
+  const copyable = e.target.closest('.copyable[data-copy]');
+  if(copyable){
+    e.stopPropagation();
+    copyToClipboard(copyable.dataset.copy || copyable.textContent || '');
+    return;
+  }
   const editIcon = e.target.closest('.contact-expand-edit-icon');
   if(editIcon){
     e.stopPropagation();
