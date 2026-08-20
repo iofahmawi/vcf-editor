@@ -1654,7 +1654,7 @@ function buildContactExpandHtml(c){
   }
 
   if(c.categories){
-    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">المجموعات</div><div class="contact-expand-note">${escapeHtml(c.categories)}</div></div>`);
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">المجموعات</div><div class="contact-expand-note">${escapeHtml(categoriesToDisplay(c.categories))}</div></div>`);
   }
 
   if(c.bday){
@@ -1679,6 +1679,15 @@ function buildContactExpandHtml(c){
 
 function updateSelectionSummaryText(){
   $('#summaryText').textContent = selectedIds.size + ' \u00A0محدد';
+}
+
+// المجموعات تُخزَّن وتُصدَّر دائماً بالفاصلة القياسية "," (متوافق مع VCF/جوجل)،
+// لكن نعرضها للمستخدم ونقبل كتابتها بصيغة أسهل بالشرطة " - " فقط داخل الواجهة.
+function categoriesToDisplay(str){
+  return (str || '').split(',').map(s => s.trim()).filter(Boolean).join(' - ');
+}
+function categoriesFromDisplay(str){
+  return (str || '').split('-').map(s => s.trim()).filter(Boolean).join(', ');
 }
 
 // جهة مفضلة = لديها مجموعة (CATEGORIES) تحتوي كلمة starred، وهي الطريقة التي
@@ -2384,7 +2393,7 @@ function openEdit(id){
   $('#f-note').value = c.note || '';
   autoGrowNote();
 
-  $('#f-categories').value = c.categories || '';
+  $('#f-categories').value = categoriesToDisplay(c.categories);
   $('#f-bday').value = c.bday || '';
   $('#f-bday-display').value = c.bday ? c.bday.split('-').join('/') : '';
 
@@ -2897,7 +2906,7 @@ $('#f-dept').addEventListener('input', () => { const c = contacts.find(x => x.id
 $('#f-title').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.title = $('#f-title').value; });
 function autoGrowNote(){ const el = $('#f-note'); el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 46) + 'px'; }
 $('#f-note').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.note = $('#f-note').value; autoGrowNote(); });
-$('#f-categories').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.categories = $('#f-categories').value; });
+$('#f-categories').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.categories = categoriesFromDisplay($('#f-categories').value); });
 $('#f-bday').addEventListener('input', () => {
   const c = contacts.find(x => x.id === currentId);
   if(c) c.bday = $('#f-bday').value;
