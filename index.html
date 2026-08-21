@@ -325,6 +325,11 @@
   #bulkPhotoList::-webkit-scrollbar{ width:5px; }
   #bulkPhotoList::-webkit-scrollbar-track{ background:transparent; }
   #bulkPhotoList::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
+  #unifyGroupPickerList, #unifyGroupList{ scrollbar-width:thin; scrollbar-color: var(--border) transparent; }
+  #unifyGroupPickerList::-webkit-scrollbar, #unifyGroupList::-webkit-scrollbar{ width:4px; }
+  #unifyGroupPickerList::-webkit-scrollbar-track, #unifyGroupList::-webkit-scrollbar-track{ background:transparent; margin:6px 0; }
+  #unifyGroupPickerList::-webkit-scrollbar-thumb, #unifyGroupList::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
+  #unifyGroupPickerList::-webkit-scrollbar{ display:none; }
   .merge-photo-row{ display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
   .merge-photo-opt{
     width:56px; height:56px; border-radius:12px; border:2px solid var(--border); cursor:pointer;
@@ -701,8 +706,9 @@
 
     <div class="field-group" style="margin-bottom:20px;">
       <label>اختر مجموعة موجودة</label>
-      <div style="border:1.07px solid var(--border-light); border-radius:10px; overflow:hidden;">
-        <div id="unifyGroupPickerList" style="max-height:131px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y;"></div>
+      <div style="border:1.07px solid var(--border-light); border-radius:10px; overflow:hidden; position:relative;">
+        <div id="unifyGroupPickerList" style="max-height:131px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; scrollbar-width:none;"></div>
+        <div id="unifyGroupPickerScrollThumb" style="position:absolute; left:0; top:0; width:4px; border-radius:10px; background:var(--border); display:none; pointer-events:none;"></div>
       </div>
     </div>
 
@@ -3481,6 +3487,7 @@ function openUnifyGroupModal(){
     $('#unifyGroupPickerList').scrollTop = 0;
     $('#unifyGroupList').scrollTop = 0;
     $('#unifyGroupModalOverlay .panel').scrollTop = 0;
+    updateUnifyGroupPickerThumb();
   });
   updateUnifyGroupConfirmState();
   $('#unifyGroupModalOverlay').style.display = 'flex';
@@ -3626,7 +3633,23 @@ function renderUnifyGroupPickerList(){
       $('#unifyGroupList').scrollTop = 0;
     });
   });
+  updateUnifyGroupPickerThumb();
 }
+function updateUnifyGroupPickerThumb(){
+  const list = $('#unifyGroupPickerList');
+  const thumb = $('#unifyGroupPickerScrollThumb');
+  const trackH = list.clientHeight;
+  const contentH = list.scrollHeight;
+  if(contentH <= trackH + 1){ thumb.style.display = 'none'; return; }
+  thumb.style.display = 'block';
+  const thumbH = Math.round(trackH * 0.65);
+  thumb.style.height = thumbH + 'px';
+  const maxScroll = contentH - trackH;
+  const maxThumbTravel = trackH - thumbH;
+  const scrollRatio = maxScroll > 0 ? (list.scrollTop / maxScroll) : 0;
+  thumb.style.top = Math.round(scrollRatio * maxThumbTravel) + 'px';
+}
+$('#unifyGroupPickerList').addEventListener('scroll', updateUnifyGroupPickerThumb, { passive:true });
 
 $('#unifyGroupSearch').addEventListener('input', () => { unifyGroupPickedName = null; renderUnifyGroupList(); $('#unifyGroupList').scrollTop = 0; });
 $('#unifyGroupSearch').addEventListener('keydown', (e) => {
