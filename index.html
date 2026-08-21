@@ -2065,11 +2065,35 @@ function enterSelectionMode(){
   safePushState({ screen: 'list', selectionGuard: true }, '', '#list');
 }
 
+function removeCheckboxesInPlace(){
+  document.querySelectorAll('#contactList .contact-row').forEach(row => {
+    row.classList.remove('selected');
+    const checkbox = row.querySelector('.contact-checkbox');
+    if(checkbox) checkbox.remove();
+  });
+}
+
 function exitSelectionMode(){
   selectionMode = false;
   selectedIds.clear();
   syncFilterUI();
-  renderList($('#search').value);
+  removeCheckboxesInPlace();
+  const filter = $('#search').value;
+  const isNumericSearch = /^\+?\d+$/.test(filter.trim());
+  if(isNumericSearch){
+    const digitsPrefix = filter.trim().replace(/\D/g,'');
+    let phoneCount = 0;
+    for(const c of contacts){
+      for(const p of c.phones){
+        if(p.value.replace(/\D/g,'').startsWith(digitsPrefix)) phoneCount++;
+      }
+    }
+    $('#summaryText').textContent = phoneCount + ' \u00A0نتيجة';
+  } else {
+    const f = normalizeArabic(filter.trim().toLowerCase());
+    const count = f ? getFilteredContacts(filter).length : contacts.length;
+    $('#summaryText').textContent = count + ' \u00A0جهة اتصال';
+  }
 }
 // يُستدعى عند إنهاء وضع التحديد من أي مكان غير معالج popstate (أي أن مُدخل
 // selectionGuard ما زال أعلى السجل ولم يُستهلك بعد): ينهي وضع التحديد ثم
