@@ -695,19 +695,29 @@
   </div>
 </div>
 
-<div id="unifyGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
-  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
+<div id="unifyGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:20px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:94vh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">إدارة المجموعات</div>
 
-    <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال أو المجموعات" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+    <div class="field-group" style="margin-bottom:20px;">
+      <label>اختر مجموعة موجودة</label>
+      <div style="border:1.07px solid var(--border-light); border-radius:10px; overflow:hidden;">
+        <div id="unifyGroupPickerList" style="max-height:131px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y;"></div>
+      </div>
+    </div>
 
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+    <div class="field-group" style="margin-bottom:20px;">
+      <label>البحث عن جهات الاتصال</label>
+      <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px;">
+    </div>
+
+    <div id="unifyGroupSelectRow" style="display:none; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="unifyGroupSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
       <span id="unifyGroupCount" style="font-size:12px; color:var(--muted);"></span>
     </div>
 
-    <div id="unifyGroupListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
-      <div id="unifyGroupList" style="max-height:34vh; overflow-y:auto;"></div>
+    <div id="unifyGroupListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden; flex-shrink:0;">
+      <div id="unifyGroupList" style="height:167px; min-height:167px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; flex-shrink:0;"></div>
     </div>
 
     <div class="field-group" style="margin-bottom:14px;">
@@ -1618,6 +1628,22 @@ function getContactsWithCategory(term){
   const t = term.trim().toLowerCase();
   if(!t) return [];
   return contacts.filter(c => (c.categories || '').split(',').map(s => s.trim()).some(tag => tag.toLowerCase() === t));
+}
+
+// كل أسماء المجموعات الموجودة فعلياً مع عدد أعضاء كل واحدة، لعرضها بالقائمة
+// المنسدلة بنافذة إدارة المجموعات. نستثني علم "المفضلة" الداخلي (starred)
+// لأنه مو مجموعة يديرها المستخدم بنفس المعنى.
+function getAllGroupsWithCounts(){
+  const map = new Map();
+  contacts.forEach(c => {
+    (c.categories || '').split(',').map(s => s.trim()).filter(Boolean).forEach(tag => {
+      if(/starred/i.test(tag)) return;
+      const key = tag.toLowerCase();
+      if(!map.has(key)) map.set(key, { name: tag, count: 0 });
+      map.get(key).count++;
+    });
+  });
+  return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
 }
 
 let selectionMode = false;
@@ -3431,6 +3457,7 @@ $('#bulkPhotoConfirm').addEventListener('click', () => {
 
 let unifyGroupSelectedIds = new Set();
 let unifyGroupMode = false;
+let unifyGroupPickedName = null;
 let unifyGroupActiveGroupName = null;
 
 $('#menuUnifyGroupOpt').addEventListener('click', () => {
@@ -3443,8 +3470,18 @@ function openUnifyGroupModal(){
   unifyGroupActiveGroupName = null;
   $('#unifyGroupSearch').value = '';
   $('#unifyGroupValue').value = '';
+  unifyGroupPickedName = null;
   setUnifyGroupFieldMode(false);
+  renderUnifyGroupPickerList();
   renderUnifyGroupList();
+  $('#unifyGroupPickerList').scrollTop = 0;
+  $('#unifyGroupList').scrollTop = 0;
+  $('#unifyGroupModalOverlay .panel').scrollTop = 0;
+  requestAnimationFrame(() => {
+    $('#unifyGroupPickerList').scrollTop = 0;
+    $('#unifyGroupList').scrollTop = 0;
+    $('#unifyGroupModalOverlay .panel').scrollTop = 0;
+  });
   updateUnifyGroupConfirmState();
   $('#unifyGroupModalOverlay').style.display = 'flex';
   safeReplaceState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
@@ -3492,13 +3529,15 @@ function unifyGroupMatchContacts(query){
   });
 }
 function renderUnifyGroupList(){
-  const q = $('#unifyGroupSearch').value.trim();
+  const q = unifyGroupPickedName !== null ? unifyGroupPickedName : $('#unifyGroupSearch').value.trim();
   const list = $('#unifyGroupList');
   const listWrap = $('#unifyGroupListWrap');
+  const selectRow = $('#unifyGroupSelectRow');
   const countEl = $('#unifyGroupCount');
   const selectAllBtn = $('#unifyGroupSelectAll');
 
   if(!q){
+    selectRow.style.display = 'none';
     listWrap.style.display = 'none';
     list.innerHTML = '';
     countEl.textContent = '';
@@ -3507,12 +3546,14 @@ function renderUnifyGroupList(){
     updateUnifyGroupConfirmState();
     return;
   }
+  selectRow.style.display = 'flex';
   listWrap.style.display = 'block';
 
-  // إذا كان نص البحث يطابق اسم مجموعة موجودة تماماً، ننتقل لوضع "تعديل المجموعة"
-  // ونعرض أعضاءها فقط، بدل البحث النصي العادي في كل الحقول.
-  const groupMembers = getContactsWithCategory(q);
-  const isGroupMode = groupMembers.length > 0;
+  // وضع "تعديل المجموعة" يُفعّل فقط عند اختيار مجموعة من القائمة أعلاه،
+  // أما الكتابة في حقل البحث فتُستخدم للبحث عن جهات الاتصال فقط.
+  const isPickedGroup = unifyGroupPickedName !== null;
+  const groupMembers = isPickedGroup ? getContactsWithCategory(q) : [];
+  const isGroupMode = isPickedGroup && groupMembers.length > 0;
   const enteringGroupMode = setUnifyGroupFieldMode(isGroupMode, q);
 
   const matched = isGroupMode ? groupMembers : unifyGroupMatchContacts(q);
@@ -3562,13 +3603,38 @@ function updateUnifyGroupCountAndSelectAll(matched){
   selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
 }
 
-$('#unifyGroupSearch').addEventListener('input', renderUnifyGroupList);
+function renderUnifyGroupPickerList(){
+  const groups = getAllGroupsWithCounts();
+  const listEl = $('#unifyGroupPickerList');
+  if(!groups.length){
+    listEl.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد مجموعات بعد</div>';
+    return;
+  }
+  listEl.innerHTML = groups.map((g, idx) => {
+    const isLast = idx === groups.length - 1;
+    return `<button type="button" class="unifyGroupPickerItem" data-name="${escapeAttr(g.name)}" style="display:flex; align-items:center; justify-content:space-between; width:100%; height:44px; box-sizing:border-box; padding:0 14px; background:none; border:none; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; font-family:var(--font-body); font-size:13px; color:var(--text); text-align:right;">
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.8;">${escapeHtml(g.name)}</span>
+      <span style="color:var(--muted); font-size:12px; flex:0 0 auto; margin-right:8px;">${g.count}</span>
+    </button>`;
+  }).join('');
+  listEl.querySelectorAll('.unifyGroupPickerItem').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      unifyGroupPickedName = name;
+      $('#unifyGroupSearch').value = '';
+      renderUnifyGroupList();
+      $('#unifyGroupList').scrollTop = 0;
+    });
+  });
+}
+
+$('#unifyGroupSearch').addEventListener('input', () => { unifyGroupPickedName = null; renderUnifyGroupList(); $('#unifyGroupList').scrollTop = 0; });
 $('#unifyGroupSearch').addEventListener('keydown', (e) => {
   if(e.key === 'Enter'){ e.preventDefault(); $('#unifyGroupSearch').blur(); }
 });
 
 $('#unifyGroupSelectAll').addEventListener('click', () => {
-  const q = $('#unifyGroupSearch').value.trim();
+  const q = unifyGroupPickedName !== null ? unifyGroupPickedName : $('#unifyGroupSearch').value.trim();
   const matched = unifyGroupMatchContacts(q);
   const allSelected = matched.length > 0 && matched.every(c => unifyGroupSelectedIds.has(c.id));
   if(allSelected) matched.forEach(c => unifyGroupSelectedIds.delete(c.id));
