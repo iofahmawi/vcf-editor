@@ -136,10 +136,7 @@
   .contact-row{
     position:relative; margin:10px 0; border-radius:12px;
     overflow:hidden; box-shadow: var(--shadow-sm);
-    transition: transform 0.15s;
   }
-  .contact-row:active{ transform: scale(0.98); }
-  .contact-row.expanded:active{ transform: none; }
   .contact-row-delete-action{
     position:absolute; inset:0; background:var(--danger); color:#fff;
     opacity:0; pointer-events:none; z-index:0;
@@ -1733,6 +1730,7 @@ function toggleStarredCurrentContact(){
 function renderList(filter=''){
   const list = $('#contactList');
   list.innerHTML = '';
+  const fragment = document.createDocumentFragment();
   const f = normalizeArabic(filter.trim().toLowerCase());
   const filtered = getFilteredContacts(filter).slice().sort((a,b) => {
     const aStar = isStarredContact(a), bStar = isStarredContact(b);
@@ -1760,6 +1758,12 @@ function renderList(filter=''){
   }
 
   for(const c of filtered){
+    fragment.appendChild(buildContactRowElement(c, f));
+  }
+  list.appendChild(fragment);
+}
+
+function buildContactRowElement(c, f){
     const row = document.createElement('div');
     const isExpanded = !selectionMode && expandedContactId === c.id;
     row.className = 'contact-row' + (selectedIds.has(c.id) ? ' selected' : '') + (isExpanded ? ' expanded' : '');
@@ -1825,9 +1829,20 @@ function renderList(filter=''){
         ${expandHtml}
       </div>
     `;
+    return row;
+}
 
-    list.appendChild(row);
-  }
+// تحديث بطاقة واحدة فقط في مكانها (بدل إعادة بناء القائمة كاملة) — تُستخدم
+// عند توسيع/طي بطاقة لتفادي بطء إعادة تصيير مئات البطاقات في كل نقرة.
+function updateRowElement(id){
+  const existing = document.querySelector(`.contact-row[data-id="${CSS.escape(id)}"]`);
+  if(!existing) return false;
+  const c = contacts.find(x => x.id === id);
+  if(!c) return false;
+  const f = normalizeArabic($('#search').value.trim().toLowerCase());
+  const newRow = buildContactRowElement(c, f);
+  existing.replaceWith(newRow);
+  return true;
 }
 
 const SWIPE_ACTION_WIDTH = 64;   // موضع استقرار البطاقة عند التفعيل (تتوسط الأيقونة هذه المسافة)
@@ -1910,9 +1925,15 @@ function handleListClick(e){
     if(wasThisRow) return; // أول ضغطة تُغلق الزر المكشوف فقط، دون تنفيذ إجراء آخر
   }
   if(selectionMode){ toggleSelect(id); return; }
+  const prevExpandedId = expandedContactId;
   expandedContactId = (expandedContactId === id) ? null : id;
-  renderList($('#search').value);
+  let handledInPlace = updateRowElement(id);
+  if(prevExpandedId && prevExpandedId !== id){
+    handledInPlace = updateRowElement(prevExpandedId) && handledInPlace;
+  }
+  if(!handledInPlace) renderList($('#search').value);
 }
+
 
 function handleListTouchStart(e){
   const header = e.target.closest('.contact-row-header');
@@ -2033,9 +2054,11 @@ function cancelLongPress(){
   if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
 }
 
+let selectionModeJustEnteredExpandedId = null;
 function enterSelectionMode(){
   selectionMode = true;
   selectedIds.clear();
+  selectionModeJustEnteredExpandedId = expandedContactId;
   expandedContactId = null;
   closeOpenSwipe();
   syncFilterUI();
@@ -2060,15 +2083,32 @@ function exitSelectionModeAndSync(){
   goBack();
 }
 
+function insertCheckboxesInPlace(){
+  const checkboxHtml = `<div class="contact-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+  document.querySelectorAll('#contactList .contact-row').forEach(row => {
+    const header = row.querySelector('.contact-row-header');
+    if(header && !header.querySelector('.contact-checkbox')){
+      header.insertAdjacentHTML('afterbegin', checkboxHtml);
+    }
+  });
+}
+
 function toggleSelect(id){
   if(selectedIds.has(id)) selectedIds.delete(id);
   else selectedIds.add(id);
   if(selectedIds.size === 0){ exitSelectionModeAndSync(); return; }
   syncFilterUI();
   const row = document.querySelector(`.contact-row[data-id="${CSS.escape(id)}"]`);
-  const needsFullRender = !row || !row.querySelector('.contact-checkbox');
-  if(needsFullRender){
-    renderList($('#search').value);
+  const needsCheckboxes = !row || !row.querySelector('.contact-checkbox');
+  if(needsCheckboxes){
+    if(selectionModeJustEnteredExpandedId){
+      updateRowElement(selectionModeJustEnteredExpandedId);
+      selectionModeJustEnteredExpandedId = null;
+    }
+    insertCheckboxesInPlace();
+    const freshRow = document.querySelector(`.contact-row[data-id="${CSS.escape(id)}"]`);
+    if(freshRow) freshRow.classList.toggle('selected', selectedIds.has(id));
+    updateSelectionSummaryText();
   } else {
     row.classList.toggle('selected', selectedIds.has(id));
     updateSelectionSummaryText();
