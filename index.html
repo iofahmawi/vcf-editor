@@ -1441,7 +1441,12 @@ function buildVCF(contactsArr){
   let out = '';
   for(const c of contactsArr){
     out += 'BEGIN:VCARD\n';
-    out += 'VERSION:' + (c.version || '3.0') + '\n';
+    // نصدّر دائماً بصيغة 3.0 بغض النظر عن نسخة الملف الأصلي (حتى لو كان 2.1 من
+    // سامسونج): لأننا نكتب النص بترميز UTF-8 خام دون QUOTED-PRINTABLE ودون
+    // CHARSET لكل سطر، وهذا غير صالح رسمياً لصيغة 2.1 (تفترض ASCII افتراضياً)
+    // وقد يظهر كرموز غير مفهومة في قارئات 2.1 الصارمة. صيغة 3.0 تفترض UTF-8
+    // افتراضياً وتُقرأ بشكل موثوق من سامسونج وجوجل وآبل.
+    out += 'VERSION:3.0\n';
     out += 'FN:' + escapeVal(c.fn) + '\n';
     out += 'N:' + escapeVal(c.fn) + ';;;;\n';
     if(c.nickname) out += 'NICKNAME:' + escapeVal(c.nickname) + '\n';
