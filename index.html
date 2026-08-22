@@ -1115,7 +1115,7 @@ function parseVCF(text){
         cur.nickname = unescapeVal(value.split(';')[0]);
         break;
       case 'PHOTO': {
-        const isBase64 = params.some(p => /BASE64/i.test(p));
+        const isBase64 = params.some(p => /BASE64/i.test(p) || /^ENCODING=b$/i.test(p) || /^b$/i.test(p));
         if(isBase64){
           const fmtMatch = params.find(p => /^(JPEG|PNG|GIF)$/i.test(p) || /^TYPE=(JPEG|PNG|GIF)/i.test(p));
           let fmt = 'jpeg';
