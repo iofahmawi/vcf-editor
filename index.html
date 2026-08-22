@@ -619,6 +619,11 @@
 <div id="saveFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
     <div id="saveFormatTitle" style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">اختر صيغة الحفظ</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:18px 0 14px; line-height:1.6; text-align:center;">التوافق مع</div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="compatSamsungBtn" class="compat-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">أندرويد</button>
+      <button type="button" id="compatGoogleBtn" class="compat-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">جوجل و iOS</button>
+    </div>
     <div style="font-size:13.5px; color:var(--muted); margin:18px 0 14px; line-height:1.6; text-align:center;">أبعاد الصور</div>
     <div style="display:flex; gap:8px;">
       <button type="button" id="photoSize512Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">512</button>
@@ -1402,16 +1407,68 @@ function detectAndParse(text, filename){
   return parseCSV(text);
 }
 
-// أعدنا هذه الدالة لصيغتها الأصلية: صيغة X-CUSTOM(...) هي حيلة خاصة بسامسونج
-// تعمل فقط داخل ملف vCard بإصدار 2.1 (حيث المعاملات تُقرأ كرموز حرة دون قواعد
-// صارمة). طالما أن الإصدار المُصدَّر يطابق إصدار الملف الأصلي (انظر buildVCF
-// أدناه)، فسامسونج يفهمها بشكل صحيح كما تأكد عملياً.
-function buildTypeParam(type){
-  const t = type || 'OTHER';
-  if(/^[\x00-\x7F]*$/.test(t)){
-    return 'TYPE=' + t;
+function isAsciiStr(s){ return /^[\x00-\x7F]*$/.test(s || ''); }
+
+// يطوي نص QUOTED-PRINTABLE إلى أسطر لا يتجاوز طول كل منها ~71 محرفاً مُرمّزاً،
+// دون تقطيع أي رمز escape؛=XX في المنتصف (يطابق آلية الطي في ملفات سامسونج
+// الحقيقية التي تمت مقارنتها بايت ببايت)
+function qpFold(str){
+  if(!str) return '';
+  const enc = encodeQuotedPrintable(str);
+  const tokens = [];
+  let i = 0;
+  while(i < enc.length){
+    if(enc[i] === '='){ tokens.push(enc.substr(i,3)); i += 3; }
+    else { tokens.push(enc[i]); i += 1; }
+  }
+  let lines = [], cur = '';
+  for(const tok of tokens){
+    if(cur.length + tok.length > 71){ lines.push(cur); cur = ''; }
+    cur += tok;
+  }
+  lines.push(cur);
+  return lines.join('=\n');
+}
+
+// حقل نصي بسيط (FN/TITLE/NOTE): يُصدَّر خاماً لو كان كله ASCII، أو
+// CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE مطوياً لو يحتوي عربي — يطابق سلوك
+// تصدير سامسونج الحقيقي (لاحظنا أن الحقول الفارغة/الإنجليزية بالكامل تبقى
+// بلا ترميز في ملف سامسونج الأصلي الذي قارناه)
+function qpField(prop, value){
+  if(!value) return '';
+  if(isAsciiStr(value)) return prop + ':' + value + '\n';
+  return prop + ';CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:' + qpFold(value) + '\n';
+}
+
+// صيغة معامل النوع (TEL/EMAIL/URL) الخاصة بسامسونج: كلمة نوع خام بلا "TYPE="
+// (مثل TEL;HOME:...) للتسميات الإنجليزية القياسية، أو حيلة X-CUSTOM(...)
+// للتسميات العربية المخصّصة — تعمل فقط ضمن إصدار 2.1 كما تأكد عملياً بمقارنة
+// ملف سامسونج الحقيقي بايت ببايت
+function buildTypeSamsung(type){
+  const t = (type || '').trim();
+  if(!t) return 'HOME';
+  if(isAsciiStr(t)){
+    const clean = t.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return clean || 'HOME';
   }
   return 'X-CUSTOM(CHARSET=UTF-8,ENCODING=QUOTED-PRINTABLE,' + encodeQuotedPrintable(t) + ')';
+}
+
+function buildAdrSamsung(a){
+  const typeToken = buildTypeSamsung(a.type);
+  const raw = '\u200E' + (a.value || '');
+  if(isAsciiStr(a.value || '')){
+    return 'ADR;' + typeToken + ':;;' + raw + ';;;;\n';
+  }
+  return 'ADR;' + typeToken + ';CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:;;' + qpFold(raw) + ';;;;\n';
+}
+
+// معامل النوع الخاص بجوجل: تسميات إنجليزية قياسية تُصدَّر كـ TYPE=، وتسميات
+// عربية مخصّصة تُصدَّر بحيلة itemN.<الخاصية> + itemN.X-ABLabel (نفس ما تعتمده
+// جهات اتصال جوجل الحقيقية للتسميات العربية)
+function cleanAsciiType(t){
+  const clean = (t || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return clean;
 }
 
 // يصغّر صورة data URL موجودة إلى حد أقصى معيّن (بدون تكبير إذا كانت أصغر أصلاً)، تُستخدم فقط عند التصدير لمحاكاة أبعاد جوجل دون المساس بالصورة المخزّنة أصلاً بالتطبيق
@@ -1442,40 +1499,126 @@ function resizeDataUrlToSquare(dataUrl, maxSize){
 }
 
 function buildVCF(contactsArr){
+  return selectedExportCompat === 'google' ? buildVCFGoogle(contactsArr) : buildVCFSamsung(contactsArr);
+}
+
+// تصدير بصيغة سامسونج الأصلية (VERSION 2.1، CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE
+// لأي حقل نصي يحتوي عربي، TEL;HOME/التسمية الخام أو X-CUSTOM(...) للأرقام،
+// X-ANDROID-CUSTOM للقب، لا CATEGORIES) — مطابقة لملف سامسونج حقيقي قارناه بايت ببايت
+function buildVCFSamsung(contactsArr){
   let out = '';
   for(const c of contactsArr){
     out += 'BEGIN:VCARD\n';
-    // نصدّر دائماً بصيغة 2.1 ثابتة (بغض النظر عن مصدر جهة الاتصال: مستوردة
-    // أو مُنشأة يدوياً بالتطبيق). السبب: حيلة X-CUSTOM(...) الخاصة بتصنيفات
-    // الأرقام العربية المخصّصة تعمل فقط ضمن سياق 2.1 على سامسونج (تأكدنا من
-    // هذا عملياً بمقارنة ملفات حقيقية بايت ببايت)، بينما تفشل تماماً إذا
-    // صُدِّرت ضمن ملف مُعلَّم كـ3.0.
     out += 'VERSION:2.1\n';
-    out += 'FN:' + escapeVal(c.fn) + '\n';
-    out += 'N:' + escapeVal(c.fn) + ';;;;\n';
-    if(c.nickname) out += 'NICKNAME:' + escapeVal(c.nickname) + '\n';
-    if(c.org || c.dept) out += 'ORG:' + escapeVal(c.org || '') + (c.dept ? ';' + escapeVal(c.dept) : '') + '\n';
-    if(c.title) out += 'TITLE:' + escapeVal(c.title) + '\n';
+    out += qpField('FN', c.fn);
+    if(isAsciiStr(c.fn)){
+      out += 'N:' + c.fn + ';;;;\n';
+    } else {
+      out += 'N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:' + qpFold(c.fn) + ';;;;\n';
+    }
+    if(c.nickname){
+      out += 'X-ANDROID-CUSTOM;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:vnd.android.cursor.item/nickname;' + qpFold(c.nickname) + ';1;;;;;;;;;;;;;\n';
+    }
+    if(c.org || c.dept){
+      if(isAsciiStr(c.org || '') && isAsciiStr(c.dept || '')){
+        out += 'ORG:' + (c.org || '') + (c.dept ? ';' + c.dept : '') + '\n';
+      } else {
+        out += 'ORG;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:' + (c.org ? qpFold(c.org) : '') + (c.dept ? ';' + qpFold(c.dept) : '') + '\n';
+      }
+    }
+    if(c.title) out += qpField('TITLE', c.title);
     for(const p of c.phones){
       if(!p.value) continue;
-      out += 'TEL;' + buildTypeParam(p.type) + ':' + escapeVal(p.value) + '\n';
+      out += 'TEL;' + buildTypeSamsung(p.type) + ':' + p.value + '\n';
     }
     for(const e of c.emails){
       if(!e.value) continue;
-      out += 'EMAIL;' + buildTypeParam(e.type) + ':' + escapeVal(e.value) + '\n';
+      out += 'EMAIL;' + buildTypeSamsung(e.type) + ':' + e.value + '\n';
     }
     for(const u of (c.urls || [])){
       if(!u.value) continue;
-      out += 'URL;' + buildTypeParam(u.type) + ':' + escapeVal(u.value) + '\n';
+      out += 'URL;' + buildTypeSamsung(u.type) + ':' + u.value + '\n';
     }
     for(const a of (c.adrs || [])){
       if(!a.value) continue;
-      // نضيف علامة اتجاه غير مرئية (LRM) في بداية العنوان لضمان عرضه من
-      // اليسار لليمين بشكل صحيح داخل تطبيقات جهات اتصال أخرى ذات واجهة
-      // عربية (RTL)، خصوصاً حقول التعديل التي تفرض اتجاه افتراضي RTL
-      // وتُعيد ترتيب الإحداثيات بصرياً رغم صحة البيانات الفعلية.
-      out += 'ADR;' + buildTypeParam(a.type) + ':;;\u200E' + escapeVal(a.value) + ';;;;\n';
+      out += buildAdrSamsung(a);
     }
+    // ملاحظة: سامسونج لا تدعم CATEGORIES أصلاً في تصديرها الأصلي، لذا لا تُصدَّر
+    // هنا (تُفقد علامة المفضّلة/المجموعات عند التصدير بهذه الصيغة تحديداً)
+    if(c.bday) out += 'BDAY:' + c.bday + '\n';
+    if(c.note) out += qpField('NOTE', c.note);
+    if(c.photo){
+      const m = c.photo.match(/^data:image\/(\w+);base64,(.*)$/s);
+      if(m) out += 'PHOTO;ENCODING=BASE64;' + m[1].toUpperCase() + ':' + m[2] + '\n';
+    }
+    for(const line of c.rawExtra){
+      out += line + '\n';
+    }
+    out += 'END:VCARD\n';
+  }
+  return out;
+}
+
+// تصدير بصيغة جوجل الأصلية (VERSION 3.0، UTF-8 خام بلا ترميز، itemN.<خاصية>
+// + itemN.X-ABLabel للتسميات العربية المخصّصة، TYPE= للتسميات الإنجليزية
+// القياسية، NICKNAME/CATEGORIES قياسيان) — مطابقة لملف جوجل حقيقي قارناه
+function buildVCFGoogle(contactsArr){
+  let out = '';
+  for(const c of contactsArr){
+    out += 'BEGIN:VCARD\n';
+    out += 'VERSION:3.0\n';
+    out += 'FN:' + escapeVal(c.fn) + '\n';
+    out += 'N:' + escapeVal(c.fn) + ';;;;\n';
+    if(c.nickname) out += 'NICKNAME:' + escapeVal(c.nickname) + '\n';
+    let itemN = 1;
+    for(const p of c.phones){
+      if(!p.value) continue;
+      const t = (p.type || '').trim();
+      if(t && !isAsciiStr(t)){
+        out += 'item' + itemN + '.TEL:' + escapeVal(p.value) + '\n';
+        out += 'item' + itemN + '.X-ABLabel:' + escapeVal(t) + '\n';
+        itemN++;
+      } else {
+        out += 'TEL;TYPE=' + (cleanAsciiType(t) || 'CELL') + ':' + escapeVal(p.value) + '\n';
+      }
+    }
+    for(const e of c.emails){
+      if(!e.value) continue;
+      const t = (e.type || '').trim();
+      if(t && !isAsciiStr(t)){
+        out += 'item' + itemN + '.EMAIL;TYPE=INTERNET:' + escapeVal(e.value) + '\n';
+        out += 'item' + itemN + '.X-ABLabel:' + escapeVal(t) + '\n';
+        itemN++;
+      } else {
+        out += 'EMAIL;TYPE=INTERNET' + (cleanAsciiType(t) ? ';TYPE=' + cleanAsciiType(t) : '') + ':' + escapeVal(e.value) + '\n';
+      }
+    }
+    for(const u of (c.urls || [])){
+      if(!u.value) continue;
+      const t = (u.type || '').trim();
+      if(t && !isAsciiStr(t)){
+        out += 'item' + itemN + '.URL:' + escapeVal(u.value) + '\n';
+        out += 'item' + itemN + '.X-ABLabel:' + escapeVal(t) + '\n';
+        itemN++;
+      } else {
+        out += 'URL' + (cleanAsciiType(t) ? ';TYPE=' + cleanAsciiType(t) : '') + ':' + escapeVal(u.value) + '\n';
+      }
+    }
+    for(const a of (c.adrs || [])){
+      if(!a.value) continue;
+      const t = (a.type || '').trim();
+      // علامة الاتجاه غير المرئية (LRM) تضمن عرض العنوان من اليسار لليمين
+      // بشكل صحيح داخل تطبيقات جهات اتصال أخرى ذات واجهة عربية (RTL)
+      if(t && !isAsciiStr(t)){
+        out += 'item' + itemN + '.ADR:;;\u200E' + escapeVal(a.value) + ';;;;\n';
+        out += 'item' + itemN + '.X-ABLabel:' + escapeVal(t) + '\n';
+        itemN++;
+      } else {
+        out += 'ADR' + (cleanAsciiType(t) ? ';TYPE=' + cleanAsciiType(t) : '') + ':;;\u200E' + escapeVal(a.value) + ';;;;\n';
+      }
+    }
+    if(c.org || c.dept) out += 'ORG:' + escapeVal(c.org || '') + (c.dept ? ';' + escapeVal(c.dept) : '') + '\n';
+    if(c.title) out += 'TITLE:' + escapeVal(c.title) + '\n';
     if(c.categories){
       const cats = c.categories.split(',').map(s => s.trim()).filter(Boolean)
         .map(v => v.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;'));
@@ -1485,7 +1628,7 @@ function buildVCF(contactsArr){
     if(c.note) out += 'NOTE:' + escapeVal(c.note) + '\n';
     if(c.photo){
       const m = c.photo.match(/^data:image\/(\w+);base64,(.*)$/s);
-      if(m) out += 'PHOTO;ENCODING=BASE64;' + m[1].toUpperCase() + ':' + m[2] + '\n';
+      if(m) out += 'PHOTO;ENCODING=b;TYPE=' + m[1].toUpperCase() + ':' + m[2] + '\n';
     }
     for(const line of c.rawExtra){
       out += line + '\n';
@@ -3274,6 +3417,8 @@ $('#menuSaveOpt').addEventListener('click', () => {
   $('#saveFormatTitle').textContent = scope === 'all'
     ? 'اختر صيغة الحفظ'
     : 'تصدير ' + list.length + ' جهات اتصال';
+  // كل فتح للنافذة يبدأ من الافتراضي (أندرويد + 720) بغض النظر عن آخر اختيار
+  setExportCompat('samsung');
   $('#saveFormatModalOverlay').style.display = 'flex';
   safeReplaceState({ screen: 'list', modal: 'saveFormat' }, '', '#list');
 });
@@ -3301,6 +3446,16 @@ function setExportPhotoSize(size){
 $('#photoSize512Btn').addEventListener('click', () => setExportPhotoSize(512));
 $('#photoSize720Btn').addEventListener('click', () => setExportPhotoSize(720));
 $('#photoSize1080Btn').addEventListener('click', () => setExportPhotoSize(1080));
+
+function setExportCompat(target){
+  selectedExportCompat = target;
+  $('#compatSamsungBtn').style.borderColor = target === 'samsung' ? 'var(--accent)' : 'transparent';
+  $('#compatGoogleBtn').style.borderColor = target === 'google' ? 'var(--accent)' : 'transparent';
+  // جوجل تعتمد 512 كأبعاد افتراضية للصورة الشخصية عند التصدير
+  setExportPhotoSize(target === 'google' ? 512 : 720);
+}
+$('#compatSamsungBtn').addEventListener('click', () => setExportCompat('samsung'));
+$('#compatGoogleBtn').addEventListener('click', () => setExportCompat('google'));
 
 $('#menuDupOpt').addEventListener('click', () => {
   // القائمة المنسدلة أُغلقت للتو دون سحب مُدخل السجل الذي أضافته عند فتحها
@@ -4502,6 +4657,7 @@ function getExportScopeContacts(){
 }
 
 let selectedExportPhotoSize = 720;
+let selectedExportCompat = 'samsung';
 
 async function exportContacts(){
   const { list, scope } = getExportScopeContacts();
@@ -4538,32 +4694,51 @@ function csvEscape(val){
   return s;
 }
 
+// يطابق بنية ملف CSV المُصدَّر من جوجل نفسه بايت ببايت (قارناها بملف csv حقيقي
+// لنفس الـ293 جهة اتصال): ترتيب الأعمدة (إيميل قبل هاتف)، أعمدة الاسم الصوتي/
+// البادئة/اللاحقة وعمود Photo فارغة دائماً (التطبيق لا يخزّن هذه البيانات)،
+// "File As" فارغ دائماً (جوجل لا يملأه فعلياً رغم وجود العمود)، Labels بصيغة
+// "* التصنيف" مفصولة بـ " ::: "، وأول إيميل فقط (وليس الهاتف أو أي إيميل تالٍ)
+// يحصل على تسمية مسبوقة بـ"* " — هذا سلوك جوجل نفسه وليس شيئاً نضيفه
 function buildCSV(contactsArr){
   const maxOf = (getter) => contactsArr.reduce((m, c) => Math.max(m, getter(c)), 0);
-  const maxPhones = maxOf(c => c.phones.filter(p => p.value).length);
   const maxEmails = maxOf(c => c.emails.filter(e => e.value).length);
+  const maxPhones = maxOf(c => c.phones.filter(p => p.value).length);
   const maxUrls = maxOf(c => (c.urls || []).filter(u => u.value).length);
   const maxAdrs = maxOf(c => (c.adrs || []).filter(a => a.value).length);
 
-  const headers = ['First Name', 'Middle Name', 'Last Name', 'Nickname', 'File As',
-    'Organization Name', 'Organization Title', 'Organization Department', 'Birthday', 'Notes', 'Labels'];
-  for(let i = 1; i <= maxPhones; i++){ headers.push(`Phone ${i} - Label`, `Phone ${i} - Value`); }
+  const headers = ['First Name', 'Middle Name', 'Last Name', 'Phonetic First Name', 'Phonetic Middle Name',
+    'Phonetic Last Name', 'Name Prefix', 'Name Suffix', 'Nickname', 'File As',
+    'Organization Name', 'Organization Title', 'Organization Department', 'Birthday', 'Notes', 'Photo', 'Labels'];
   for(let i = 1; i <= maxEmails; i++){ headers.push(`E-mail ${i} - Label`, `E-mail ${i} - Value`); }
+  for(let i = 1; i <= maxPhones; i++){ headers.push(`Phone ${i} - Label`, `Phone ${i} - Value`); }
   for(let i = 1; i <= maxUrls; i++){ headers.push(`Website ${i} - Label`, `Website ${i} - Value`); }
-  for(let i = 1; i <= maxAdrs; i++){ headers.push(`Address ${i} - Label`, `Address ${i} - Formatted`); }
+  for(let i = 1; i <= maxAdrs; i++){
+    headers.push(`Address ${i} - Label`, `Address ${i} - Formatted`, `Address ${i} - Street`,
+      `Address ${i} - City`, `Address ${i} - PO Box`, `Address ${i} - Region`,
+      `Address ${i} - Postal Code`, `Address ${i} - Country`, `Address ${i} - Extended Address`);
+  }
 
   const rows = [headers];
   for(const c of contactsArr){
-    const phones = c.phones.filter(p => p.value);
     const emails = c.emails.filter(e => e.value);
+    const phones = c.phones.filter(p => p.value);
     const urls = (c.urls || []).filter(u => u.value);
     const adrs = (c.adrs || []).filter(a => a.value);
-    const labels = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean).join(':::');
-    const row = ['', '', c.fn || '', c.nickname || '', c.fn || '', c.org || '', c.title || '', c.dept || '', c.bday || '', c.note || '', labels];
+    const labels = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean).map(v => '* ' + v).join(' ::: ');
+    const row = ['', '', c.fn || '', '', '', '', '', '', c.nickname || '', '',
+      c.org || '', c.title || '', c.dept || '', c.bday || '', c.note || '', '', labels];
+    for(let i = 0; i < maxEmails; i++){
+      const e = emails[i];
+      const label = e ? (i === 0 ? '* ' + (e.type || '') : (e.type || '')) : '';
+      row.push(label, e?.value || '');
+    }
     for(let i = 0; i < maxPhones; i++){ row.push(phones[i]?.type || '', phones[i]?.value || ''); }
-    for(let i = 0; i < maxEmails; i++){ row.push(emails[i]?.type || '', emails[i]?.value || ''); }
     for(let i = 0; i < maxUrls; i++){ row.push(urls[i]?.type || '', urls[i]?.value || ''); }
-    for(let i = 0; i < maxAdrs; i++){ row.push(adrs[i]?.type || '', adrs[i]?.value || ''); }
+    for(let i = 0; i < maxAdrs; i++){
+      const a = adrs[i];
+      row.push(a?.type || '', a?.value || '', a?.value || '', '', '', '', '', '', '');
+    }
     rows.push(row);
   }
   return '\uFEFF' + rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
