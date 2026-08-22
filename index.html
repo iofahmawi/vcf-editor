@@ -1811,20 +1811,31 @@ function getContactsWithCategory(term){
   return contacts.filter(c => (c.categories || '').split(',').map(s => s.trim()).some(tag => tag.toLowerCase() === t));
 }
 
+// اسم عرض ودّي للوسم الداخلي "starred" (المفضلة)، بينما تبقى المطابقة الفعلية
+// في البيانات تعتمد دائماً على النص الخام "starred" حفاظاً على عمل أيقونة النجمة.
+function groupDisplayLabel(tag){
+  return /^starred$/i.test(tag) ? 'المفضلة' : tag;
+}
 // كل أسماء المجموعات الموجودة فعلياً مع عدد أعضاء كل واحدة، لعرضها بالقائمة
-// المنسدلة بنافذة إدارة المجموعات. نستثني علم "المفضلة" الداخلي (starred)
-// لأنه مو مجموعة يديرها المستخدم بنفس المعنى.
+// المنسدلة بنافذة إدارة المجموعات. نُدرج "المفضلة" (starred) كعنصر أول بتسمية
+// عربية ودّية، للسماح بإزالتها جماعياً، لكن دون السماح بإعادة تسميتها لاحقاً
+// (انظر setUnifyGroupFieldMode) حتى لا تنكسر آلية أيقونة النجمة.
 function getAllGroupsWithCounts(){
   const map = new Map();
   contacts.forEach(c => {
     (c.categories || '').split(',').map(s => s.trim()).filter(Boolean).forEach(tag => {
-      if(/starred/i.test(tag)) return;
       const key = tag.toLowerCase();
       if(!map.has(key)) map.set(key, { name: tag, count: 0 });
       map.get(key).count++;
     });
   });
-  return Array.from(map.values()).sort((a,b) => a.name.localeCompare(b.name, 'ar'));
+  return Array.from(map.values())
+    .map(g => ({ name: groupDisplayLabel(g.name), tag: g.name, count: g.count, isStarredGroup: /^starred$/i.test(g.name) }))
+    .sort((a,b) => {
+      if(a.isStarredGroup) return -1;
+      if(b.isStarredGroup) return 1;
+      return a.name.localeCompare(b.name, 'ar');
+    });
 }
 
 let selectionMode = false;
@@ -3696,16 +3707,33 @@ function openUnifyGroupModal(){
 function setUnifyGroupFieldMode(isGroupMode, groupName){
   const label = $('#unifyGroupValueLabel');
   const input = $('#unifyGroupValue');
-  const entering = isGroupMode && !unifyGroupMode;
+  const previousGroupName = unifyGroupActiveGroupName;
+  // "دخول" وضع المجموعة يشمل حالتين: القدوم من البحث الحر، أو التبديل المباشر
+  // من مجموعة لأخرى دون مرور بوضع البحث الحر بينهما (وهو ما كان يفوّت تحديث
+  // الحقل والتحديد التلقائي سابقاً).
+  const entering = isGroupMode && (!unifyGroupMode || groupName !== previousGroupName);
   const leaving = !isGroupMode && unifyGroupMode;
   unifyGroupMode = isGroupMode;
   unifyGroupActiveGroupName = isGroupMode ? groupName : null;
   if(isGroupMode){
-    label.textContent = 'تغيير اسم المجموعة "' + groupName + '"';
-    input.placeholder = 'اترك الحقل فارغاً لإزالة المجموعة';
-    if(entering) input.value = groupName;
+    const isStarred = /^starred$/i.test(groupName);
+    if(isStarred){
+      label.textContent = 'المفضلة (يمكن إلغاء تحديد من تريد إزالتهم منها فقط)';
+      input.value = groupName;
+      input.disabled = true;
+      input.style.opacity = '0.5';
+      input.placeholder = '';
+    } else {
+      label.textContent = 'تغيير اسم المجموعة "' + groupName + '"';
+      input.disabled = false;
+      input.style.opacity = '1';
+      input.placeholder = 'اترك الحقل فارغاً لإزالة المجموعة';
+      if(entering) input.value = groupName;
+    }
   } else {
     label.textContent = 'اسم المجموعة';
+    input.disabled = false;
+    input.style.opacity = '1';
     input.placeholder = 'اترك الحقل فارغاً للإزالة';
     if(leaving) input.value = '';
   }
@@ -3821,7 +3849,7 @@ function renderUnifyGroupPickerList(){
   }
   listEl.innerHTML = groups.map((g, idx) => {
     const isLast = idx === groups.length - 1;
-    return `<button type="button" class="unifyGroupPickerItem" data-name="${escapeAttr(g.name)}" style="display:flex; align-items:center; justify-content:space-between; width:100%; height:44px; box-sizing:border-box; padding:0 14px; background:none; border:none; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; font-family:var(--font-body); font-size:13px; color:var(--text); text-align:right;">
+    return `<button type="button" class="unifyGroupPickerItem" data-name="${escapeAttr(g.tag)}" style="display:flex; align-items:center; justify-content:space-between; width:100%; height:44px; box-sizing:border-box; padding:0 14px; background:none; border:none; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; font-family:var(--font-body); font-size:13px; color:var(--text); text-align:right;">
       <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.8;">${escapeHtml(g.name)}</span>
       <span style="color:var(--muted); font-size:12px; flex:0 0 auto; margin-right:8px;">${g.count}</span>
     </button>`;
@@ -3869,7 +3897,10 @@ $('#unifyGroupSelectAll').addEventListener('click', () => {
 
 function updateUnifyGroupConfirmState(){
   const btn = $('#unifyGroupConfirm');
-  const ready = unifyGroupSelectedIds.size > 0;
+  const inGroupEditMode = unifyGroupMode && unifyGroupActiveGroupName;
+  // في وضع تعديل مجموعة موجودة يبقى الزر مفعّلاً دائماً (صفر تحديد = إزالة الجميع)،
+  // أما في وضع إنشاء مجموعة جديدة فيبقى معطّلاً حتى يُحدَّد شخص واحد على الأقل.
+  const ready = inGroupEditMode ? unifyGroupOriginalMemberIds.size > 0 : unifyGroupSelectedIds.size > 0;
   btn.style.opacity = ready ? '1' : '.5';
   btn.style.pointerEvents = ready ? 'auto' : 'none';
   const totalEl = $('#unifyGroupTotalSelected');
@@ -3892,7 +3923,12 @@ $('#unifyGroupAddSearchBtn').addEventListener('click', () => {
 $('#unifyGroupCancel').addEventListener('click', closeUnifyGroupModal);
 $('#unifyGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'unifyGroupModalOverlay') closeUnifyGroupModal(); });
 $('#unifyGroupConfirm').addEventListener('click', () => {
-  if(unifyGroupSelectedIds.size === 0) return;
+  const inGroupEditMode = unifyGroupMode && unifyGroupActiveGroupName;
+  // في وضع تعديل مجموعة موجودة: صفر جهات محددة يعني "أزل الجميع من المجموعة دفعة
+  // واحدة" وهو إجراء صالح ومقصود، فلا نمنعه. أما في وضع إنشاء مجموعة جديدة من
+  // البحث الحر، فصفر محددين يعني لا شيء لفعله فعلاً.
+  if(!inGroupEditMode && unifyGroupSelectedIds.size === 0) return;
+  if(inGroupEditMode && unifyGroupOriginalMemberIds.size === 0) return;
   const val = $('#unifyGroupValue').value.trim();
 
   if(unifyGroupMode && unifyGroupActiveGroupName){
@@ -3900,7 +3936,16 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
     // مع الحفاظ على باقي مجموعات كل جهة اتصال.
     const oldName = unifyGroupActiveGroupName;
     const oldLower = oldName.toLowerCase();
-    saveUndoSnapshot(val ? ('تغيير اسم المجموعة "' + oldName + '" إلى "' + val + '" لـ ' + unifyGroupOriginalMemberIds.size + ' جهة اتصال') : ('إزالة مجموعة "' + oldName + '" من ' + unifyGroupOriginalMemberIds.size + ' جهة اتصال'));
+    const isStarredGroup = /^starred$/i.test(oldName);
+    // "المفضلة" لا تدعم إعادة التسمية أبداً (حفاظاً على أيقونة النجمة)، فقط إزالة
+    // جماعية لمن أُلغي تحديدهم؛ لذا نتجاهل قيمة الحقل ونعامله كأنه = oldName دائماً.
+    const effectiveVal = isStarredGroup ? oldName : val;
+    const deselectedCount = unifyGroupOriginalMemberIds.size - unifyGroupSelectedIds.size;
+    if(isStarredGroup){
+      saveUndoSnapshot('إزالة ' + deselectedCount + ' جهة اتصال من المفضلة');
+    } else {
+      saveUndoSnapshot(val ? ('تغيير اسم المجموعة "' + oldName + '" إلى "' + val + '" لـ ' + unifyGroupOriginalMemberIds.size + ' جهة اتصال') : ('إزالة مجموعة "' + oldName + '" من ' + unifyGroupOriginalMemberIds.size + ' جهة اتصال'));
+    }
     let renameCount = 0;
     contacts.forEach(c => {
       if(!unifyGroupOriginalMemberIds.has(c.id)) return;
@@ -3908,12 +3953,12 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
       const idx = existing.findIndex(g => g.toLowerCase() === oldLower);
       if(idx === -1) return;
       const stillSelected = unifyGroupSelectedIds.has(c.id);
-      if(stillSelected && val){
+      if(stillSelected && effectiveVal){
         // لو الاسم الجديد موجود أصلاً ضمن مجموعات الجهة، نكتفي بحذف القديم لتفادي التكرار
-        if(existing.some((g, i) => i !== idx && g.toLowerCase() === val.toLowerCase())){
+        if(existing.some((g, i) => i !== idx && g.toLowerCase() === effectiveVal.toLowerCase())){
           existing.splice(idx, 1);
         } else {
-          existing[idx] = val;
+          existing[idx] = effectiveVal;
         }
       } else {
         // إما أُلغي تحديد الجهة (أُزيلت من المجموعة) أو تُرك الحقل فارغاً (حذف المجموعة كلياً)
@@ -3923,7 +3968,11 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
       renameCount++;
     });
     renderList($('#search').value);
-    toast(val ? ('تم تغيير اسم المجموعة لـ ' + renameCount + ' جهة اتصال') : ('تم إزالة المجموعة من ' + renameCount + ' جهة اتصال'));
+    if(isStarredGroup){
+      toast(deselectedCount > 0 ? ('تمت إزالة ' + deselectedCount + ' جهة اتصال من المفضلة') : 'لم يتم إلغاء تحديد أي جهة');
+    } else {
+      toast(val ? ('تم تغيير اسم المجموعة لـ ' + renameCount + ' جهة اتصال') : ('تم إزالة المجموعة من ' + renameCount + ' جهة اتصال'));
+    }
     resetUnifyGroupFields();
     return;
   }
