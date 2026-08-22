@@ -717,10 +717,14 @@
       </div>
     </div>
 
-    <div class="field-group" style="margin-bottom:20px;">
+    <div class="field-group" style="margin-bottom:6px;">
       <label>البحث عن جهات الاتصال</label>
-      <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px;">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال" style="flex:1 1 auto; min-width:0; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px;">
+        <button type="button" id="unifyGroupAddSearchBtn" title="إضافة المحدد وبدء بحث جديد" style="flex:0 0 auto; width:38px; height:38px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--accent); font-size:20px; font-weight:700; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">+</button>
+      </div>
     </div>
+    <div id="unifyGroupTotalSelected" style="display:none; font-size:11.5px; color:var(--muted); margin:0 4px 14px; text-align:center;"></div>
 
     <div id="unifyGroupSelectRow" style="display:none; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="unifyGroupSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
@@ -3767,7 +3771,12 @@ function renderUnifyGroupList(){
   }
 
   const matchedIds = new Set(matched.map(c => c.id));
-  unifyGroupSelectedIds.forEach(id => { if(!matchedIds.has(id)) unifyGroupSelectedIds.delete(id); });
+  // في وضع البحث الحر: لا نُلغي تحديد جهات اختِرت من بحث سابق عند كتابة بحث جديد،
+  // لأن الهدف تجميع عدة أشخاص من بحثات مختلفة قبل "تطبيق" دفعة واحدة.
+  // أما في وضع تعديل مجموعة موجودة (isGroupMode) فنقتصر على أعضائها فقط.
+  if(isGroupMode){
+    unifyGroupSelectedIds.forEach(id => { if(!matchedIds.has(id)) unifyGroupSelectedIds.delete(id); });
+  }
   // عند الدخول لوضع المجموعة نحدد كل أعضائها تلقائياً (يمكن إلغاء تحديد أي منهم يدوياً)
   if(enteringGroupMode){ matched.forEach(c => unifyGroupSelectedIds.add(c.id)); unifyGroupOriginalMemberIds = new Set(matched.map(c => c.id)); }
 
@@ -3863,7 +3872,22 @@ function updateUnifyGroupConfirmState(){
   const ready = unifyGroupSelectedIds.size > 0;
   btn.style.opacity = ready ? '1' : '.5';
   btn.style.pointerEvents = ready ? 'auto' : 'none';
+  const totalEl = $('#unifyGroupTotalSelected');
+  if(!unifyGroupMode && unifyGroupSelectedIds.size > 0){
+    totalEl.style.display = 'block';
+    totalEl.textContent = 'إجمالي المحددين: ' + unifyGroupSelectedIds.size + ' جهة اتصال';
+  } else {
+    totalEl.style.display = 'none';
+  }
 }
+$('#unifyGroupAddSearchBtn').addEventListener('click', () => {
+  $('#unifyGroupSearch').value = '';
+  unifyGroupPickedName = null;
+  renderUnifyGroupPickerList();
+  renderUnifyGroupList();
+  $('#unifyGroupList').scrollTop = 0;
+  $('#unifyGroupSearch').focus();
+});
 
 $('#unifyGroupCancel').addEventListener('click', closeUnifyGroupModal);
 $('#unifyGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'unifyGroupModalOverlay') closeUnifyGroupModal(); });
