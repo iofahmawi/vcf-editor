@@ -342,6 +342,11 @@
     font-family:var(--font-body); font-weight:700; font-size:12px; cursor:pointer;
   }
   .dup-merge-btn:active{ background:var(--border); }
+  /* في وضع PWA (مثبّت كتطبيق) تكون المسافة العلوية لنافذة إدارة المجموعات 35px
+     بدل 25px في المتصفح العادي، لتفادي التداخل مع شريط الحالة/النوتش. */
+  @media (display-mode: standalone){
+    #unifyGroupModalOverlay{ padding-top:35px !important; }
+  }
 </style>
 </head>
 <body>
