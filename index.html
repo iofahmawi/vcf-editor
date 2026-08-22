@@ -3645,6 +3645,9 @@ $('#bulkPhotoConfirm').addEventListener('click', () => {
 });
 
 let unifyGroupSelectedIds = new Set();
+// أعضاء المجموعة الأصليون عند دخول وضع تعديل مجموعة موجودة (قبل أي إلغاء تحديد
+// يدوي)، تُستخدم عند "تطبيق" للتفريق بين جهة بقيت في المجموعة وجهة أُزيلت منها.
+let unifyGroupOriginalMemberIds = new Set();
 let unifyGroupMode = false;
 let unifyGroupPickedName = null;
 let unifyGroupActiveGroupName = null;
@@ -3653,8 +3656,12 @@ $('#menuUnifyGroupOpt').addEventListener('click', () => {
   closeListMenuDropdown();
   openUnifyGroupModal();
 });
-function openUnifyGroupModal(){
+// يصفّر حقول نافذة إدارة المجموعات (البحث، التحديد، اسم المجموعة) للبدء بعملية
+// جديدة، دون إغلاق النافذة نفسها. تُستخدم عند الفتح الأول وأيضاً بعد كل "تطبيق"
+// ناجح ليتمكن المستخدم من إنشاء عدة مجموعات متتالية دون خروج ودخول متكرر.
+function resetUnifyGroupFields(){
   unifyGroupSelectedIds = new Set();
+  unifyGroupOriginalMemberIds = new Set();
   unifyGroupMode = false;
   unifyGroupActiveGroupName = null;
   $('#unifyGroupSearch').value = '';
@@ -3673,9 +3680,12 @@ function openUnifyGroupModal(){
     updateUnifyGroupPickerThumb();
   });
   updateUnifyGroupConfirmState();
+  setTimeout(() => $('#unifyGroupSearch').focus(), 50);
+}
+function openUnifyGroupModal(){
+  resetUnifyGroupFields();
   $('#unifyGroupModalOverlay').style.display = 'flex';
   safeReplaceState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
-  setTimeout(() => $('#unifyGroupSearch').focus(), 50);
 }
 // يبدّل شكل ووظيفة حقل "اسم المجموعة": وضع عادي (إضافة مجموعة لجهات محددة)
 // أو وضع مجموعة (تغيير اسم المجموعة المطابقة تماماً لنص البحث أو إزالتها).
@@ -3759,7 +3769,7 @@ function renderUnifyGroupList(){
   const matchedIds = new Set(matched.map(c => c.id));
   unifyGroupSelectedIds.forEach(id => { if(!matchedIds.has(id)) unifyGroupSelectedIds.delete(id); });
   // عند الدخول لوضع المجموعة نحدد كل أعضائها تلقائياً (يمكن إلغاء تحديد أي منهم يدوياً)
-  if(enteringGroupMode){ matched.forEach(c => unifyGroupSelectedIds.add(c.id)); }
+  if(enteringGroupMode){ matched.forEach(c => unifyGroupSelectedIds.add(c.id)); unifyGroupOriginalMemberIds = new Set(matched.map(c => c.id)); }
 
   list.innerHTML = matched.map((c, idx) => {
     const checked = unifyGroupSelectedIds.has(c.id) ? 'checked' : '';
@@ -3866,14 +3876,15 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
     // مع الحفاظ على باقي مجموعات كل جهة اتصال.
     const oldName = unifyGroupActiveGroupName;
     const oldLower = oldName.toLowerCase();
-    saveUndoSnapshot(val ? ('تغيير اسم المجموعة "' + oldName + '" إلى "' + val + '" لـ ' + unifyGroupSelectedIds.size + ' جهة اتصال') : ('إزالة مجموعة "' + oldName + '" من ' + unifyGroupSelectedIds.size + ' جهة اتصال'));
+    saveUndoSnapshot(val ? ('تغيير اسم المجموعة "' + oldName + '" إلى "' + val + '" لـ ' + unifyGroupOriginalMemberIds.size + ' جهة اتصال') : ('إزالة مجموعة "' + oldName + '" من ' + unifyGroupOriginalMemberIds.size + ' جهة اتصال'));
     let renameCount = 0;
     contacts.forEach(c => {
-      if(!unifyGroupSelectedIds.has(c.id)) return;
+      if(!unifyGroupOriginalMemberIds.has(c.id)) return;
       const existing = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
       const idx = existing.findIndex(g => g.toLowerCase() === oldLower);
       if(idx === -1) return;
-      if(val){
+      const stillSelected = unifyGroupSelectedIds.has(c.id);
+      if(stillSelected && val){
         // لو الاسم الجديد موجود أصلاً ضمن مجموعات الجهة، نكتفي بحذف القديم لتفادي التكرار
         if(existing.some((g, i) => i !== idx && g.toLowerCase() === val.toLowerCase())){
           existing.splice(idx, 1);
@@ -3881,14 +3892,15 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
           existing[idx] = val;
         }
       } else {
+        // إما أُلغي تحديد الجهة (أُزيلت من المجموعة) أو تُرك الحقل فارغاً (حذف المجموعة كلياً)
         existing.splice(idx, 1);
       }
       c.categories = existing.join(', ');
       renameCount++;
     });
-    closeUnifyGroupModal();
     renderList($('#search').value);
     toast(val ? ('تم تغيير اسم المجموعة لـ ' + renameCount + ' جهة اتصال') : ('تم إزالة المجموعة من ' + renameCount + ' جهة اتصال'));
+    resetUnifyGroupFields();
     return;
   }
 
@@ -3911,9 +3923,9 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
       count++;
     }
   });
-  closeUnifyGroupModal();
   renderList($('#search').value);
   toast(val ? ('تم إضافة المجموعة إلى ' + count + ' جهة اتصال') : ('تم إزالة مجموعة ' + count + ' جهة اتصال'));
+  resetUnifyGroupFields();
 });
 
 let nameFormatSelectedIds = new Set();
