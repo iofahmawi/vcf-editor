@@ -729,7 +729,10 @@
         <button type="button" id="unifyGroupAddSearchBtn" title="إضافة المحدد وبدء بحث جديد" style="flex:0 0 auto; width:38px; height:38px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--accent); font-size:20px; font-weight:700; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">+</button>
       </div>
     </div>
-    <div id="unifyGroupTotalSelected" style="display:none; font-size:11.5px; color:var(--muted); margin:0 4px 14px; text-align:center;"></div>
+    <div id="unifyGroupTotalSelected" style="display:none; font-size:11.5px; color:var(--muted); margin:1px 4px 14px; text-align:center;">
+      <span id="unifyGroupTotalSelectedText"></span>
+      <button type="button" id="unifyGroupClearSelectionBtn" style="background:none; border:none; color:var(--accent); font-family:var(--font-body); font-size:11.5px; font-weight:400; padding:2px 6px; cursor:pointer;">مسح التحديد</button>
+    </div>
 
     <div id="unifyGroupSelectRow" style="display:none; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="unifyGroupSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
@@ -740,7 +743,7 @@
       <div id="unifyGroupList" style="height:167px; min-height:167px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; flex-shrink:0;"></div>
     </div>
 
-    <div class="field-group" style="margin-bottom:14px;">
+    <div class="field-group" style="margin-top:14px; margin-bottom:14px;">
       <label id="unifyGroupValueLabel">اسم المجموعة</label>
       <input type="text" id="unifyGroupValue" placeholder="اترك الحقل فارغاً للإزالة">
     </div>
@@ -3719,6 +3722,12 @@ function setUnifyGroupFieldMode(isGroupMode, groupName){
   const leaving = !isGroupMode && unifyGroupMode;
   unifyGroupMode = isGroupMode;
   unifyGroupActiveGroupName = isGroupMode ? groupName : null;
+  if(leaving){
+    // عند إغلاق عرض المجموعة، نصفّر التحديد التلقائي لأعضائها حتى لا يظهر
+    // ضمن "إجمالي المحددين" الخاص بالبحث الحر رغم عدم اختيار أي شخص فعلياً.
+    unifyGroupSelectedIds = new Set();
+    unifyGroupOriginalMemberIds = new Set();
+  }
   if(isGroupMode){
     const isStarred = /^starred$/i.test(groupName);
     if(isStarred){
@@ -3911,11 +3920,16 @@ function updateUnifyGroupConfirmState(){
   const totalEl = $('#unifyGroupTotalSelected');
   if(!unifyGroupMode && unifyGroupSelectedIds.size > 0){
     totalEl.style.display = 'block';
-    totalEl.textContent = 'إجمالي المحددين: ' + unifyGroupSelectedIds.size + ' جهة اتصال';
+    $('#unifyGroupTotalSelectedText').textContent = 'إجمالي المحددين: ' + unifyGroupSelectedIds.size + ' جهة اتصال';
   } else {
     totalEl.style.display = 'none';
   }
 }
+$('#unifyGroupClearSelectionBtn').addEventListener('click', () => {
+  unifyGroupSelectedIds = new Set();
+  renderUnifyGroupList();
+  updateUnifyGroupConfirmState();
+});
 $('#unifyGroupAddSearchBtn').addEventListener('click', () => {
   $('#unifyGroupSearch').value = '';
   unifyGroupPickedName = null;
