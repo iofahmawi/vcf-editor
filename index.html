@@ -3861,7 +3861,8 @@ function renderUnifyGroupPickerList(){
   listEl.querySelectorAll('.unifyGroupPickerItem').forEach(btn => {
     btn.addEventListener('click', () => {
       const name = btn.dataset.name;
-      unifyGroupPickedName = name;
+      // ضغطة ثانية على نفس المجموعة المعروضة حالياً تُخفي عرض أعضائها بدل إعادة عرضها
+      unifyGroupPickedName = (unifyGroupPickedName === name) ? null : name;
       $('#unifyGroupSearch').value = '';
       renderUnifyGroupList();
       $('#unifyGroupList').scrollTop = 0;
