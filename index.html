@@ -795,6 +795,19 @@ function saveUndoSnapshot(description){
   }
 }
 
+// تصفّر لقطة التراجع وتعطّل زر "تراجع" — تُستدعى عند بدء ملف جديد كلياً
+// (رفع ملف جديد أو "ملف جديد") لمنع تراجع قديم من الكتابة فوق الملف الجديد
+function clearUndoSnapshot(){
+  undoSnapshot = null;
+  const btn = $('#menuUndoOpt');
+  if(btn){
+    btn.disabled = true;
+    btn.style.cursor = 'default';
+    const txt = $('#menuUndoOptText');
+    if(txt) txt.style.opacity = '0.4';
+  }
+}
+
 function performUndo(){
   if(!undoSnapshot) return;
   contacts = undoSnapshot.contacts;
@@ -1672,6 +1685,9 @@ async function loadFiles(fileList){
 
   // عرض جهات الاتصال فوراً بدون انتظار جلب الصور
   contacts = allParsed;
+  clearUndoSnapshot();
+  clearListFilters();
+  expandedContactId = null;
   refreshPrefixOptions();
   renderList();
   showScreen('list');
@@ -1711,6 +1727,9 @@ dropZone.addEventListener('drop', e => {
 
 $('#newFileBtn').addEventListener('click', () => {
   contacts = [];
+  clearUndoSnapshot();
+  clearListFilters();
+  expandedContactId = null;
   refreshPrefixOptions();
   renderList();
   showScreen('list');
