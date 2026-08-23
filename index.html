@@ -633,7 +633,7 @@
     <div style="display:flex; gap:8px;">
       <button type="button" id="photoSize512Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">512</button>
       <button type="button" id="photoSize720Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">720</button>
-      <button type="button" id="photoSize1080Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">1080</button>
+      <button type="button" id="photoSize1080Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">1024</button>
     </div>
     <div style="margin:18px 0 14px;"></div>
     <div id="saveFormatSubtitle" style="font-size:13.5px; color:var(--muted); margin:0 0 14px; line-height:1.6; text-align:center;">صيغة الملف</div>
@@ -1516,7 +1516,7 @@ function resizeDataUrlToSquare(dataUrl, maxSize){
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
-      resolve(canvas.toDataURL('image/jpeg', 0.90));
+      resolve(canvas.toDataURL('image/jpeg', 0.95));
     };
     img.onerror = () => resolve(dataUrl);
     img.src = dataUrl;
@@ -2877,7 +2877,7 @@ function blobToSquarePhotoDataURL(blob, callback, errback){
   const reader = new FileReader();
   reader.onload = (ev) => {
     img.onload = () => {
-      const MAX = 1080;
+      const MAX = 1024;
       const side = Math.min(img.width, img.height);
       const sx = (img.width - side) / 2;
       const sy = (img.height - side) / 2;
@@ -2889,7 +2889,7 @@ function blobToSquarePhotoDataURL(blob, callback, errback){
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
-      callback(canvas.toDataURL('image/jpeg', 0.90));
+      callback(canvas.toDataURL('image/jpeg', 0.95));
     };
     img.onerror = () => errback && errback();
     img.src = ev.target.result;
@@ -2898,6 +2898,20 @@ function blobToSquarePhotoDataURL(blob, callback, errback){
   reader.readAsDataURL(blob);
 }
 
+// يضيف معامل حجم صريح (=sN) لروابط صور جوجل (lh3.googleusercontent.com) قبل
+// الجلب. بدون هذا المعامل تُعيد خوادم جوجل ضغط الصورة ديناميكياً في كل طلب
+// فيتفاوت حجم الملف الناتج (بالبايت) رغم ثبات الأبعاد؛ تحديد حجم صريح يجعل
+// الاستجابة ثابتة وبأعلى جودة متاحة قبل أن نعيد ضغطها نحن مربعة بالحجم المطلوب.
+function withExplicitGooglePhotoSize(url, size){
+  try{
+    const u = new URL(url);
+    if(!/(^|\.)googleusercontent\.com$/i.test(u.hostname)) return url;
+    if(/=s\d+(-c)?$/i.test(u.pathname)) return url;
+    return url.replace(/\/?$/, '') + '=s' + size;
+  }catch(e){
+    return url;
+  }
+}
 // يحاول جلب صور جهات الاتصال المستوردة من CSV جوجل (رابط فقط بدون بيانات صورة فعلية)
 // عبر طلب كل رابط وتحويله لصورة مربعة مضمّنة؛ يتجاهل بصمت أي رابط يفشل (حجب CORS، انتهاء صلاحية، إلخ)
 async function fetchPhotosFromUrls(cards){
@@ -2910,7 +2924,7 @@ async function fetchPhotosFromUrls(cards){
     while(cursor < targets.length){
       const card = targets[cursor++];
       try{
-        const res = await fetch(card.photoUrl, { mode: 'cors' });
+        const res = await fetch(withExplicitGooglePhotoSize(card.photoUrl, 1024), { mode: 'cors' });
         if(res.ok){
           const blob = await res.blob();
           const dataUrl = await new Promise((resolve, reject) => {
@@ -2934,7 +2948,7 @@ function fileToSquarePhotoDataURL(file, callback){
   const reader = new FileReader();
   reader.onload = (ev) => {
     img.onload = () => {
-      const MAX = 1080;
+      const MAX = 1024;
       const side = Math.min(img.width, img.height);
       const sx = (img.width - side) / 2;
       const sy = (img.height - side) / 2;
@@ -2946,7 +2960,7 @@ function fileToSquarePhotoDataURL(file, callback){
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
-      callback(canvas.toDataURL('image/jpeg', 0.90));
+      callback(canvas.toDataURL('image/jpeg', 0.95));
     };
     img.src = ev.target.result;
   };
@@ -3483,18 +3497,18 @@ function setExportPhotoSize(size){
   selectedExportPhotoSize = size;
   $('#photoSize512Btn').style.borderColor = size === 512 ? 'var(--accent)' : 'transparent';
   $('#photoSize720Btn').style.borderColor = size === 720 ? 'var(--accent)' : 'transparent';
-  $('#photoSize1080Btn').style.borderColor = size === 1080 ? 'var(--accent)' : 'transparent';
+  $('#photoSize1080Btn').style.borderColor = size === 1024 ? 'var(--accent)' : 'transparent';
 }
 $('#photoSize512Btn').addEventListener('click', () => setExportPhotoSize(512));
 $('#photoSize720Btn').addEventListener('click', () => setExportPhotoSize(720));
-$('#photoSize1080Btn').addEventListener('click', () => setExportPhotoSize(1080));
+$('#photoSize1080Btn').addEventListener('click', () => setExportPhotoSize(1024));
 
 function setExportCompat(target){
   selectedExportCompat = target;
   $('#compatSamsungBtn').style.borderColor = target === 'samsung' ? 'var(--accent)' : 'transparent';
   $('#compatGoogleBtn').style.borderColor = target === 'google' ? 'var(--accent)' : 'transparent';
   // جوجل تعتمد 512 كأبعاد افتراضية للصورة الشخصية عند التصدير
-  setExportPhotoSize(target === 'google' ? 512 : 720);
+  setExportPhotoSize(720);
 }
 $('#compatSamsungBtn').addEventListener('click', () => setExportCompat('samsung'));
 $('#compatGoogleBtn').addEventListener('click', () => setExportCompat('google'));
@@ -3540,7 +3554,11 @@ function closeBulkPhotoModal(){
 }
 
 function bulkPhotoMatchContacts(query){
-  const f = normalizeArabic(query.trim().toLowerCase());
+  const trimmed = query.trim();
+  // كتابة "الكل" أو "الجميع" تعرض كل جهات الاتصال دفعة واحدة، مفيد مثلاً لإزالة
+  // كل الصور دفعة واحدة عبر "تحديد الكل" ثم اختيار "بدون صورة".
+  if(trimmed === 'الكل' || trimmed === 'الجميع') return contacts.slice();
+  const f = normalizeArabic(trimmed.toLowerCase());
   if(!f) return [];
   return contacts.filter(c => {
     const hay = normalizeArabic([
