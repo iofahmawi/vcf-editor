@@ -3534,7 +3534,10 @@ $('#menuBulkPhotoOpt').addEventListener('click', () => {
   openBulkPhotoModal();
 });
 
-function openBulkPhotoModal(){
+// يصفّر حقول نافذة الصورة الجماعية (البحث، التحديد، الصورة المختارة) للبدء
+// بعملية جديدة، دون إغلاق النافذة. تُستخدم عند الفتح الأول وأيضاً بعد كل
+// "تطبيق" ناجح ليتمكن المستخدم من تعديل صور عدة جهات متتالية دون خروج ودخول.
+function resetBulkPhotoFields(){
   bulkPhotoSelectedIds = new Set();
   bulkPhotoDataUrl = null;
   $('#bulkPhotoSearch').value = '';
@@ -3542,9 +3545,11 @@ function openBulkPhotoModal(){
   $('#bulkPhotoPreviewPlaceholder').style.display = 'block';
   renderBulkPhotoList();
   updateBulkPhotoConfirmState();
+}
+function openBulkPhotoModal(){
+  resetBulkPhotoFields();
   $('#bulkPhotoModalOverlay').style.display = 'flex';
   safeReplaceState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
-  setTimeout(() => $('#bulkPhotoSearch').focus(), 50);
 }
 function closeBulkPhotoModal(){
   if($('#bulkPhotoModalOverlay').style.display === 'none') return;
@@ -3680,9 +3685,9 @@ $('#bulkPhotoConfirm').addEventListener('click', () => {
   contacts.forEach(c => {
     if(bulkPhotoSelectedIds.has(c.id)){ c.photo = bulkPhotoDataUrl || null; count++; }
   });
-  closeBulkPhotoModal();
   renderList($('#search').value);
   toast(bulkPhotoDataUrl ? ('تم تغيير صورة ' + count + ' جهة اتصال') : ('تم إزالة صورة ' + count + ' جهة اتصال'));
+  resetBulkPhotoFields();
 });
 
 let unifyGroupSelectedIds = new Set();
