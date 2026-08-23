@@ -4068,7 +4068,11 @@ function closeNameFormatModal(){
   goBack();
 }
 function nameFormatMatchContacts(query){
-  const f = normalizeArabic(query.trim().toLowerCase());
+  const trimmed = query.trim();
+  // كتابة "الكل" أو "الجميع" تعرض كل جهات الاتصال دفعة واحدة، مفيد مثلاً لتوحيد
+  // حالة الأحرف اللاتينية (AA/aa/Aa) لكل الأسماء دفعة واحدة.
+  if(trimmed === 'الكل' || trimmed === 'الجميع') return contacts.slice();
+  const f = normalizeArabic(trimmed.toLowerCase());
   if(!f) return [];
   return contacts.filter(c => {
     const hay = normalizeArabic([
