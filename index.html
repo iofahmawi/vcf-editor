@@ -588,6 +588,17 @@
   </div>
 </div>
 
+<div id="searchExportConfirmModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:16px; color:var(--text); text-align:center;">البحث ما زال مفعّلاً</div>
+    <div id="searchExportConfirmText" style="font-size:14px; color:var(--muted); margin:0 0 16px; line-height:1.7; text-align:center;"></div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" id="searchExportConfirmCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="searchExportConfirmProceed" class="btn" style="flex:1 1 0; margin:0; padding:13px;">متابعة</button>
+    </div>
+  </div>
+</div>
+
 <div id="exitListModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">الخروج من جهات الاتصال</div>
@@ -3467,8 +3478,9 @@ $('#menuSortOpt').addEventListener('click', () => {
   }
 });
 
-$('#menuSaveOpt').addEventListener('click', () => {
-  closeListMenuDropdown();
+// يفتح نافذة اختيار صيغة الحفظ فعلياً؛ يُستدعى مباشرة لو لم يكن هناك بحث نشط،
+// أو بعد تأكيد المستخدم عبر نافذة "البحث ما زال مفعّلاً".
+function openSaveFormatModal(){
   const { list, scope } = getExportScopeContacts();
   $('#saveFormatTitle').textContent = scope === 'all'
     ? 'اختر صيغة الحفظ'
@@ -3477,6 +3489,34 @@ $('#menuSaveOpt').addEventListener('click', () => {
   setExportCompat('samsung');
   $('#saveFormatModalOverlay').style.display = 'flex';
   safeReplaceState({ screen: 'list', modal: 'saveFormat' }, '', '#list');
+}
+$('#menuSaveOpt').addEventListener('click', () => {
+  closeListMenuDropdown();
+  const { list, scope } = getExportScopeContacts();
+  // لو البحث نشط حالياً (وليس وضع تحديد يدوي)، ننبّه المستخدم أولاً أن التصدير
+  // سيقتصر على نتيجة البحث فقط، تفادياً لتصدير غير مقصود جزء فقط من الجهات
+  // بدل الكل ظناً منه أن البحث لا يؤثر.
+  if(scope === 'filtered'){
+    $('#searchExportConfirmText').textContent = 'سيتم تصدير نتيجة البحث الحالية فقط، وعددها ' + list.length + ' جهة اتصال، وليس كل جهات الاتصال. هل تريد المتابعة؟';
+    $('#searchExportConfirmModalOverlay').style.display = 'flex';
+    safePushState({ screen: 'list', modal: 'searchExportConfirm' }, '', '#list');
+    return;
+  }
+  openSaveFormatModal();
+});
+function closeSearchExportConfirmModal(){
+  if($('#searchExportConfirmModalOverlay').style.display === 'none') return;
+  $('#searchExportConfirmModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#searchExportConfirmCancel').addEventListener('click', closeSearchExportConfirmModal);
+$('#searchExportConfirmModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'searchExportConfirmModalOverlay') closeSearchExportConfirmModal(); });
+$('#searchExportConfirmProceed').addEventListener('click', () => {
+  $('#searchExportConfirmModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+  openSaveFormatModal();
 });
 function closeSaveFormatModal(){
   if($('#saveFormatModalOverlay').style.display === 'none') return;
@@ -5043,6 +5083,11 @@ window.addEventListener('popstate', (e) => {
     $('#deleteModalOverlay').style.display = 'none';
     swipeDeleteTargetId = null;
     closeOpenSwipe();
+    return;
+  }
+
+  if($('#searchExportConfirmModalOverlay').style.display !== 'none'){
+    $('#searchExportConfirmModalOverlay').style.display = 'none';
     return;
   }
 
