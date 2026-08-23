@@ -3499,7 +3499,12 @@ $('#menuSaveOpt').addEventListener('click', () => {
   if(scope === 'filtered'){
     $('#searchExportConfirmText').textContent = 'سيتم تصدير نتيجة البحث الحالية فقط، وعددها ' + list.length + ' جهة اتصال، وليس كل جهات الاتصال. هل تريد المتابعة؟';
     $('#searchExportConfirmModalOverlay').style.display = 'flex';
-    safePushState({ screen: 'list', modal: 'searchExportConfirm' }, '', '#list');
+    // استبدال (وليس إضافة): القائمة المنسدلة أُغلقت للتو بلا سحب مُدخلها
+    // (closeListMenuDropdown بلا Sync، بتصميم متعمد) — فلو أضفنا مُدخلاً
+    // جديداً هنا فوقه بدل استبداله يتراكم مُدخل زائد لا يُستهلك أبداً، وهذا
+    // يكسر تزامن زر الرجوع لاحقاً (يظهر تأكيد الخروج لكن الضغط على "خروج"
+    // لا يستجيب من أول ضغطة). نفس نمط menuDupOpt/openBulkPhotoModal.
+    safeReplaceState({ screen: 'list', modal: 'searchExportConfirm' }, '', '#list');
     return;
   }
   openSaveFormatModal();
@@ -3513,9 +3518,13 @@ function closeSearchExportConfirmModal(){
 $('#searchExportConfirmCancel').addEventListener('click', closeSearchExportConfirmModal);
 $('#searchExportConfirmModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'searchExportConfirmModalOverlay') closeSearchExportConfirmModal(); });
 $('#searchExportConfirmProceed').addEventListener('click', () => {
+  // لا نستدعي goBack هنا (نفس السبب الموثّق أعلاه عند startMerge): استدعاء
+  // goBack غير المتزامن ثم فتح نافذة أخرى فوراً بلا انتظار popstate بينهما
+  // يُفقد التزامن بين عداد suppressPopstateSilentCount والسجل الفعلي، فيختل
+  // تتبّع حالة السجل لاحقاً (مثل عدم استجابة نافذة الخروج من الشاشة).
+  // بدلاً من ذلك: نُخفي هذه النافذة بلا لمس السجل، ونترك openSaveFormatModal
+  // تستبدل مُدخل هذه النافذة بمُدخلها هي عبر safeReplaceState في عملية واحدة ذرية.
   $('#searchExportConfirmModalOverlay').style.display = 'none';
-  suppressPopstateSilentCount++;
-  goBack();
   openSaveFormatModal();
 });
 function closeSaveFormatModal(){
