@@ -1324,12 +1324,20 @@ function parseCSVGoogle(text){
       ? rawLabels.split(':::').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join(', ')
       : '';
 
+    // عمود Photo قد يحمل رابطاً حقيقياً (سلوك جوجل الأصلي) أو data URI كامل
+    // بصيغة base64 (تصديرنا الخاص عند تضمين الصور) — نميّز بينهما هنا بدل
+    // اعتبار كل قيمة رابطاً دائماً، وإلا تحوّلت الصورة المضمّنة أصلاً غلطاً
+    // إلى نص "رابط" طويل بدل صورة فعلية عند إعادة الاستيراد.
+    const photoRaw = get(photoIdx) || null;
+    const isEmbeddedPhoto = photoRaw && /^data:image\/\w+;base64,/.test(photoRaw);
+
     cards.push({
       id: 'c'+Math.random().toString(36).slice(2,9),
       fn, nickname: get(nicknameIdx), org: get(orgIdx), dept: get(deptIdx), title: get(titleIdx),
       note: get(notesIdx), adrs, categories, bday: normalizeBdayForInput(get(bdayIdx)),
-      phones, emails, urls, rawExtra: [], version: '3.0', photo: null,
-      photoUrl: get(photoIdx) || null
+      phones, emails, urls, rawExtra: [], version: '3.0',
+      photo: isEmbeddedPhoto ? photoRaw : null,
+      photoUrl: isEmbeddedPhoto ? null : photoRaw
     });
   }
   return cards;
@@ -5118,6 +5126,8 @@ function buildCSV(contactsArr){
     // عمود Photo: يُعبَّأ برابط الصورة فقط إذا كانت الجهة تحمل photoUrl (رابط
     // بلا تضمين فعلي). أما الجهات ذات الصورة الحقيقية المضمّنة (base64) فلا
     // يوجد لها رابط فعلي نضعه هنا، فيبقى العمود فارغاً لها كما في تصدير جوجل.
+    // (جُرِّب وضع base64 بهذا العمود تجريبياً: تسبّب برفض جوجل للملف كاملاً
+    // وفشل الاستيراد، لذا رجعنا للروابط فقط وهو السلوك المضمون).
     const photoCol = (!c.photo && c.photoUrl) ? c.photoUrl : '';
     const row = ['', '', c.fn || '', '', '', '', '', '', c.nickname || '', '',
       c.org || '', c.title || '', c.dept || '', c.bday || '', c.note || '', photoCol, labels];
