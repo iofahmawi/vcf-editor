@@ -184,6 +184,7 @@
   }
   .contact-avatar img{ width:100%; height:100%; object-fit:cover; }
   .contact-info{ min-width:0; flex:1; }
+  .contact-info.centered{ display:flex; flex-direction:column; justify-content:center; align-self:stretch; }
   .contact-name{ font-family:var(--font-display); font-size:14px; font-weight:700; margin-bottom:8px; }
   .contact-star{ flex:0 0 auto; align-self:center; }
   .contact-realname{ font-size:12px; color:var(--muted); margin-bottom:10px; }
@@ -2065,7 +2066,7 @@ function buildContactRowElement(c, f){
       const matchesNickname = searchTermsForRow.some(t => normalizeArabic(c.nickname.toLowerCase()).includes(t) && !normalizeArabic(c.fn.toLowerCase()).includes(t));
       if(matchesNickname){
         displayName = c.nickname;
-        realNameLine = `<div class="contact-realname">${escapeHtml(c.fn)}</div>`;
+        realNameLine = `<div class="contact-realname"${isExpanded ? ' style="margin-bottom:0"' : ''}>${escapeHtml(c.fn)}</div>`;
       }
     }
     const avatarInner = (c.photo || c.photoUrl)
@@ -2092,10 +2093,10 @@ function buildContactRowElement(c, f){
         <div class="contact-row-header">
           ${checkboxHtml}
           <div class="contact-avatar">${avatarInner}</div>
-          <div class="contact-info">
-            <div class="contact-name"${realNameLine ? ' style="margin-bottom:10px;"' : ''}>${escapeHtml(displayName)}</div>
+          <div class="contact-info${isExpanded ? ' centered' : ''}">
+            <div class="contact-name"${(() => { const s = []; if(isExpanded && !realNameLine) s.push('margin:0'); else if(realNameLine) s.push('margin-bottom:10px'); return s.filter(Boolean).length ? ` style="${s.filter(Boolean).join(';')}"` : ''; })()}>${escapeHtml(displayName)}</div>
             ${realNameLine}
-            <div class="contact-sub">${escapeHtml(sub)}</div>
+            ${isExpanded ? '' : `<div class="contact-sub">${escapeHtml(sub)}</div>`}
           </div>
           ${starHtml}
           ${editIconHtml}
