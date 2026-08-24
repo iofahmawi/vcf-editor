@@ -363,12 +363,13 @@
   </div>
   <div style="position:relative; display:inline-block;">
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
-    <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:130px; z-index:30; overflow:hidden;">
+    <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:147px; z-index:30; overflow:hidden;">
       <button type="button" class="link-btn" id="menuUndoOpt" disabled style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border); cursor:default;"><span id="menuUndoOptText" style="opacity:0.4;">تراجع</span></button>
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
       <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">إدارة المجموعات</button>
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصور</button>
+      <button type="button" class="link-btn" id="menuEmbedLinkedPhotosOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تضمين صور الروابط</button>
       <button type="button" class="link-btn" id="menuNameFormatOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصيغة</button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
     </div>
@@ -717,6 +718,28 @@
     <div style="display:flex; gap:8px;">
       <button type="button" id="bulkPhotoCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="bulkPhotoConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+<div id="embedPhotosModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تضمين صور الروابط</div>
+
+    <input type="text" id="embedPhotosSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+      <button type="button" id="embedPhotosSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
+      <span id="embedPhotosCount" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+
+    <div id="embedPhotosListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
+      <div id="embedPhotosList" style="max-height:40vh; overflow-y:auto;"></div>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="embedPhotosCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="embedPhotosConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
     </div>
   </div>
 </div>
@@ -1586,6 +1609,10 @@ function buildVCFSamsung(contactsArr){
     if(c.photo){
       const m = c.photo.match(/^data:image\/(\w+);base64,(.*)$/s);
       if(m) out += 'PHOTO;ENCODING=BASE64;' + m[1].toUpperCase() + ':' + m[2] + '\n';
+    } else if(c.photoUrl){
+      // صورة لم تُضمَّن بعد (رابط فقط): تُصدَّر كرابط بصيغة 2.1 (VALUE=URL)
+      // بدل تضمينها قسرياً؛ المستخدم يقرر التضمين صراحة قبل التصدير إن أراد.
+      out += 'PHOTO;VALUE=URL:' + c.photoUrl + '\n';
     }
     for(const line of c.rawExtra){
       out += line + '\n';
@@ -1665,6 +1692,10 @@ function buildVCFGoogle(contactsArr){
     if(c.photo){
       const m = c.photo.match(/^data:image\/(\w+);base64,(.*)$/s);
       if(m) out += 'PHOTO;ENCODING=b;TYPE=' + m[1].toUpperCase() + ':' + m[2] + '\n';
+    } else if(c.photoUrl){
+      // صورة لم تُضمَّن بعد (رابط فقط): تُصدَّر كرابط بصيغة 3.0 (VALUE=URI)
+      // بدل تضمينها قسرياً؛ المستخدم يقرر التضمين صراحة قبل التصدير إن أراد.
+      out += 'PHOTO;VALUE=URI:' + c.photoUrl + '\n';
     }
     for(const line of c.rawExtra){
       out += line + '\n';
@@ -1723,12 +1754,10 @@ async function loadFiles(fileList){
     toast('تم تحميل ' + allParsed.length + ' جهة اتصال');
   }
 
-  const photoUrlCount = allParsed.filter(c => c.photoUrl).length;
-  if(photoUrlCount > 0){
-    const photoResult = await fetchPhotosFromUrls(allParsed);
-    renderList();
-    toast('تم جلب ' + photoResult.success + ' من ' + photoResult.attempted + ' صورة');
-  }
+  // لا نجلب صور الروابط تلقائياً بعد الاستيراد: تبقى الصور المستوردة كروابط
+  // (تُعرض من الرابط مباشرة بلا تخزين) حتى يضغط المستخدم "تضمين" لها صراحةً
+  // (لكل جهة من شاشة التعديل، أو دفعة واحدة من قائمة ⋮ ← "تضمين الصور المرتبطة")
+  // — بدل تحويلها base64 وتضمينها بالملف قسرياً فور الاستيراد.
 }
 
 $('#chooseFileBtn').addEventListener('click', (e) => { e.stopPropagation(); $('#fileInput').click(); });
@@ -2031,8 +2060,8 @@ function buildContactRowElement(c, f){
         realNameLine = `<div class="contact-realname">${escapeHtml(c.fn)}</div>`;
       }
     }
-    const avatarInner = c.photo
-      ? `<img src="${c.photo}" alt="">`
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="">`
       : `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4v-1z"/></svg>`;
     const checkboxHtml = selectionMode
       ? `<div class="contact-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`
@@ -2807,8 +2836,9 @@ function refreshPhotoPreview(c){
   const removeOpt = $('#photoRemoveOpt');
   const changeOpt = $('#photoChangeOpt');
   menu.style.display = 'none';
-  if(c.photo){
-    photoEl.src = c.photo;
+  const photoSrc = c.photo || c.photoUrl;
+  if(photoSrc){
+    photoEl.src = photoSrc;
     photoEl.style.display = 'block';
     placeholder.style.display = 'none';
     removeOpt.style.display = 'inline-block';
@@ -2838,12 +2868,16 @@ $('#photoRemoveOpt').addEventListener('click', () => {
   const c = contacts.find(x => x.id === currentId);
   if(!c) return;
   c.photo = null;
+  c.photoUrl = null;
   refreshPhotoPreview(c);
 });
 
 $('#photoUrlOpt').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
   $('#photoMenu').style.display = 'none';
-  $('#photoUrlModalInput').value = '';
+  // إن كانت الصورة الحالية رابطاً أصلاً، نعرضه معبَّأً بالحقل ليتمكن المستخدم
+  // من رؤيته أو تعديله مباشرة بدل حقل فارغ يوحي بعدم وجود رابط محفوظ.
+  $('#photoUrlModalInput').value = (c && c.photoUrl) ? c.photoUrl : '';
   $('#photoUrlModalOverlay').style.display = 'flex';
   safePushState({ screen: 'edit', modal: 'photoUrl' }, '', '#edit');
 });
@@ -2855,32 +2889,19 @@ function closePhotoUrlModal(){
 }
 $('#photoUrlModalCancel').addEventListener('click', closePhotoUrlModal);
 $('#photoUrlModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'photoUrlModalOverlay') closePhotoUrlModal(); });
-$('#photoUrlModalConfirm').addEventListener('click', async () => {
+// إضافة صورة من رابط: لا نجلبها ولا نحوّلها base64 هنا إطلاقاً — تبقى الصورة
+// "رابطاً" (تُعرض مباشرة عبر src بلا أي تخزين/تحويل)، وتضمينها بالملف فعلياً
+// إجراء منفصل صريح لاحقاً (زر "تضمين الصورة") — العرض والتضمين عمليتان مختلفتان.
+$('#photoUrlModalConfirm').addEventListener('click', () => {
   const url = $('#photoUrlModalInput').value.trim();
   if(!url){ toast('أدخل رابط الصورة'); return; }
   const c = contacts.find(x => x.id === currentId);
   if(!c) return;
-  const btn = $('#photoUrlModalConfirm');
-  const originalText = btn.textContent;
-  btn.textContent = 'جارٍ الجلب...';
-  btn.disabled = true;
-  try{
-    const res = await fetch(url, { mode: 'cors' });
-    if(!res.ok) throw new Error('bad response');
-    const blob = await res.blob();
-    const dataUrl = await new Promise((resolve, reject) => {
-      blobToSquarePhotoDataURL(blob, resolve, reject);
-    });
-    c.photo = dataUrl;
-    refreshPhotoPreview(c);
-    closePhotoUrlModal();
-    toast('تمت إضافة الصورة');
-  }catch(err){
-    toast('تعذّر جلب الصورة من هذا الرابط');
-  }finally{
-    btn.textContent = originalText;
-    btn.disabled = false;
-  }
+  c.photo = null;
+  c.photoUrl = url;
+  refreshPhotoPreview(c);
+  closePhotoUrlModal();
+  toast('تمت إضافة رابط الصورة');
 });
 
 function blobToSquarePhotoDataURL(blob, callback, errback){
@@ -2985,6 +3006,7 @@ $('#photoInput').addEventListener('change', (e) => {
   if(!c) return;
   fileToSquarePhotoDataURL(file, (dataUrl) => {
     c.photo = dataUrl;
+    c.photoUrl = null;
     refreshPhotoPreview(c);
   });
   e.target.value = '';
@@ -2993,13 +3015,18 @@ $('#photoInput').addEventListener('change', (e) => {
 // قائمة سريعة لتغيير/حذف صورة جهة اتصال واحدة عند الضغط على صورتها بالشاشة الرئيسية،
 // منفصلة تماماً عن آلية الصورة بشاشة التعديل (currentId) لتفادي أي تعارض بينهما.
 let listPhotoTargetId = null;
-let listPhotoDraft = null; // القيمة التي سيتم حفظها فعلياً عند الضغط على "تأكيد"
+// حالة الصورة المسوَّدة (تُحفظ فعلياً فقط عند الضغط على "تأكيد"): مصدران
+// منفصلان، بالضبط كما في c.photo/c.photoUrl — مضمّنة (رفع من الجهاز) أو
+// رابط (يُعرض مباشرة بلا تحويل). واحد منهما فقط يكون فعّالاً بأي لحظة.
+let listPhotoDraftPhoto = null;
+let listPhotoDraftUrl = null;
 
 function updateListPhotoPreview(){
   const img = $('#listPhotoMenuImg');
   const placeholder = $('#listPhotoMenuPlaceholder');
-  if(listPhotoDraft){
-    img.src = listPhotoDraft;
+  const src = listPhotoDraftPhoto || listPhotoDraftUrl;
+  if(src){
+    img.src = src;
     img.style.display = 'block';
     placeholder.style.display = 'none';
     $('#listPhotoRemoveOpt').style.display = 'inline-block';
@@ -3017,8 +3044,10 @@ function openListPhotoMenu(id){
   const c = contacts.find(x => x.id === id);
   if(!c) return;
   listPhotoTargetId = id;
-  listPhotoDraft = c.photo || null;
-  $('#listPhotoUrlInline').value = '';
+  listPhotoDraftPhoto = c.photo || null;
+  listPhotoDraftUrl = c.photoUrl || null;
+  // نعبّئ حقل الرابط برابط الصورة الحالي إن وُجد، بدل تركه فارغاً وكأن لا رابط محفوظاً.
+  $('#listPhotoUrlInline').value = c.photoUrl || '';
   updateListPhotoPreview();
   $('#listPhotoMenuOverlay').style.display = 'flex';
   safePushState({ screen: 'list', modal: 'photo' }, '', '#list');
@@ -3026,7 +3055,8 @@ function openListPhotoMenu(id){
 function closeListPhotoMenu(){
   $('#listPhotoMenuOverlay').style.display = 'none';
   listPhotoTargetId = null;
-  listPhotoDraft = null;
+  listPhotoDraftPhoto = null;
+  listPhotoDraftUrl = null;
 }
 // إغلاق عبر واجهة المستخدم (إلغاء / نقر خارج النافذة / تأكيد): يسحب مُدخل
 // السجل الذي أضفناه عند الفتح (بصمت، بلا renderScreenUI حتى لا نصفّر تمرير
@@ -3042,7 +3072,9 @@ $('#listPhotoMenuOverlay').addEventListener('click', (e) => { if(e.target.id ===
 $('#listPhotoMenuCancelBtn').addEventListener('click', closeListPhotoMenuViaUI);
 
 $('#listPhotoRemoveOpt').addEventListener('click', () => {
-  listPhotoDraft = null;
+  listPhotoDraftPhoto = null;
+  listPhotoDraftUrl = null;
+  $('#listPhotoUrlInline').value = '';
   updateListPhotoPreview();
 });
 
@@ -3059,41 +3091,37 @@ $('#listPhotoInput').addEventListener('change', (e) => {
   e.target.value = '';
   if(!file) return;
   fileToSquarePhotoDataURL(file, (dataUrl) => {
-    listPhotoDraft = dataUrl;
+    listPhotoDraftPhoto = dataUrl;
+    listPhotoDraftUrl = null;
     $('#listPhotoUrlInline').value = '';
     updateListPhotoPreview();
   });
 });
 
-$('#listPhotoUrlInline').addEventListener('change', async () => {
+// رابط الصورة هنا لا يُجلب ولا يُحوَّل base64: يبقى رابطاً معروضاً مباشرة
+// (بلا تخزين/تحويل) — تضمينه بالملف فعلياً منفصل، من شاشة تعديل الجهة نفسها
+// (زر "تضمين الصورة") أو دفعة واحدة من قائمة ⋮.
+$('#listPhotoUrlInline').addEventListener('change', () => {
   const input = $('#listPhotoUrlInline');
   const url = input.value.trim();
   if(!url) return;
-  input.disabled = true;
-  try{
-    const res = await fetch(url, { mode: 'cors' });
-    if(!res.ok) throw new Error('bad response');
-    const blob = await res.blob();
-    const dataUrl = await new Promise((resolve, reject) => {
-      blobToSquarePhotoDataURL(blob, resolve, reject);
-    });
-    listPhotoDraft = dataUrl;
-    updateListPhotoPreview();
-  }catch(err){
-    toast('تعذّر جلب الصورة من هذا الرابط');
-  }finally{
-    input.disabled = false;
-  }
+  listPhotoDraftPhoto = null;
+  listPhotoDraftUrl = url;
+  updateListPhotoPreview();
 });
 
 $('#listPhotoMenuConfirmBtn').addEventListener('click', () => {
   const c = contacts.find(x => x.id === listPhotoTargetId);
   if(!c){ closeListPhotoMenuViaUI(); return; }
-  const before = c.photo || null;
-  const after = listPhotoDraft;
-  if(before === after){ closeListPhotoMenuViaUI(); return; }
+  const beforePhoto = c.photo || null;
+  const beforeUrl = c.photoUrl || null;
+  const afterPhoto = listPhotoDraftPhoto;
+  const afterUrl = listPhotoDraftUrl;
+  if(beforePhoto === afterPhoto && beforeUrl === afterUrl){ closeListPhotoMenuViaUI(); return; }
+  const after = afterPhoto || afterUrl;
   saveUndoSnapshot(after ? ('تغيير صورة ' + (c.fn || 'جهة الاتصال')) : ('حذف صورة ' + (c.fn || 'جهة الاتصال')));
-  c.photo = after;
+  c.photo = afterPhoto;
+  c.photoUrl = afterUrl;
   renderList($('#search').value);
   closeListPhotoMenuViaUI();
   toast(after ? 'تم تغيير الصورة' : 'تم حذف الصورة');
@@ -3342,7 +3370,7 @@ function finalizeCurrentContact(){
   c.adrs = (c.adrs || []).filter(a => a.value.trim() !== '');
 
   const isEmpty = !c.fn && !c.nickname && !c.org && !c.dept && !c.title && !c.note && !c.categories && !c.bday
-    && !c.photo && c.phones.length === 0 && c.emails.length === 0 && c.urls.length === 0 && c.adrs.length === 0;
+    && !c.photo && !c.photoUrl && c.phones.length === 0 && c.emails.length === 0 && c.urls.length === 0 && c.adrs.length === 0;
 
   if(isEmpty){
     contacts = contacts.filter(x => x.id !== currentId);
@@ -3437,6 +3465,157 @@ $('#menuUndoOpt').addEventListener('click', () => {
   if(!undoSnapshot) return;
   closeListMenuDropdownAndSync();
   performUndo();
+});
+
+$('#menuEmbedLinkedPhotosOpt').addEventListener('click', () => {
+  closeListMenuDropdown();
+  const pendingCount = contacts.filter(c => c.photoUrl && !c.photo).length;
+  if(pendingCount === 0){ toast('لا توجد صور مرتبطة بحاجة للتضمين'); return; }
+  openEmbedPhotosModal();
+});
+
+let embedPhotosSelectedIds = new Set();
+
+// يصفّر حقول نافذة تضمين روابط الصور (البحث، التحديد) للبدء بعملية جديدة، دون
+// إغلاق النافذة. يُملأ حقل البحث تلقائياً بـ"الكل" عند الفتح لعرض كل الجهات
+// فوراً (بدل تركه فارغاً كما في نافذة تعديل الصور)، لأن الغرض هنا استعراض/تحديد
+// جهات جاهزة للتضمين وليس البحث عن جهة بعينها بالضرورة.
+function resetEmbedPhotosFields(){
+  embedPhotosSelectedIds = new Set();
+  $('#embedPhotosSearch').value = 'الكل';
+  renderEmbedPhotosList();
+}
+function openEmbedPhotosModal(){
+  resetEmbedPhotosFields();
+  $('#embedPhotosModalOverlay').style.display = 'flex';
+  safeReplaceState({ screen: 'list', modal: 'embedPhotos' }, '', '#list');
+}
+function closeEmbedPhotosModal(){
+  if($('#embedPhotosModalOverlay').style.display === 'none') return;
+  $('#embedPhotosModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+
+// النطاق هنا محصور بالجهات التي لديها رابط صورة بانتظار التضمين فقط (وليس كل
+// الجهات)، لأن الجهات الأخرى لا فائدة من عرضها في نافذة مخصصة لهذا الإجراء.
+// كتابة "الكل"/"الجميع" تعرض كل هذه الجهات المؤهلة دفعة واحدة (نفس نمط
+// bulkPhotoMatchContacts)، وحقل البحث يُملأ بها افتراضياً عند الفتح.
+function embedPhotosMatchContacts(query){
+  const pending = contacts.filter(c => c.photoUrl && !c.photo);
+  const trimmed = query.trim();
+  if(trimmed === 'الكل' || trimmed === 'الجميع') return pending;
+  const f = normalizeArabic(trimmed.toLowerCase());
+  if(!f) return [];
+  return pending.filter(c => {
+    const hay = normalizeArabic([
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
+      ...c.phones.map(p => p.value),
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
+    ].join(' ').toLowerCase());
+    return hay.includes(f);
+  });
+}
+
+function renderEmbedPhotosList(){
+  const q = $('#embedPhotosSearch').value.trim();
+  const list = $('#embedPhotosList');
+  const listWrap = $('#embedPhotosListWrap');
+  const countEl = $('#embedPhotosCount');
+  const selectAllBtn = $('#embedPhotosSelectAll');
+
+  if(!q){
+    listWrap.style.display = 'none';
+    list.innerHTML = '';
+    countEl.textContent = '';
+    updateEmbedPhotosConfirmState();
+    return;
+  }
+
+  listWrap.style.display = 'block';
+
+  const matched = embedPhotosMatchContacts(q);
+  selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+
+  if(!matched.length){
+    list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
+    countEl.textContent = '';
+    updateEmbedPhotosConfirmState();
+    return;
+  }
+
+  const matchedIds = new Set(matched.map(c => c.id));
+  // إزالة أي تحديد سابق لم يعد ضمن نتائج البحث الحالية
+  embedPhotosSelectedIds.forEach(id => { if(!matchedIds.has(id)) embedPhotosSelectedIds.delete(id); });
+
+  list.innerHTML = matched.map((c, idx) => {
+    const checked = embedPhotosSelectedIds.has(c.id) ? 'checked' : '';
+    const isLast = idx === matched.length - 1;
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
+    return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; min-height:56px;">
+      <input type="checkbox" class="embedPhotosItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
+      <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; line-height:1.6;">${escapeHtml(c.fn)}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.embedPhotosItem').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) embedPhotosSelectedIds.add(cb.dataset.id);
+      else embedPhotosSelectedIds.delete(cb.dataset.id);
+      updateEmbedPhotosCountAndSelectAll(matched);
+      updateEmbedPhotosConfirmState();
+    });
+  });
+
+  updateEmbedPhotosCountAndSelectAll(matched);
+  updateEmbedPhotosConfirmState();
+}
+
+function updateEmbedPhotosCountAndSelectAll(matched){
+  const countEl = $('#embedPhotosCount');
+  const selectAllBtn = $('#embedPhotosSelectAll');
+  const allSelected = matched.length > 0 && matched.every(c => embedPhotosSelectedIds.has(c.id));
+  countEl.textContent = embedPhotosSelectedIds.size + ' من ' + matched.length + ' محدد';
+  selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
+}
+
+$('#embedPhotosSearch').addEventListener('input', renderEmbedPhotosList);
+$('#embedPhotosSearch').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#embedPhotosSearch').blur(); }
+});
+
+$('#embedPhotosSelectAll').addEventListener('click', () => {
+  const q = $('#embedPhotosSearch').value.trim();
+  const matched = embedPhotosMatchContacts(q);
+  const allSelected = matched.length > 0 && matched.every(c => embedPhotosSelectedIds.has(c.id));
+  if(allSelected) matched.forEach(c => embedPhotosSelectedIds.delete(c.id));
+  else matched.forEach(c => embedPhotosSelectedIds.add(c.id));
+  renderEmbedPhotosList();
+});
+
+function updateEmbedPhotosConfirmState(){
+  const btn = $('#embedPhotosConfirm');
+  const ready = embedPhotosSelectedIds.size > 0;
+  btn.style.opacity = ready ? '1' : '.5';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+}
+
+$('#embedPhotosCancel').addEventListener('click', closeEmbedPhotosModal);
+$('#embedPhotosModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'embedPhotosModalOverlay') closeEmbedPhotosModal(); });
+$('#embedPhotosConfirm').addEventListener('click', async () => {
+  if(embedPhotosSelectedIds.size === 0) return;
+  const selected = contacts.filter(c => embedPhotosSelectedIds.has(c.id));
+  const pendingCount = selected.filter(c => c.photoUrl && !c.photo).length;
+  if(pendingCount === 0){ toast('لا توجد صور مرتبطة بحاجة للتضمين ضمن التحديد'); return; }
+  toast('جارٍ تضمين الصور...');
+  const result = await fetchPhotosFromUrls(selected);
+  renderList($('#search').value);
+  toast('تم تضمين ' + result.success + ' من ' + result.attempted + ' صورة');
+  closeEmbedPhotosModal();
 });
 
 $('#menuSortOpt').addEventListener('click', () => {
@@ -3660,8 +3839,8 @@ function renderBulkPhotoList(){
   list.innerHTML = matched.map((c, idx) => {
     const checked = bulkPhotoSelectedIds.has(c.id) ? 'checked' : '';
     const isLast = idx === matched.length - 1;
-    const avatarInner = c.photo
-      ? `<img src="${c.photo}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
       : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
     return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
       <input type="checkbox" class="bulkPhotoItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
@@ -3896,8 +4075,8 @@ function renderUnifyGroupList(){
   list.innerHTML = matched.map((c, idx) => {
     const checked = unifyGroupSelectedIds.has(c.id) ? 'checked' : '';
     const isLast = idx === matched.length - 1;
-    const avatarInner = c.photo
-      ? `<img src="${c.photo}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
       : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
     return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
       <input type="checkbox" class="unifyGroupItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
@@ -4167,8 +4346,8 @@ function renderNameFormatList(){
   list.innerHTML = matched.map((c, idx) => {
     const checked = nameFormatSelectedIds.has(c.id) ? 'checked' : '';
     const isLast = idx === matched.length - 1;
-    const avatarInner = c.photo
-      ? `<img src="${c.photo}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
       : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
     return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
       <input type="checkbox" class="nameFormatItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
@@ -4549,6 +4728,10 @@ function buildMergePlan(ids, choices){
   const anyMissingPhoto = list.some(c => !c.photo);
   const photoConflict = distinctPhotos.length > 1 || (distinctPhotos.length === 1 && anyMissingPhoto);
   const photo = ('photo' in choices) ? choices.photo : (distinctPhotos[0] || null);
+  // لا تعارض/اختيار لصور الروابط غير المضمّنة هنا (تبقى خارج نافذة الدمج
+  // البصرية) — فقط نحافظ عليها من الضياع: إن لم تُختَر صورة مضمّنة، نأخذ
+  // أول رابط صورة موجود بين الجهات المدموجة بدل فقدانه صامتاً.
+  const photoUrl = photo ? null : (list.map(c => c.photoUrl).find(Boolean) || null);
 
   function resolveField(key){
     const distinct = [...new Set(list.map(c => (c[key] || '').trim()).filter(Boolean))];
@@ -4628,7 +4811,7 @@ function buildMergePlan(ids, choices){
       title: titleR.conflict ? titleR.distinct : null,
       bday: bdayR.conflict ? bdayR.distinct : null
     },
-    merged: { id: list[0].id, fn, nickname, org, dept, title, note, adrs, categories, bday, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo },
+    merged: { id: list[0].id, fn, nickname, org, dept, title, note, adrs, categories, bday, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo, photoUrl },
     sourceIds: list.map(c => c.id)
   };
 }
@@ -4925,8 +5108,12 @@ function buildCSV(contactsArr){
     const urls = (c.urls || []).filter(u => u.value);
     const adrs = (c.adrs || []).filter(a => a.value);
     const labels = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean).map(v => '* ' + v).join(' ::: ');
+    // عمود Photo: يُعبَّأ برابط الصورة فقط إذا كانت الجهة تحمل photoUrl (رابط
+    // بلا تضمين فعلي). أما الجهات ذات الصورة الحقيقية المضمّنة (base64) فلا
+    // يوجد لها رابط فعلي نضعه هنا، فيبقى العمود فارغاً لها كما في تصدير جوجل.
+    const photoCol = (!c.photo && c.photoUrl) ? c.photoUrl : '';
     const row = ['', '', c.fn || '', '', '', '', '', '', c.nickname || '', '',
-      c.org || '', c.title || '', c.dept || '', c.bday || '', c.note || '', '', labels];
+      c.org || '', c.title || '', c.dept || '', c.bday || '', c.note || '', photoCol, labels];
     for(let i = 0; i < maxEmails; i++){
       const e = emails[i];
       const label = e ? (i === 0 ? '* ' + (e.type || '') : (e.type || '')) : '';
@@ -4997,7 +5184,41 @@ function pushFilterGuard(){
 //   عرض نافذة تأكيد) فهذا لا يُغادر الشاشة إطلاقاً → نُرجع true (بقينا).
 // - إن كان المقصود مغادرة الشاشة فعلاً (تعديل/تكرارات ← قائمة) فهذا
 //   تنقّل حقيقي يجب أن يُترجم إلى تراجع في سجل المتصفح → نُرجع false.
+// نافذة منبثقة مفتوحة فوق شاشة القائمة (تضمين الروابط، تعديل الصور، إدارة
+// المجموعات، تصدير، إلخ) يجب أن يُغلقها زر الرجوع العلوي هي أولاً، بدل أن
+// يهبط decideBackAction() مباشرة على فرع "شاشة القائمة نشطة" ويُظهر نافذة
+// تأكيد الخروج خلف النافذة المفتوحة (بما أنهما بنفس z-index وتُرسَم النافذة
+// الأحدث بالـDOM فوقها) — عندها يبدو زر "خروج" بلا استجابة رغم أنه يعمل
+// فعلياً خلف النافذة التي لم تُغلق. هذا يغطي كل نوافذ شاشة القائمة المنبثقة
+// التي يتحقق منها معالج popstate أدناه بنفس الترتيب، فيبقى السلوك متطابقاً
+// سواء جاء الرجوع من زر الجهاز الفعلي (popstate) أو من السهم العلوي بالواجهة.
+function closeTopmostListModalIfOpen(){
+  const modals = [
+    ['#listPhotoMenuOverlay', closeListPhotoMenuViaUI],
+    ['#deleteModalOverlay', closeDeleteModal],
+    ['#searchExportConfirmModalOverlay', closeSearchExportConfirmModal],
+    ['#deleteSelectedModalOverlay', closeDeleteSelectedModal],
+    ['#prefixModalOverlay', closePrefixModal],
+    ['#multiPrefixModalOverlay', closeMultiPrefixModal],
+    ['#saveFormatModalOverlay', closeSaveFormatModal],
+    ['#bulkPhotoModalOverlay', closeBulkPhotoModal],
+    ['#embedPhotosModalOverlay', closeEmbedPhotosModal],
+    ['#unifyGroupModalOverlay', closeUnifyGroupModal],
+    ['#nameFormatModalOverlay', closeNameFormatModal],
+    ['#mergeModalOverlay', closeMergeModal],
+    ['#photoUrlModalOverlay', closePhotoUrlModal],
+    ['#prefixDeleteModalOverlay', closePrefixDeleteModal],
+    ['#removeGroupModalOverlay', closeRemoveGroupModal],
+  ];
+  for(const [sel, closeFn] of modals){
+    if($(sel).style.display !== 'none'){ closeFn(); return true; }
+  }
+  if($('#listMenuDropdown').style.display !== 'none'){ closeListMenuDropdownAndSync(); return true; }
+  return false;
+}
+
 function decideBackAction(){
+  if(closeTopmostListModalIfOpen()) return true;
   if(screens.list.classList.contains('active') && selectionMode){
     exitSelectionModeAndSync();
     return true;
@@ -5123,6 +5344,11 @@ window.addEventListener('popstate', (e) => {
 
   if($('#bulkPhotoModalOverlay').style.display !== 'none'){
     $('#bulkPhotoModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#embedPhotosModalOverlay').style.display !== 'none'){
+    $('#embedPhotosModalOverlay').style.display = 'none';
     return;
   }
 
