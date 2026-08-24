@@ -3501,8 +3501,9 @@ function resetEmbedPhotosFields(){
   renderEmbedPhotosList();
 }
 function openEmbedPhotosModal(){
-  resetEmbedPhotosFields();
   $('#embedPhotosModalOverlay').style.display = 'flex';
+  resetEmbedPhotosFields();
+  $('#embedPhotosList').scrollTop = 0;
   safeReplaceState({ screen: 'list', modal: 'embedPhotos' }, '', '#list');
 }
 function closeEmbedPhotosModal(){
