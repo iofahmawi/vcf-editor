@@ -3468,9 +3468,16 @@ $('#menuUndoOpt').addEventListener('click', () => {
 });
 
 $('#menuEmbedLinkedPhotosOpt').addEventListener('click', () => {
-  closeListMenuDropdown();
+  // نتحقق من الشرط قبل لمس القائمة أو السجل إطلاقاً (بنفس نمط menuUndoOpt)؛
+  // فلو أغلقنا القائمة بصمت (closeListMenuDropdown بلا سحب من السجل) ثم
+  // اكتشفنا عدم وجود صور معلّقة وخرجنا مبكراً بلا فتح النافذة، يبقى مُدخل
+  // السجل الذي أضافته القائمة عند فتحها عالقاً بلا استبدال (النافذة لم تُفتح)
+  // ولا سحب صامت، فيختل تزامن زر الرجوع لاحقاً (يظهر تأكيد الخروج لكن
+  // الضغط على "خروج" لا يستجيب من أول ضغطة) — نفس فئة العطل الموثقة عند
+  // menuDupOpt وmenuBulkPhotoOpt.
   const pendingCount = contacts.filter(c => c.photoUrl && !c.photo).length;
   if(pendingCount === 0){ toast('لا توجد صور مرتبطة بحاجة للتضمين'); return; }
+  closeListMenuDropdown();
   openEmbedPhotosModal();
 });
 
