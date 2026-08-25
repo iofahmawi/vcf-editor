@@ -213,6 +213,7 @@
   .field-group{ margin-bottom:14px; position:relative; }
   .field-group:last-child{ margin-bottom:0; }
   label{ display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin-bottom:11px; position:relative; right:1px; }
+  .contact-letter-header{ background:var(--bg); color:var(--accent); font-family:var(--font-display); font-weight:800; font-size:13px; padding:6px 8px; margin-top:4px; }
   input[type=text], input[type=tel], input[type=email], input[type=url], input[type=date], textarea, select{
     width:100%; padding:11px 14px; border-radius:10px;
     border:1.07px solid var(--border-light); background:transparent; color:var(--text);
@@ -2006,15 +2007,63 @@ function toggleStarredCurrentContact(){
   updateHeaderStarBtn(c);
 }
 
+const ALEF_VARIANT_PRIORITY = { 'أ':1, 'ا':2, 'إ':3, 'آ':4 };
+function getAlefVariantPriority(name){
+  const trimmed = (name || '').trim();
+  if(!trimmed) return null;
+  const first = trimmed[0];
+  if(!(first in ALEF_VARIANT_PRIORITY)) return null;
+  if(first === 'ا' && trimmed[1] === 'ل') return 5; // مجموعة "ال" (أداة التعريف) تُرتّب أخيراً ضمن حروف الألف
+  return ALEF_VARIANT_PRIORITY[first];
+}
+// فرز أبجدي يراعي ترتيب أشكال الألف: أ ثم ا ثم إ ثم آ ثم ال، وبعدها الفرز الأبجدي العادي
+function contactNameCompare(nameA, nameB){
+  const pa = getAlefVariantPriority(nameA), pb = getAlefVariantPriority(nameB);
+  if(pa !== null && pb !== null && pa !== pb) return pa - pb;
+  return nameA.localeCompare(nameB, 'ar');
+}
+function getContactLetterKey(name){
+  const trimmed = (name || '').trim();
+  if(!trimmed) return '#';
+  const first = trimmed[0];
+  if(first === 'ا' && trimmed[1] === 'ل') return 'ال';
+  if(first in ALEF_VARIANT_PRIORITY) return first;
+  return /[a-zA-Z]/.test(first) ? first.toUpperCase() : first;
+}
+// يرجع فهرس المقطع (الكلمة) الأول اللي فيه كلمة البحث ضمن نص مكوّن من عدة مقاطع
+function getMatchSegmentIndex(text, f){
+  if(!text) return 99;
+  const words = text.trim().split(/\s+/);
+  for(let i = 0; i < words.length; i++){
+    if(normalizeArabic(words[i].toLowerCase()).includes(f)) return i;
+  }
+  return 99;
+}
+// يرجع [الرتبة الرئيسية, رتبة فرعية حسب رقم المقطع] لترتيب نتائج البحث حسب الصلة
+function getSearchRelevanceRank(c, f){
+  const name = normalizeArabic((c.fn || '').toLowerCase());
+  const nick = normalizeArabic((c.nickname || '').toLowerCase());
+  if(name.startsWith(f)) return [0, 0];   // الاسم يبدأ بكلمة البحث
+  if(nick.startsWith(f)) return [1, 0];   // اللقب يبدأ بكلمة البحث
+  if(name.includes(f)) return [2, getMatchSegmentIndex(name, f)];   // كلمة البحث بوسط الاسم أو آخره
+  if(nick.includes(f)) return [3, getMatchSegmentIndex(nick, f)];   // كلمة البحث بوسط اللقب أو آخره
+  return [4, 0];                          // التطابق بحقل ثاني (هاتف/بريد/شركة...) فقط
+}
 function renderList(filter=''){
   const list = $('#contactList');
   list.innerHTML = '';
   const fragment = document.createDocumentFragment();
   const f = normalizeArabic(filter.trim().toLowerCase());
+  const isPlainTextSearch = f && !/^\+?\d+$/.test(filter.trim()) && !f.includes('+');
   const filtered = getFilteredContacts(filter).slice().sort((a,b) => {
+    if(isPlainTextSearch){
+      const ra = getSearchRelevanceRank(a, f), rb = getSearchRelevanceRank(b, f);
+      if(ra[0] !== rb[0]) return ra[0] - rb[0];
+      if(ra[1] !== rb[1]) return ra[1] - rb[1];
+    }
     const aStar = isStarredContact(a), bStar = isStarredContact(b);
     if(aStar !== bStar) return aStar ? -1 : 1;
-    return sortReversed ? b.fn.localeCompare(a.fn, 'ar') : a.fn.localeCompare(b.fn, 'ar');
+    return sortReversed ? contactNameCompare(b.fn, a.fn) : contactNameCompare(a.fn, b.fn);
   });
 
   const isNumericSearch = /^\+?\d+$/.test(filter.trim());
@@ -2036,7 +2085,22 @@ function renderList(filter=''){
       : (f ? filtered.length : contacts.length) + ' \u00A0جهة اتصال';
   }
 
+  let lastGroupKey = null;
+  const showLetterHeaders = !f && !isNumericSearch;
   for(const c of filtered){
+    if(showLetterHeaders){
+      const starred = isStarredContact(c);
+      if(!starred){
+        const groupKey = getContactLetterKey(c.fn);
+        if(groupKey !== lastGroupKey){
+          const header = document.createElement('div');
+          header.className = 'contact-letter-header';
+          header.textContent = groupKey === 'ه' ? 'هـ' : groupKey;
+          fragment.appendChild(header);
+          lastGroupKey = groupKey;
+        }
+      }
+    }
     fragment.appendChild(buildContactRowElement(c, f));
   }
   list.appendChild(fragment);
