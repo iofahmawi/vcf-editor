@@ -2046,9 +2046,9 @@ function getMatchCategory(c, f){
   const norm = (t) => normalizeArabic((t || '').toLowerCase());
   const name = norm(c.fn);
   const nick = norm(c.nickname);
-  if(name.startsWith(f)) return { rank:0, seg:0, label:'الاسم' };
-  if(nick.startsWith(f)) return { rank:1, seg:0, label:'اللقب' };
-  if(name.includes(f)) return { rank:2, seg:getMatchSegmentIndex(name, f), label:'الاسم' };
+  if(name.startsWith(f)) return { rank:0, seg:0, label:'يبدأ به الاسم' };
+  if(name.includes(f)) return { rank:1, seg:getMatchSegmentIndex(name, f), label:'يوجد بالاسم' };
+  if(nick.startsWith(f)) return { rank:2, seg:0, label:'اللقب' };
   if(nick.includes(f)) return { rank:3, seg:getMatchSegmentIndex(nick, f), label:'اللقب' };
   if(c.phones.some(p => norm(p.value).includes(f))) return { rank:4, seg:0, label:'الهاتف' };
   if(c.phones.some(p => norm(PHONE_LABELS[p.type] || p.type || '').includes(f))) return { rank:5, seg:0, label:'نوع الرقم' };
