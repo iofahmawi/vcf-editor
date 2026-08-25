@@ -834,6 +834,58 @@
 <script>
 let contacts = [];
 
+// ============ حفظ دائم بالجهاز عبر IndexedDB ============
+// يحل محل الاعتماد الكامل على ذاكرة الصفحة المؤقتة: أي تغيير على جهات
+// الاتصال (إضافة/تعديل/حذف/دمج...) يُحفظ تلقائياً على تخزين المتصفح الدائم
+// بالجهاز، ويُعاد تحميله عند فتح الصفحة من جديد دون الحاجة لاستيراد VCF
+// كل مرة. تصدير VCF يبقى متاحاً كما هو كنسخة احتياطية يدوية إضافية.
+const IDB_NAME = 'contactsAppDB';
+const IDB_VERSION = 1;
+const IDB_STORE = 'kv';
+let idbPromise = null;
+function openIDB(){
+  if(idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject) => {
+    if(!('indexedDB' in window)){ reject(new Error('IndexedDB غير مدعوم')); return; }
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return idbPromise;
+}
+function idbGet(key){
+  return openIDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  }));
+}
+function idbSet(key, value){
+  return openIDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+let saveContactsTimer = null;
+// حفظ مؤجَّل (debounce) لتفادي كتابة متكررة أثناء الكتابة بحقل البحث؛ يكفي
+// أن تُستقر التغييرات نصف ثانية قبل الحفظ الفعلي على القرص
+function saveContactsToDB(){
+  clearTimeout(saveContactsTimer);
+  saveContactsTimer = setTimeout(() => {
+    idbSet('contacts', contacts).catch(() => {});
+  }, 400);
+}
+async function loadContactsFromDB(){
+  try{
+    const saved = await idbGet('contacts');
+    if(Array.isArray(saved) && saved.length) contacts = saved;
+  } catch(err){ /* أول تشغيل، أو المتصفح لا يدعم IndexedDB */ }
+}
+
 let undoSnapshot = null;
 
 function saveUndoSnapshot(description){
@@ -2062,6 +2114,7 @@ function getMatchCategory(c, f){
   return { rank:14, seg:0, label:'أخرى' };
 }
 function renderList(filter=''){
+  saveContactsToDB();
   const list = $('#contactList');
   list.innerHTML = '';
   const fragment = document.createDocumentFragment();
@@ -5544,7 +5597,7 @@ window.addEventListener('popstate', (e) => {
   // الرئيسية: لا يوجد مُدخل حماية هنا أصلاً، فالمتصفح/النظام يتولى الخروج مباشرة.
 });
 
-renderScreenUI('home');
+loadContactsFromDB().then(() => renderScreenUI('home'));
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
