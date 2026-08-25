@@ -705,7 +705,7 @@
     </div>
 
     <div id="bulkPhotoListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
-      <div id="bulkPhotoList" style="max-height:34vh; overflow-y:auto; overflow-x:hidden;"></div>
+      <div id="bulkPhotoList" style="max-height:223px; overflow-y:auto; overflow-x:hidden;"></div>
     </div>
 
     <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
@@ -3936,6 +3936,8 @@ function resetBulkPhotoFields(){
 }
 function openBulkPhotoModal(){
   resetBulkPhotoFields();
+  // نفس فكرة نافذة تعديل الصيغة: 4 صفوف بوضع المتصفح (223px)، 5 صفوف بوضع PWA المثبّت (279px)
+  $('#bulkPhotoList').style.maxHeight = (isPWAStandalone() ? 279 : 223) + 'px';
   $('#bulkPhotoModalOverlay').style.display = 'flex';
   safeReplaceState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
 }
