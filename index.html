@@ -2026,7 +2026,6 @@ function getContactLetterKey(name){
   const trimmed = (name || '').trim();
   if(!trimmed) return '#';
   const first = trimmed[0];
-  if(first === 'ا' && trimmed[1] === 'ل') return 'ال';
   if(first in ALEF_VARIANT_PRIORITY) return first;
   return /[a-zA-Z]/.test(first) ? first.toUpperCase() : first;
 }
