@@ -790,7 +790,7 @@
   </div>
 </div>
 
-<div id="nameFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:20px;">
+<div id="nameFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:90vh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصيغة</div>
 
@@ -4355,12 +4355,10 @@ function renderNameFormatList(){
     list.innerHTML = '';
     countEl.textContent = '';
     selectAllBtn.style.display = 'none';
-    $('#nameFormatModalOverlay').style.alignItems = 'flex-start';
     updateNameFormatConfirmState();
     return;
   }
   listWrap.style.display = 'block';
-  $('#nameFormatModalOverlay').style.alignItems = 'safe center';
 
   const matched = (nameFormatShowAll && !q) ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : nameFormatMatchContacts(q);
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
