@@ -583,7 +583,7 @@
   <div class="panel" style="width:100%; max-width:380px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 94px); display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">تعديل البادئة</div>
     <div style="font-size:12.5px; color:var(--muted); margin:10px 0 14px; line-height:1.6; text-align:center;">اترك الحقول فارغة إذا كنت لا تريد إجراء أي تعديل</div>
-    <div id="multiPrefixList" style="overflow-y:auto; flex:1; margin-bottom:14px;"></div>
+    <div id="multiPrefixList" style="overflow-y:auto; overflow-x:hidden; flex:1; margin-bottom:14px;"></div>
     <div style="display:flex; gap:8px;">
       <button type="button" id="multiPrefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="multiPrefixModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
@@ -705,7 +705,7 @@
     </div>
 
     <div id="bulkPhotoListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
-      <div id="bulkPhotoList" style="max-height:34vh; overflow-y:auto;"></div>
+      <div id="bulkPhotoList" style="max-height:34vh; overflow-y:auto; overflow-x:hidden;"></div>
     </div>
 
     <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
@@ -736,7 +736,7 @@
     </div>
 
     <div id="embedPhotosListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:18px; overflow:hidden;">
-      <div id="embedPhotosList" style="max-height:40vh; overflow-y:auto;"></div>
+      <div id="embedPhotosList" style="max-height:40vh; overflow-y:auto; overflow-x:hidden;"></div>
     </div>
 
     <div style="display:flex; gap:8px;">
@@ -753,7 +753,7 @@
     <div class="field-group" style="margin-bottom:20px;">
       <label>اختر مجموعة موجودة</label>
       <div style="border:1.07px solid var(--border-light); border-radius:10px; overflow:hidden; position:relative;">
-        <div id="unifyGroupPickerList" style="max-height:131px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; scrollbar-width:none;"></div>
+        <div id="unifyGroupPickerList" style="max-height:131px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; scrollbar-width:none;"></div>
         <div id="unifyGroupPickerScrollThumb" style="position:absolute; left:0; top:0; width:4px; border-radius:10px; background:var(--border); display:none; pointer-events:none;"></div>
       </div>
     </div>
@@ -776,7 +776,7 @@
     </div>
 
     <div id="unifyGroupListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden; flex-shrink:0;">
-      <div id="unifyGroupList" style="height:167px; min-height:167px; overflow-y:auto; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; flex-shrink:0;"></div>
+      <div id="unifyGroupList" style="height:167px; min-height:167px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; flex-shrink:0;"></div>
     </div>
 
     <div class="field-group" style="margin-top:14px; margin-bottom:18px;">
