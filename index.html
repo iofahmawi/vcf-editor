@@ -791,8 +791,12 @@
 </div>
 
 <div id="nameFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
-  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:90vh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصيغة</div>
+
+    <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:6px; padding:0 4px;">
+      <button type="button" id="nameFormatShowAllBtn" class="link-btn" style="color:var(--muted); font-size:12.5px; font-weight:700; background:none; padding:4px;">عرض الكل</button>
+    </div>
 
     <input type="text" id="nameFormatSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
@@ -802,7 +806,7 @@
     </div>
 
     <div id="nameFormatListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
-      <div id="nameFormatList" style="max-height:34vh; overflow-y:auto;"></div>
+      <div id="nameFormatList" style="max-height:223px; overflow-y:auto;"></div>
     </div>
 
     <div class="field-group" style="margin-bottom:14px;">
@@ -4294,12 +4298,20 @@ $('#menuNameFormatOpt').addEventListener('click', () => {
   closeListMenuDropdown();
   openNameFormatModal();
 });
+// تكتشف إذا كان التطبيق يعمل مثبّتاً كـ PWA (standalone) أو داخل متصفح عادي بتبويب
+function isPWAStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+let nameFormatShowAll = false;
 function openNameFormatModal(){
   nameFormatSelectedIds = new Set();
+  nameFormatShowAll = false;
   $('#nameFormatSearch').value = '';
   $('#nameFormatValue').value = '';
   selectedCaseStyle = null;
   updateCaseStyleButtonsUI();
+  // 4 صفوف بوضع المتصفح (224px)، 5 صفوف بوضع PWA المثبّت (280px)
+  $('#nameFormatList').style.maxHeight = (isPWAStandalone() ? 279 : 223) + 'px';
   renderNameFormatList();
   updateNameFormatConfirmState();
   $('#nameFormatModalOverlay').style.display = 'flex';
@@ -4316,7 +4328,7 @@ function nameFormatMatchContacts(query){
   const trimmed = query.trim();
   // كتابة "الكل" أو "الجميع" تعرض كل جهات الاتصال دفعة واحدة، مفيد مثلاً لتوحيد
   // حالة الأحرف اللاتينية (AA/aa/Aa) لكل الأسماء دفعة واحدة.
-  if(trimmed === 'الكل' || trimmed === 'الجميع') return contacts.slice();
+  if(trimmed === 'الكل' || trimmed === 'الجميع') return contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
   const f = normalizeArabic(trimmed.toLowerCase());
   if(!f) return [];
   return contacts.filter(c => {
@@ -4328,7 +4340,7 @@ function nameFormatMatchContacts(query){
       ...(c.adrs || []).map(a => a.value)
     ].join(' ').toLowerCase());
     return hay.includes(f);
-  });
+  }).sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
 }
 function renderNameFormatList(){
   const q = $('#nameFormatSearch').value.trim();
@@ -4336,8 +4348,9 @@ function renderNameFormatList(){
   const listWrap = $('#nameFormatListWrap');
   const countEl = $('#nameFormatCount');
   const selectAllBtn = $('#nameFormatSelectAll');
+  const showAllBtn = $('#nameFormatShowAllBtn');
 
-  if(!q){
+  if(!q && !nameFormatShowAll){
     listWrap.style.display = 'none';
     list.innerHTML = '';
     countEl.textContent = '';
@@ -4347,7 +4360,7 @@ function renderNameFormatList(){
   }
   listWrap.style.display = 'block';
 
-  const matched = nameFormatMatchContacts(q);
+  const matched = (nameFormatShowAll && !q) ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : nameFormatMatchContacts(q);
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
 
   if(!matched.length){
@@ -4392,7 +4405,15 @@ function updateNameFormatCountAndSelectAll(matched){
   selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
 }
 
-$('#nameFormatSearch').addEventListener('input', renderNameFormatList);
+$('#nameFormatSearch').addEventListener('input', () => {
+  if($('#nameFormatSearch').value.trim()) nameFormatShowAll = false;
+  renderNameFormatList();
+});
+$('#nameFormatShowAllBtn').addEventListener('click', () => {
+  nameFormatShowAll = !nameFormatShowAll;
+  if(nameFormatShowAll) $('#nameFormatSearch').value = '';
+  renderNameFormatList();
+});
 $('#nameFormatSearch').addEventListener('keydown', (e) => {
   if(e.key === 'Enter'){ e.preventDefault(); $('#nameFormatSearch').blur(); }
 });
