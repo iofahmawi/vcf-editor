@@ -227,6 +227,7 @@
   .mp-old::placeholder, .mp-new::placeholder{ color: #B6BEC9; }
   #nameFormatSearch::placeholder, #nameFormatValue::placeholder{ color: #B6BEC9; }
   #listPhotoUrlInline::placeholder{ color: #B6BEC9; }
+  #bulkFieldTextValue::placeholder{ color: #B6BEC9; }
   #unifyGroupValue{ padding-top:8px; padding-bottom:8px; line-height:2; }
   .merge-custom-name{ border:none !important; border-radius:0 !important; transition: background 0.2s; }
   .merge-custom-name:focus{ background:var(--card2); }
@@ -327,11 +328,12 @@
   #bulkPhotoList::-webkit-scrollbar{ width:5px; }
   #bulkPhotoList::-webkit-scrollbar-track{ background:transparent; }
   #bulkPhotoList::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
-  #unifyGroupPickerList, #unifyGroupList{ scrollbar-width:thin; scrollbar-color: var(--border) transparent; }
-  #unifyGroupPickerList::-webkit-scrollbar, #unifyGroupList::-webkit-scrollbar{ width:4px; }
-  #unifyGroupPickerList::-webkit-scrollbar-track, #unifyGroupList::-webkit-scrollbar-track{ background:transparent; margin:6px 0; }
-  #unifyGroupPickerList::-webkit-scrollbar-thumb, #unifyGroupList::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
+  #unifyGroupPickerList, #unifyGroupList, #bulkFieldPickerList{ scrollbar-width:thin; scrollbar-color: var(--border) transparent; }
+  #unifyGroupPickerList::-webkit-scrollbar, #unifyGroupList::-webkit-scrollbar, #bulkFieldPickerList::-webkit-scrollbar{ width:4px; }
+  #unifyGroupPickerList::-webkit-scrollbar-track, #unifyGroupList::-webkit-scrollbar-track, #bulkFieldPickerList::-webkit-scrollbar-track{ background:transparent; margin:6px 0; }
+  #unifyGroupPickerList::-webkit-scrollbar-thumb, #unifyGroupList::-webkit-scrollbar-thumb, #bulkFieldPickerList::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
   #unifyGroupPickerList::-webkit-scrollbar{ display:none; }
+  #bulkFieldPickerList::-webkit-scrollbar{ display:none; }
   .merge-photo-row{ display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
   .merge-photo-opt{
     width:56px; height:56px; border-radius:12px; border:2px solid var(--border); cursor:pointer;
@@ -366,13 +368,14 @@
   <div style="position:relative; display:inline-block;">
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
     <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:147px; z-index:30; overflow:hidden;">
-      <button type="button" class="link-btn" id="menuUndoOpt" disabled style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border); cursor:default;"><span id="menuUndoOptText" style="opacity:0.4;">تراجع</span></button>
+      <button type="button" class="link-btn" id="menuUndoOpt" style="display:none; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);"><span id="menuUndoOptText">تراجع</span></button>
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
       <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">إدارة المجموعات</button>
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصور</button>
       <button type="button" class="link-btn" id="menuEmbedLinkedPhotosOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تضمين صور الروابط</button>
       <button type="button" class="link-btn" id="menuNameFormatOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصيغة</button>
+      <button type="button" class="link-btn" id="menuBulkActionOpt" style="display:none; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);"><span id="menuBulkActionOptText">إضافة نص إلى حقل</span></button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
     </div>
   </div>
@@ -635,6 +638,24 @@
   </div>
 </div>
 
+<div id="bulkFieldTextModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div id="bulkFieldTextTitle" style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">إضافة نص لحقل</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:16px 0 8px; line-height:1.6; text-align:center;">اختر الحقل</div>
+    <div style="border:1.07px solid var(--border-light); border-radius:10px; overflow:hidden; position:relative; margin-bottom:14px;">
+      <div id="bulkFieldPickerList" style="max-height:175px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; scrollbar-width:none;"></div>
+      <div id="bulkFieldPickerScrollThumb" style="position:absolute; left:0; top:0; width:4px; border-radius:10px; background:var(--border); display:none; pointer-events:none;"></div>
+    </div>
+    <textarea id="bulkFieldTextValue" rows="3" placeholder="النص الذي سيحل محل محتوى الحقل الحالي" style="width:100%; box-sizing:border-box; height:auto; min-height:70px; resize:none; margin-bottom:8px;"></textarea>
+    <div style="font-size:12px; color:var(--muted); margin-bottom:14px; line-height:1.6; text-align:center;">سيتم استبدال محتوى الحقل الحالي بالكامل لكل الجهات المحددة</div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="bulkFieldTextCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="bulkFieldTextConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+
 <div id="saveFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
     <div id="saveFormatTitle" style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">اختر صيغة الحفظ</div>
@@ -894,23 +915,17 @@ function saveUndoSnapshot(description){
   undoSnapshot = { contacts: JSON.parse(JSON.stringify(contacts)), description };
   const btn = $('#menuUndoOpt');
   if(btn){
-    btn.disabled = false;
-    btn.style.cursor = 'pointer';
-    const txt = $('#menuUndoOptText');
-    if(txt) txt.style.opacity = '1';
+    btn.style.display = 'block';
   }
 }
 
-// تصفّر لقطة التراجع وتعطّل زر "تراجع" — تُستدعى عند بدء ملف جديد كلياً
+// تصفّر لقطة التراجع وتخفي زر "تراجع" — تُستدعى عند بدء ملف جديد كلياً
 // (رفع ملف جديد أو "ملف جديد") لمنع تراجع قديم من الكتابة فوق الملف الجديد
 function clearUndoSnapshot(){
   undoSnapshot = null;
   const btn = $('#menuUndoOpt');
   if(btn){
-    btn.disabled = true;
-    btn.style.cursor = 'default';
-    const txt = $('#menuUndoOptText');
-    if(txt) txt.style.opacity = '0.4';
+    btn.style.display = 'none';
   }
 }
 
@@ -921,10 +936,7 @@ function performUndo(){
   undoSnapshot = null;
   const btn = $('#menuUndoOpt');
   if(btn){
-    btn.disabled = true;
-    btn.style.cursor = 'default';
-    const txt = $('#menuUndoOptText');
-    if(txt) txt.style.opacity = '0.4';
+    btn.style.display = 'none';
   }
   refreshPrefixOptions();
   renderList($('#search').value);
@@ -2717,6 +2729,83 @@ $('#prefixSelectedBtn').addEventListener('click', () => {
   if(selectionHasAnyPhone()) openMultiPrefixModal(Array.from(selectedIds));
 });
 
+// نافذة "إضافة نص لحقل" — يفتحها زر "إضافة نص إلى حقل" بقائمة ⋮
+// (⋮ > إضافة نص إلى حقل، مفعّل فقط أثناء وجود تحديد فعّال)
+const BULK_FIELD_TEXT_LABELS = { fn:'الاسم', nickname:'اللقب', note:'الملاحظات', org:'الشركة', title:'المسمى الوظيفي', dept:'القسم', categories:'المجموعات' };
+const BULK_FIELD_TEXT_ORDER = ['fn', 'nickname', 'org', 'dept', 'title', 'categories', 'note'];
+let bulkFieldTextSelected = 'org';
+
+function renderBulkFieldPickerList(){
+  const listEl = $('#bulkFieldPickerList');
+  listEl.innerHTML = BULK_FIELD_TEXT_ORDER.map((key, idx) => {
+    const isLast = idx === BULK_FIELD_TEXT_ORDER.length - 1;
+    const isSel = key === bulkFieldTextSelected;
+    return `<button type="button" class="bulkFieldPickerItem" data-field="${key}" style="display:flex; align-items:center; justify-content:space-between; width:100%; height:44px; box-sizing:border-box; padding:0 14px; background:${isSel ? 'var(--card2)' : 'none'}; border:none; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; font-family:var(--font-body); font-weight:${isSel ? '700' : '400'}; font-size:13px; color:${isSel ? 'var(--accent)' : 'var(--text)'}; text-align:right;">
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.8;">${BULK_FIELD_TEXT_LABELS[key]}</span>
+      ${isSel ? '<span style="color:var(--accent); font-size:13px; flex:0 0 auto; margin-right:8px;">✓</span>' : ''}
+    </button>`;
+  }).join('');
+  listEl.querySelectorAll('.bulkFieldPickerItem').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bulkFieldTextSelected = btn.dataset.field;
+      renderBulkFieldPickerList();
+    });
+  });
+  updateBulkFieldPickerThumb();
+}
+function updateBulkFieldPickerThumb(){
+  const list = $('#bulkFieldPickerList');
+  const thumb = $('#bulkFieldPickerScrollThumb');
+  const trackH = list.clientHeight;
+  const contentH = list.scrollHeight;
+  if(contentH <= trackH + 1){ thumb.style.display = 'none'; return; }
+  thumb.style.display = 'block';
+  const thumbH = Math.round(trackH * 0.65);
+  thumb.style.height = thumbH + 'px';
+  const maxScroll = contentH - trackH;
+  const maxThumbTravel = trackH - thumbH;
+  const scrollRatio = maxScroll > 0 ? (list.scrollTop / maxScroll) : 0;
+  thumb.style.top = Math.round(scrollRatio * maxThumbTravel) + 'px';
+}
+$('#bulkFieldPickerList').addEventListener('scroll', updateBulkFieldPickerThumb, { passive:true });
+
+function openBulkFieldTextModal(){
+  $('#bulkFieldTextTitle').textContent = 'إضافة نص لـ ' + selectedIds.size + ' جهة اتصال';
+  bulkFieldTextSelected = 'org';
+  $('#bulkFieldTextValue').value = '';
+  $('#bulkFieldTextModalOverlay').style.display = 'flex';
+  renderBulkFieldPickerList();
+  $('#bulkFieldPickerList').scrollTop = 0;
+  safeReplaceState({ screen: 'list', modal: 'bulkFieldText' }, '', '#list');
+  setTimeout(() => $('#bulkFieldTextValue').focus(), 50);
+}
+function closeBulkFieldTextModal(){
+  if($('#bulkFieldTextModalOverlay').style.display === 'none') return;
+  $('#bulkFieldTextModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#bulkFieldTextCancel').addEventListener('click', closeBulkFieldTextModal);
+$('#bulkFieldTextModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'bulkFieldTextModalOverlay') closeBulkFieldTextModal(); });
+$('#bulkFieldTextConfirm').addEventListener('click', () => {
+  const field = bulkFieldTextSelected;
+  const val = $('#bulkFieldTextValue').value.trim();
+  if(!val || selectedIds.size === 0) return;
+  const label = BULK_FIELD_TEXT_LABELS[field] || field;
+  saveUndoSnapshot('إضافة نص لحقل ' + label + ' لـ' + selectedIds.size + ' جهة اتصال');
+  let count = 0;
+  contacts.forEach(c => {
+    if(selectedIds.has(c.id)){
+      c[field] = (field === 'categories') ? categoriesFromDisplay(val) : val;
+      count++;
+    }
+  });
+  exitSelectionModeAndSync();
+  renderList($('#search').value);
+  toast('تم تحديث ' + label + ' لـ ' + count + ' جهة اتصال');
+  closeBulkFieldTextModal();
+});
+
 $('#prefixDeleteBtn').addEventListener('click', () => {
   const matched = getFilteredContacts($('#search').value);
   if(matched.length === 0) return;
@@ -3584,6 +3673,9 @@ $('#fabAdd').addEventListener('click', () => {
 });
 
 function openListMenuDropdown(){
+  const bulkActionBtn = $('#menuBulkActionOpt');
+  const bulkActionEnabled = selectionMode && selectedIds.size > 0;
+  bulkActionBtn.style.display = bulkActionEnabled ? 'block' : 'none';
   $('#listMenuDropdown').style.display = 'block';
   safePushState({ screen: 'list', menu: true }, '', '#list');
 }
@@ -4101,6 +4193,11 @@ let unifyGroupActiveGroupName = null;
 $('#menuUnifyGroupOpt').addEventListener('click', () => {
   closeListMenuDropdown();
   openUnifyGroupModal();
+});
+$('#menuBulkActionOpt').addEventListener('click', () => {
+  if(!(selectionMode && selectedIds.size > 0)) return;
+  closeListMenuDropdown();
+  openBulkFieldTextModal();
 });
 // يصفّر حقول نافذة إدارة المجموعات (البحث، التحديد، اسم المجموعة) للبدء بعملية
 // جديدة، دون إغلاق النافذة نفسها. تُستخدم عند الفتح الأول وأيضاً بعد كل "تطبيق"
@@ -5428,6 +5525,7 @@ function closeTopmostListModalIfOpen(){
     ['#mergeModalOverlay', closeMergeModal],
     ['#photoUrlModalOverlay', closePhotoUrlModal],
     ['#prefixDeleteModalOverlay', closePrefixDeleteModal],
+    ['#bulkFieldTextModalOverlay', closeBulkFieldTextModal],
     ['#removeGroupModalOverlay', closeRemoveGroupModal],
   ];
   for(const [sel, closeFn] of modals){
@@ -5597,6 +5695,11 @@ window.addEventListener('popstate', (e) => {
 
   if($('#prefixDeleteModalOverlay').style.display !== 'none'){
     $('#prefixDeleteModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#bulkFieldTextModalOverlay').style.display !== 'none'){
+    $('#bulkFieldTextModalOverlay').style.display = 'none';
     return;
   }
 
