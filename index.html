@@ -233,6 +233,7 @@
   .merge-custom-name:focus{ background:var(--card2); }
   textarea{ resize:none; height:46px; min-height:46px; overflow:hidden; }
   
+  #f-samsungadr{ padding:11px 6px; }
   .multi-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; touch-action:pan-y; }
   .multi-row select, .multi-row input.type-text{
     flex:1; min-width:0; padding:11px 8px; border-radius:10px;
@@ -509,6 +510,10 @@
       <div class="field-group">
         <label>العنوان</label>
         <div id="adrList"></div>
+        <div id="samsungAdrGroup" style="display:none;margin-top:8px;margin-bottom:8px;">
+          <label>معلومات اضافية للموقع</label>
+          <input type="text" id="f-samsungadr">
+        </div>
         <button class="add-link" id="addAdr">+ إضافة عنوان</button>
       </div>
       <div class="field-group">
@@ -1106,7 +1111,7 @@ function parseVCF(text){
     const upper = line.toUpperCase();
     if(upper.startsWith('BEGIN:VCARD')){
       cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adrs:[], categories:'', bday:'',
-              phones:[], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null, _itemRefs:{} };
+              phones:[], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null, samsungAdr:'', _itemRefs:{} };
       continue;
     }
     if(upper.startsWith('END:VCARD')){
@@ -1256,6 +1261,9 @@ function parseVCF(text){
         }
         break;
       }
+      case 'X-SAMSUNGADR':
+        if(!cur.samsungAdr) cur.samsungAdr = unescapeVal(value.split(';').filter(Boolean).join(', ')).replace(/^[\u200E\u200F]+/, '');
+        break;
       case 'X-ANDROID-CUSTOM': {
         const parts = value.split(';');
         if(parts[0] && parts[0].toLowerCase() === 'vnd.android.cursor.item/nickname' && parts[1]){
@@ -1682,6 +1690,7 @@ function buildVCFSamsung(contactsArr){
       if(!a.value) continue;
       out += buildAdrSamsung(a);
     }
+    if(c.samsungAdr) out += qpField('X-SAMSUNGADR', c.samsungAdr);
     // ملاحظة: سامسونج لا تدعم CATEGORIES أصلاً في تصديرها الأصلي، لذا لا تُصدَّر
     // هنا (تُفقد علامة المفضّلة/المجموعات عند التصدير بهذه الصيغة تحديداً)
     if(c.bday) out += 'BDAY:' + c.bday + '\n';
@@ -1760,6 +1769,7 @@ function buildVCFGoogle(contactsArr){
         out += 'ADR' + (cleanAsciiType(t) ? ';TYPE=' + cleanAsciiType(t) : '') + ':;;\u200E' + escapeVal(a.value) + ';;;;\n';
       }
     }
+    if(c.samsungAdr) out += 'X-SAMSUNGADR:' + escapeVal(c.samsungAdr) + '\n';
     if(c.org || c.dept) out += 'ORG:' + escapeVal(c.org || '') + (c.dept ? ';' + escapeVal(c.dept) : '') + '\n';
     if(c.title) out += 'TITLE:' + escapeVal(c.title) + '\n';
     if(c.categories){
@@ -3066,6 +3076,9 @@ function openEdit(id){
   renderMultiList('urlList', c.urls || [], URL_TYPES, URL_LABELS, 'url');
   renderMultiList('adrList', c.adrs || [], ADR_TYPES, ADR_LABELS, 'address');
 
+  $('#f-samsungadr').value = c.samsungAdr || '';
+  $('#samsungAdrGroup').style.display = c.samsungAdr ? '' : 'none';
+
   $('#rawNote').textContent = c.rawExtra.length
     ? 'يحتوي هذا الجهة على ' + c.rawExtra.length + ' خاصية إضافية سيتم الاحتفاظ بها تلقائياً عند الحفظ.'
     : '';
@@ -3584,6 +3597,7 @@ $('#f-title').addEventListener('input', () => { const c = contacts.find(x => x.i
 function autoGrowNote(){ const el = $('#f-note'); el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 46) + 'px'; }
 $('#f-note').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.note = $('#f-note').value; autoGrowNote(); });
 $('#f-categories').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.categories = categoriesFromDisplay($('#f-categories').value); });
+$('#f-samsungadr').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.samsungAdr = $('#f-samsungadr').value; });
 $('#f-bday').addEventListener('input', () => {
   const c = contacts.find(x => x.id === currentId);
   if(c) c.bday = $('#f-bday').value;
@@ -5084,6 +5098,7 @@ function buildMergePlan(ids, choices){
   }
 
   const rawExtra = list.map(c => c.rawExtra).find(r => r && r.length) || [];
+  const samsungAdr = list.map(c => c.samsungAdr).find(Boolean) || '';
 
   return {
     conflicts: {
@@ -5095,7 +5110,7 @@ function buildMergePlan(ids, choices){
       title: titleR.conflict ? titleR.distinct : null,
       bday: bdayR.conflict ? bdayR.distinct : null
     },
-    merged: { id: list[0].id, fn, nickname, org, dept, title, note, adrs, categories, bday, phones, emails, urls, rawExtra, version: list[0].version || '3.0', photo, photoUrl },
+    merged: { id: list[0].id, fn, nickname, org, dept, title, note, adrs, categories, bday, phones, emails, urls, rawExtra, samsungAdr, version: list[0].version || '3.0', photo, photoUrl },
     sourceIds: list.map(c => c.id)
   };
 }
