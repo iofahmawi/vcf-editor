@@ -375,7 +375,7 @@
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصور</button>
       <button type="button" class="link-btn" id="menuEmbedLinkedPhotosOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تضمين صور الروابط</button>
       <button type="button" class="link-btn" id="menuNameFormatOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصيغة</button>
-      <button type="button" class="link-btn" id="menuBulkActionOpt" style="display:none; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);"><span id="menuBulkActionOptText">إضافة نص إلى حقل</span></button>
+      <button type="button" class="link-btn" id="menuBulkActionOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);"><span id="menuBulkActionOptText">إضافة نص إلى حقل</span></button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
     </div>
   </div>
@@ -2790,9 +2790,10 @@ $('#bulkFieldTextModalOverlay').addEventListener('click', (e) => { if(e.target.i
 $('#bulkFieldTextConfirm').addEventListener('click', () => {
   const field = bulkFieldTextSelected;
   const val = $('#bulkFieldTextValue').value.trim();
-  if(!val || selectedIds.size === 0) return;
+  if(selectedIds.size === 0) return;
   const label = BULK_FIELD_TEXT_LABELS[field] || field;
-  saveUndoSnapshot('إضافة نص لحقل ' + label + ' لـ' + selectedIds.size + ' جهة اتصال');
+  const actionDesc = val ? ('إضافة نص لحقل ' + label + ' لـ' + selectedIds.size + ' جهة اتصال') : ('مسح حقل ' + label + ' لـ' + selectedIds.size + ' جهة اتصال');
+  saveUndoSnapshot(actionDesc);
   let count = 0;
   contacts.forEach(c => {
     if(selectedIds.has(c.id)){
@@ -2802,7 +2803,7 @@ $('#bulkFieldTextConfirm').addEventListener('click', () => {
   });
   exitSelectionModeAndSync();
   renderList($('#search').value);
-  toast('تم تحديث ' + label + ' لـ ' + count + ' جهة اتصال');
+  toast((val ? 'تم تحديث ' : 'تم مسح ') + label + ' لـ ' + count + ' جهة اتصال');
   closeBulkFieldTextModal();
 });
 
@@ -3673,9 +3674,6 @@ $('#fabAdd').addEventListener('click', () => {
 });
 
 function openListMenuDropdown(){
-  const bulkActionBtn = $('#menuBulkActionOpt');
-  const bulkActionEnabled = selectionMode && selectedIds.size > 0;
-  bulkActionBtn.style.display = bulkActionEnabled ? 'block' : 'none';
   $('#listMenuDropdown').style.display = 'block';
   safePushState({ screen: 'list', menu: true }, '', '#list');
 }
@@ -3722,7 +3720,7 @@ $('#menuEmbedLinkedPhotosOpt').addEventListener('click', () => {
   // الضغط على "خروج" لا يستجيب من أول ضغطة) — نفس فئة العطل الموثقة عند
   // menuDupOpt وmenuBulkPhotoOpt.
   const pendingCount = contacts.filter(c => c.photoUrl && !c.photo).length;
-  if(pendingCount === 0){ toast('لا توجد صور مرتبطة بحاجة للتضمين'); return; }
+  if(pendingCount === 0){ closeListMenuDropdownAndSync(); toast('لا توجد صور مرتبطة بحاجة للتضمين'); return; }
   closeListMenuDropdown();
   openEmbedPhotosModal();
 });
@@ -4195,7 +4193,11 @@ $('#menuUnifyGroupOpt').addEventListener('click', () => {
   openUnifyGroupModal();
 });
 $('#menuBulkActionOpt').addEventListener('click', () => {
-  if(!(selectionMode && selectedIds.size > 0)) return;
+  if(!(selectionMode && selectedIds.size > 0)){
+    closeListMenuDropdownAndSync();
+    toast('يرجى اختيار جهات اتصال أولاً');
+    return;
+  }
   closeListMenuDropdown();
   openBulkFieldTextModal();
 });
