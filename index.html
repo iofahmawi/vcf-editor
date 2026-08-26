@@ -346,7 +346,7 @@
   .merge-photo-opt img{ width:100%; height:100%; object-fit:cover; }
   .merge-photo-opt.selected{ border-color:var(--accent); }
   .dup-merge-btn{
-    color:var(--accent); background:var(--card2); border:none; border-radius:8px; padding:4px 10px 8px;
+    color:var(--accent); background:var(--card2); border:none; border-radius:8px; padding:6px 10px 10px;
     font-family:var(--font-body); font-weight:700; font-size:12px; cursor:pointer;
   }
   .dup-merge-btn:active{ background:var(--border); }
@@ -5004,7 +5004,7 @@ function renderDuplicates(){
 
     entries.forEach(e => {
       const row = document.createElement('div');
-      row.style.cssText = 'padding:7px 0; cursor:pointer; font-size:13px; font-weight:600; color:var(--accent);';
+      row.style.cssText = 'padding:8px 0; cursor:pointer; font-size:13px; font-weight:600; color:var(--accent);';
       row.innerHTML = '<span style="color:var(--muted); font-weight:700;">جهة الإتصال &nbsp;:&nbsp; </span>' + escapeHtml(e.fn);
       row.addEventListener('click', () => openEdit(e.id));
       group.appendChild(row);
