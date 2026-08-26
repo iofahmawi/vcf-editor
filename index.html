@@ -643,11 +643,13 @@
       <button type="button" id="compatSamsungBtn" class="compat-opt" style="flex:1 1 0; min-width:0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">سامسونج</button>
       <button type="button" id="compatGoogleBtn" class="compat-opt" style="flex:1 1 0; min-width:0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">جوجل و iOS</button>
     </div>
-    <div style="font-size:13.5px; color:var(--muted); margin:18px 0 14px; line-height:1.6; text-align:center;">أبعاد الصور</div>
-    <div style="display:flex; gap:8px;">
-      <button type="button" id="photoSize512Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">512</button>
-      <button type="button" id="photoSize720Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">720</button>
-      <button type="button" id="photoSize1080Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">1024</button>
+    <div id="saveFormatPhotoSizeSection">
+      <div style="font-size:13.5px; color:var(--muted); margin:18px 0 14px; line-height:1.6; text-align:center;">أبعاد الصور</div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" id="photoSize512Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">512</button>
+        <button type="button" id="photoSize720Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">720</button>
+        <button type="button" id="photoSize1080Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">1024</button>
+      </div>
     </div>
     <div style="margin:18px 0 14px;"></div>
     <div id="saveFormatSubtitle" style="font-size:13.5px; color:var(--muted); margin:0 0 14px; line-height:1.6; text-align:center;">صيغة الملف</div>
@@ -655,7 +657,7 @@
       <button type="button" id="saveFormatCsvBtn" style="flex:1 1 0; margin:0; padding:13px; background:var(--card2); color:var(--text); border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">CSV</button>
       <button type="button" id="saveFormatVcfBtn" style="flex:1 1 0; margin:0; padding:13px; background:var(--card2); color:var(--text); border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">VCF</button>
     </div>
-    <div style="font-size:12px; color:var(--muted); margin-top:20px; line-height:normal; text-align:center;">الصور تصدر فقط مع ملفات VCF</div>
+    <div id="saveFormatPhotoNote" style="font-size:12px; color:var(--muted); margin-top:20px; line-height:normal; text-align:center;">الصور المضمّنة بالملف تصدر فقط مع صيغة VCF</div>
   </div>
 </div>
 
@@ -736,7 +738,7 @@
     </div>
 
     <div id="embedPhotosListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:18px; overflow:hidden;">
-      <div id="embedPhotosList" style="max-height:40vh; overflow-y:auto; overflow-x:hidden;"></div>
+      <div id="embedPhotosList" style="max-height:335px; overflow-y:auto; overflow-x:hidden;"></div>
     </div>
 
     <div style="display:flex; gap:8px;">
@@ -3821,9 +3823,11 @@ $('#menuSortOpt').addEventListener('click', () => {
 // أو بعد تأكيد المستخدم عبر نافذة "البحث ما زال مفعّلاً".
 function openSaveFormatModal(){
   const { list, scope } = getExportScopeContacts();
+  saveFormatScopeList = list;
   $('#saveFormatTitle').textContent = scope === 'all'
     ? 'اختر صيغة الحفظ'
     : 'تصدير ' + list.length + ' جهات اتصال';
+  updateSaveFormatPhotoSizeVisibility();
   // كل فتح للنافذة يبدأ من الافتراضي (أندرويد + 720) بغض النظر عن آخر اختيار
   setExportCompat('samsung');
   $('#saveFormatModalOverlay').style.display = 'flex';
@@ -3897,6 +3901,8 @@ function setExportCompat(target){
   $('#compatGoogleBtn').style.borderColor = target === 'google' ? 'var(--accent)' : 'transparent';
   // جوجل تعتمد 512 كأبعاد افتراضية للصورة الشخصية عند التصدير
   setExportPhotoSize(720);
+  updateSaveFormatCsvBtnState();
+  updateSaveFormatPhotoNote();
 }
 $('#compatSamsungBtn').addEventListener('click', () => setExportCompat('samsung'));
 $('#compatGoogleBtn').addEventListener('click', () => setExportCompat('google'));
@@ -4073,7 +4079,11 @@ $('#bulkPhotoConfirm').addEventListener('click', () => {
   saveUndoSnapshot(bulkPhotoDataUrl ? 'تغيير الصور' : 'حذف الصور');
   let count = 0;
   contacts.forEach(c => {
-    if(bulkPhotoSelectedIds.has(c.id)){ c.photo = bulkPhotoDataUrl || null; count++; }
+    if(bulkPhotoSelectedIds.has(c.id)){
+      c.photo = bulkPhotoDataUrl || null;
+      c.photoUrl = null;
+      count++;
+    }
   });
   renderList($('#search').value);
   toast(bulkPhotoDataUrl ? ('تم تغيير صورة ' + count + ' جهة اتصال') : ('تم إزالة صورة ' + count + ' جهة اتصال'));
@@ -5219,6 +5229,39 @@ function getExportScopeContacts(){
 
 let selectedExportPhotoSize = 720;
 let selectedExportCompat = 'samsung';
+let saveFormatScopeList = [];
+
+function updateSaveFormatPhotoNote(){
+  const hasPendingLinkedPhotos = saveFormatScopeList.some(c => c.photoUrl && !c.photo);
+  const hasEmbeddedPhotos = saveFormatScopeList.some(c => c.photo);
+  const note = $('#saveFormatPhotoNote');
+  if(selectedExportCompat === 'samsung' && hasPendingLinkedPhotos){
+    note.textContent = 'تطبيق جهات الاتصال لا يدعم الصور بروابط';
+    note.style.display = 'block';
+  } else if(selectedExportCompat === 'samsung' || !hasEmbeddedPhotos){
+    // سامسونج: CSV أصلاً معطّل فلا داعي لرسالة تخص فرق VCF/CSV.
+    // جوجل بلا صور مضمّنة: لا فرق فعلي بين الصيغتين بخصوص الصور، فلا داعي لتوجيه المستخدم.
+    note.style.display = 'none';
+  } else {
+    note.textContent = 'الصور المضمّنة بالملف تصدر فقط مع صيغة VCF';
+    note.style.display = 'block';
+  }
+}
+
+function updateSaveFormatCsvBtnState(){
+  const disabled = selectedExportCompat !== 'google';
+  $('#saveFormatCsvBtn').disabled = disabled;
+  $('#saveFormatCsvBtn').style.opacity = disabled ? '0.45' : '1';
+  $('#saveFormatCsvBtn').style.cursor = disabled ? 'not-allowed' : 'pointer';
+}
+
+// تخفى بالكامل (مو بهتان فقط) إذا ما فيه ولا جهة عندها صورة مضمّنة فعلية
+// بنطاق التصدير الحالي — سواء لعدم وجود صور أصلاً، أو لأن الصور الموجودة
+// مجرد روابط لم تُضمَّن بعد؛ لأن حجم التصدير لا يؤثر إلا على الصور المضمّنة.
+function updateSaveFormatPhotoSizeVisibility(){
+  const hasEmbeddedPhotos = saveFormatScopeList.some(c => c.photo);
+  $('#saveFormatPhotoSizeSection').style.display = hasEmbeddedPhotos ? 'block' : 'none';
+}
 
 async function exportContacts(){
   const { list, scope } = getExportScopeContacts();
