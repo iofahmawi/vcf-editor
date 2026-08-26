@@ -801,7 +801,7 @@
       <button type="button" id="nameFormatShowAllBtn" class="link-btn" style="color:var(--muted); font-size:12.5px; font-weight:700; background:none; padding:0; position:relative; right:1px;">عرض الكل</button>
     </div>
 
-    <input type="text" id="nameFormatSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+    <input type="text" id="nameFormatSearch" placeholder="ابحث عن جهات الاتصال والألقاب" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="nameFormatSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
@@ -814,7 +814,7 @@
 
     <div class="field-group" style="margin-bottom:14px;">
       <label>الصيغة الجديدة</label>
-      <input type="text" id="nameFormatValue" placeholder="الكلمة التي ستحل محل الكلمة المطابقة في الاسم">
+      <input type="text" id="nameFormatValue" placeholder="تطبق الكلمة الجديدة على الاسم واللقب">
     </div>
 
     <div style="margin:2px 0 18px;">
@@ -4483,13 +4483,7 @@ function nameFormatMatchContacts(query){
   const f = normalizeArabic(trimmed.toLowerCase());
   if(!f) return [];
   return contacts.filter(c => {
-    const hay = normalizeArabic([
-      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
-      ...c.phones.map(p => p.value),
-      ...c.emails.map(e => e.value),
-      ...(c.urls || []).map(u => u.value),
-      ...(c.adrs || []).map(a => a.value)
-    ].join(' ').toLowerCase());
+    const hay = normalizeArabic([c.fn, c.nickname].join(' ').toLowerCase());
     return hay.includes(f);
   }).sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
 }
@@ -4645,10 +4639,12 @@ $('#nameFormatConfirm').addEventListener('click', () => {
   contacts.forEach(c => {
     if(nameFormatSelectedIds.has(c.id)){
       const newFn = normalizedReplaceAll(c.fn || '', query, val);
-      if(newFn !== c.fn){
-        c.fn = newFn;
-        count++;
-      }
+      const newNickname = normalizedReplaceAll(c.nickname || '', query, val);
+      const fnChanged = newFn !== c.fn;
+      const nicknameChanged = newNickname !== (c.nickname || '');
+      if(fnChanged) c.fn = newFn;
+      if(nicknameChanged) c.nickname = newNickname;
+      if(fnChanged || nicknameChanged) count++;
     }
   });
   closeNameFormatModal();
