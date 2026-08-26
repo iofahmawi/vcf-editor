@@ -233,29 +233,32 @@
   .merge-custom-name:focus{ background:var(--card2); }
   textarea{ resize:none; height:46px; min-height:46px; overflow:hidden; }
   
-  #f-samsungadr{ padding:11px 6px; }
+  #f-samsungadr{ padding:11px 10px; }
   .multi-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; touch-action:pan-y; }
   .multi-row select, .multi-row input.type-text{
     flex:1; min-width:0; padding:11px 8px; border-radius:10px;
     font-size:13px; font-weight: 500; line-height:1.6;
     box-sizing:border-box; -webkit-appearance:none; appearance:none;
   }
+  .multi-row.row-tel select, .multi-row.row-tel input.type-text{ padding:11px 10px; }
   .multi-row input[type=tel]{
     flex:0 0 120px; width:120px; direction: ltr; text-align: left; border-radius: 10px;
-    box-sizing:border-box; padding:11px 8px; line-height:1.6;
+    box-sizing:border-box; padding:11px 10px; line-height:1.6;
   }
   .multi-row.row-email select, .multi-row.row-email input.type-text,
-  .multi-row.row-url select, .multi-row.row-url input.type-text,
+  .multi-row.row-url select, .multi-row.row-url input.type-text{
+    flex:0 0 102px; width:102px; padding:11px 10px;
+  }
   .multi-row.row-address select, .multi-row.row-address input.type-text{
-    flex:0 0 102px; width:102px; padding:11px 6px;
+    flex:0 0 102px; width:102px; padding:11px 10px;
   }
   .multi-row input[type=email], .multi-row input[type=url]{
     flex:1; min-width:0; direction: ltr; text-align: left; border-radius: 10px;
-    box-sizing:border-box; padding:11px 8px; line-height:1.6;
+    box-sizing:border-box; padding:11px 10px; line-height:1.6;
   }
   .multi-row.row-address input[type=text]:not(.type-text){
     flex:1; min-width:0; border-radius: 10px;
-    box-sizing:border-box; padding:11px 8px; line-height:1.6;
+    box-sizing:border-box; padding:11px 10px; line-height:1.6;
   }
   .rm-btn{ background:var(--danger); color:white; border:none; width: 40px; height: 40px; border-radius: 10px; font-size:14px; font-weight:bold; cursor:pointer; display:none; align-items:center; justify-content:center; flex-shrink:0; }
   
