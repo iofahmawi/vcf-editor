@@ -2128,16 +2128,16 @@ function getMatchCategory(c, f){
   if(name.includes(f)) return { rank:1, seg:getMatchSegmentIndex(name, f), label:'يوجد بالاسم' };
   if(nick.startsWith(f)) return { rank:2, seg:0, label:'اللقب' };
   if(nick.includes(f)) return { rank:3, seg:getMatchSegmentIndex(nick, f), label:'اللقب' };
-  if(c.phones.some(p => norm(p.value).includes(f))) return { rank:4, seg:0, label:'الهاتف' };
-  if(c.phones.some(p => norm(PHONE_LABELS[p.type] || p.type || '').includes(f))) return { rank:5, seg:0, label:'نوع الرقم' };
-  if(c.emails.some(e => norm(e.value).includes(f))) return { rank:6, seg:0, label:'البريد الإلكتروني' };
-  if(norm(c.org).includes(f)) return { rank:7, seg:0, label:'الشركة' };
-  if(norm(c.dept).includes(f)) return { rank:8, seg:0, label:'القسم' };
-  if(norm(c.title).includes(f)) return { rank:9, seg:0, label:'المسمى الوظيفي' };
-  if(norm(c.note).includes(f)) return { rank:10, seg:0, label:'ملاحظة' };
-  if(norm(c.categories).includes(f)) return { rank:11, seg:0, label:'المجموعة' };
-  if((c.urls || []).some(u => norm(u.value).includes(f))) return { rank:12, seg:0, label:'رابط' };
-  if((c.adrs || []).some(a => norm(a.value).includes(f))) return { rank:13, seg:0, label:'العنوان' };
+  if(norm(c.org).includes(f)) return { rank:4, seg:0, label:'الشركة' };
+  if(norm(c.dept).includes(f)) return { rank:5, seg:0, label:'القسم' };
+  if(norm(c.title).includes(f)) return { rank:6, seg:0, label:'المسمى الوظيفي' };
+  if(c.phones.some(p => norm(p.value).includes(f))) return { rank:7, seg:0, label:'الهاتف' };
+  if(c.phones.some(p => norm(PHONE_LABELS[p.type] || p.type || '').includes(f))) return { rank:8, seg:0, label:'نوع الرقم' };
+  if(c.emails.some(e => norm(e.value).includes(f))) return { rank:9, seg:0, label:'البريد الإلكتروني' };
+  if((c.urls || []).some(u => norm(u.value).includes(f))) return { rank:10, seg:0, label:'رابط' };
+  if((c.adrs || []).some(a => norm(a.value).includes(f))) return { rank:11, seg:0, label:'العنوان' };
+  if(norm(c.categories).includes(f)) return { rank:12, seg:0, label:'المجموعة' };
+  if(norm(c.note).includes(f)) return { rank:13, seg:0, label:'ملاحظة' };
   return { rank:14, seg:0, label:'أخرى' };
 }
 function renderList(filter=''){
