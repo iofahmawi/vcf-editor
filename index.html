@@ -830,7 +830,7 @@
       <button type="button" id="nameFormatShowAllBtn" class="link-btn" style="color:var(--muted); font-size:12.5px; font-weight:700; background:none; padding:0; position:relative; right:1px;">عرض الكل</button>
     </div>
 
-    <input type="text" id="nameFormatSearch" placeholder="ابحث عن جهات الاتصال والألقاب" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+    <input type="text" id="nameFormatSearch" placeholder="الكلمة أو الجملة المراد البحث عنها" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="nameFormatSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
@@ -843,7 +843,7 @@
 
     <div class="field-group" style="margin-bottom:14px;">
       <label>الصيغة الجديدة</label>
-      <input type="text" id="nameFormatValue" placeholder="تطبق الكلمة الجديدة على الاسم واللقب">
+      <input type="text" id="nameFormatValue" placeholder="تطبق على الاسم واللقب والشركة والوظيفة">
     </div>
 
     <div style="margin:2px 0 18px;">
@@ -4599,7 +4599,7 @@ function nameFormatMatchContacts(query){
   const f = normalizeArabic(trimmed.toLowerCase());
   if(!f) return [];
   return contacts.filter(c => {
-    const hay = normalizeArabic([c.fn, c.nickname].join(' ').toLowerCase());
+    const hay = normalizeArabic([c.fn, c.nickname, c.org, c.title].join(' ').toLowerCase());
     return hay.includes(f);
   }).sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
 }
@@ -4693,7 +4693,8 @@ function updateNameFormatConfirmState(){
   const valueInput = $('#nameFormatValue');
   valueInput.disabled = !!selectedCaseStyle;
   valueInput.style.opacity = selectedCaseStyle ? '0.45' : '1';
-  const ready = nameFormatSelectedIds.size > 0 && (!!selectedCaseStyle || $('#nameFormatValue').value.trim().length > 0);
+  const query = $('#nameFormatSearch').value.trim();
+  const ready = nameFormatSelectedIds.size > 0 && (!!selectedCaseStyle || query.length > 0);
   btn.style.opacity = ready ? '1' : '.5';
   btn.style.pointerEvents = ready ? 'auto' : 'none';
 }
@@ -4749,18 +4750,24 @@ $('#nameFormatConfirm').addEventListener('click', () => {
   }
   const val = $('#nameFormatValue').value.trim();
   const query = $('#nameFormatSearch').value.trim();
-  if(!val || !query) return;
-  saveUndoSnapshot('تعديل صيغة اسم ' + nameFormatSelectedIds.size + ' جهة اتصال');
+  if(!query) return;
+  saveUndoSnapshot('تعديل صيغة ' + nameFormatSelectedIds.size + ' جهة اتصال');
   let count = 0;
   contacts.forEach(c => {
     if(nameFormatSelectedIds.has(c.id)){
       const newFn = normalizedReplaceAll(c.fn || '', query, val);
       const newNickname = normalizedReplaceAll(c.nickname || '', query, val);
+      const newOrg = normalizedReplaceAll(c.org || '', query, val);
+      const newTitle = normalizedReplaceAll(c.title || '', query, val);
       const fnChanged = newFn !== c.fn;
       const nicknameChanged = newNickname !== (c.nickname || '');
+      const orgChanged = newOrg !== (c.org || '');
+      const titleChanged = newTitle !== (c.title || '');
       if(fnChanged) c.fn = newFn;
       if(nicknameChanged) c.nickname = newNickname;
-      if(fnChanged || nicknameChanged) count++;
+      if(orgChanged) c.org = newOrg;
+      if(titleChanged) c.title = newTitle;
+      if(fnChanged || nicknameChanged || orgChanged || titleChanged) count++;
     }
   });
   closeNameFormatModal();
