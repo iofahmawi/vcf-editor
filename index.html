@@ -591,7 +591,7 @@
 </div>
 
 <div id="multiPrefixModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
-  <div class="panel" style="width:100%; max-width:380px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 94px); display:flex; flex-direction:column;">
+  <div class="panel" style="width:100%; max-width:380px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 94px); max-height:calc(100dvh - 94px); display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">تعديل البادئة</div>
     <div style="font-size:12.5px; color:var(--muted); margin:10px 0 14px; line-height:1.6; text-align:center;">اترك الحقول فارغة إذا كنت لا تريد إجراء أي تعديل</div>
     <div id="multiPrefixList" style="overflow-y:auto; overflow-x:hidden; flex:1; margin-bottom:14px;"></div>
@@ -712,7 +712,7 @@
 </div>
 
 <div id="mergeModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
-  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 40px); overflow-y:auto;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 40px); max-height:calc(100dvh - 40px); overflow-y:auto;">
     <div id="mergeModalTitle" style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">دمج جهات الاتصال</div>
     <div id="mergeModalSubtitle" style="font-size:13px; color:var(--muted); margin:15px 0 4px; line-height:1.6; text-align:center;">يوجد تعارض — اختر ما تريد الاحتفاظ به</div>
     <div id="mergeModalBody"></div>
@@ -724,7 +724,7 @@
 </div>
 
 <div id="bulkPhotoModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
-  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; max-height:86dvh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصور</div>
 
     <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:11px;">
@@ -760,7 +760,7 @@
 </div>
 
 <div id="embedPhotosModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
-  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; max-height:86dvh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تضمين صور الروابط</div>
 
     <input type="text" id="embedPhotosSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:14px;">
@@ -782,7 +782,7 @@
 </div>
 
 <div id="unifyGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:25px 20px 20px;">
-  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:94vh; overflow-y:auto; display:flex; flex-direction:column;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:94vh; max-height:94dvh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">إدارة المجموعات</div>
 
     <div class="field-group" style="margin-bottom:20px;">
@@ -827,7 +827,7 @@
 </div>
 
 <div id="nameFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
-  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:90vh; overflow-y:auto; display:flex; flex-direction:column;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:90vh; max-height:90dvh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصيغة</div>
 
     <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:11px;">
@@ -4036,15 +4036,18 @@ let bulkPhotoDataUrl = null;
 let bulkPhotoShowAll = false;
 
 $('#menuBulkPhotoOpt').addEventListener('click', () => {
+  // لو كان هناك تحديد جهات اتصال من الشاشة الرئيسية، ننقله لنافذة تعديل الصور
+  // مباشرة (نفس فكرة نافذة إدارة المجموعات)
+  const seedIds = (selectionMode && selectedIds.size > 0) ? new Set(selectedIds) : null;
   closeListMenuDropdown();
-  openBulkPhotoModal();
+  openBulkPhotoModal(seedIds);
 });
 
 // يصفّر حقول نافذة الصورة الجماعية (البحث، التحديد، الصورة المختارة) للبدء
 // بعملية جديدة، دون إغلاق النافذة. تُستخدم عند الفتح الأول وأيضاً بعد كل
 // "تطبيق" ناجح ليتمكن المستخدم من تعديل صور عدة جهات متتالية دون خروج ودخول.
-function resetBulkPhotoFields(){
-  bulkPhotoSelectedIds = new Set();
+function resetBulkPhotoFields(seedIds){
+  bulkPhotoSelectedIds = seedIds ? new Set(seedIds) : new Set();
   bulkPhotoDataUrl = null;
   bulkPhotoShowAll = false;
   $('#bulkPhotoSearch').value = '';
@@ -4053,8 +4056,8 @@ function resetBulkPhotoFields(){
   renderBulkPhotoList();
   updateBulkPhotoConfirmState();
 }
-function openBulkPhotoModal(){
-  resetBulkPhotoFields();
+function openBulkPhotoModal(seedIds){
+  resetBulkPhotoFields(seedIds);
   // نفس فكرة نافذة تعديل الصيغة: 4 صفوف بوضع المتصفح (223px)، 5 صفوف بوضع PWA المثبّت (279px)
   $('#bulkPhotoList').style.maxHeight = (isPWAStandalone() ? 279 : 223) + 'px';
   $('#bulkPhotoModalOverlay').style.display = 'flex';
@@ -4095,7 +4098,7 @@ function renderBulkPhotoList(){
   const showAllBtn = $('#bulkPhotoShowAllBtn');
   showAllBtn.textContent = bulkPhotoShowAll ? 'إخفاء الكل' : 'عرض الكل';
 
-  if(!q && !bulkPhotoShowAll){
+  if(!q && !bulkPhotoShowAll && bulkPhotoSelectedIds.size === 0){
     listWrap.style.display = 'none';
     list.innerHTML = '';
     countEl.textContent = '';
@@ -4105,7 +4108,11 @@ function renderBulkPhotoList(){
   }
   listWrap.style.display = 'block';
 
-  const matched = (bulkPhotoShowAll && !q) ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : bulkPhotoMatchContacts(q);
+  // لا يوجد بحث ولا "عرض الكل" لكن توجد جهات محددة مسبقاً (منقولة من الشاشة
+  // الرئيسية) — نعرضها هي نفسها بدل إخفاء الصندوق بالكامل
+  const matched = q
+    ? bulkPhotoMatchContacts(q)
+    : (bulkPhotoShowAll ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : contacts.filter(c => bulkPhotoSelectedIds.has(c.id)).sort((a,b) => a.fn.localeCompare(b.fn, 'ar')));
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
 
   if(!matched.length){
@@ -4167,7 +4174,7 @@ $('#bulkPhotoShowAllBtn').addEventListener('click', () => {
 
 $('#bulkPhotoSelectAll').addEventListener('click', () => {
   const q = $('#bulkPhotoSearch').value.trim();
-  const matched = bulkPhotoMatchContacts(q);
+  const matched = q ? bulkPhotoMatchContacts(q) : (bulkPhotoShowAll ? contacts.slice() : contacts.filter(c => bulkPhotoSelectedIds.has(c.id)));
   const allSelected = matched.length > 0 && matched.every(c => bulkPhotoSelectedIds.has(c.id));
   if(allSelected) matched.forEach(c => bulkPhotoSelectedIds.delete(c.id));
   else matched.forEach(c => bulkPhotoSelectedIds.add(c.id));
@@ -4222,8 +4229,11 @@ let unifyGroupPickedName = null;
 let unifyGroupActiveGroupName = null;
 
 $('#menuUnifyGroupOpt').addEventListener('click', () => {
+  // لو كان المستخدم قد حدّد جهات اتصال من الشاشة الرئيسية قبل فتح هذه القائمة،
+  // ننقل نفس التحديد إلى نافذة إدارة المجموعات مباشرة (بدل البحث عنهم من جديد)
+  const seedIds = (selectionMode && selectedIds.size > 0) ? new Set(selectedIds) : null;
   closeListMenuDropdown();
-  openUnifyGroupModal();
+  openUnifyGroupModal(seedIds);
 });
 $('#menuBulkActionOpt').addEventListener('click', () => {
   if(!(selectionMode && selectedIds.size > 0)){
@@ -4237,8 +4247,8 @@ $('#menuBulkActionOpt').addEventListener('click', () => {
 // يصفّر حقول نافذة إدارة المجموعات (البحث، التحديد، اسم المجموعة) للبدء بعملية
 // جديدة، دون إغلاق النافذة نفسها. تُستخدم عند الفتح الأول وأيضاً بعد كل "تطبيق"
 // ناجح ليتمكن المستخدم من إنشاء عدة مجموعات متتالية دون خروج ودخول متكرر.
-function resetUnifyGroupFields(){
-  unifyGroupSelectedIds = new Set();
+function resetUnifyGroupFields(seedIds){
+  unifyGroupSelectedIds = seedIds ? new Set(seedIds) : new Set();
   unifyGroupOriginalMemberIds = new Set();
   unifyGroupMode = false;
   unifyGroupActiveGroupName = null;
@@ -4259,8 +4269,8 @@ function resetUnifyGroupFields(){
   });
   updateUnifyGroupConfirmState();
 }
-function openUnifyGroupModal(){
-  resetUnifyGroupFields();
+function openUnifyGroupModal(seedIds){
+  resetUnifyGroupFields(seedIds);
   $('#unifyGroupModalOverlay').style.display = 'flex';
   safeReplaceState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
 }
@@ -4336,7 +4346,8 @@ function renderUnifyGroupList(){
   const countEl = $('#unifyGroupCount');
   const selectAllBtn = $('#unifyGroupSelectAll');
 
-  if(!q){
+  // لا يوجد نص بحث ولا أي جهة محددة حالياً: لا شيء لعرضه
+  if(!q && unifyGroupSelectedIds.size === 0){
     selectRow.style.display = 'none';
     listWrap.style.display = 'none';
     list.innerHTML = '';
@@ -4356,7 +4367,11 @@ function renderUnifyGroupList(){
   const isGroupMode = isPickedGroup && groupMembers.length > 0;
   const enteringGroupMode = setUnifyGroupFieldMode(isGroupMode, q);
 
-  const matched = isGroupMode ? groupMembers : unifyGroupMatchContacts(q);
+  // لا يوجد نص بحث لكن توجد جهات محددة (منقولة من الشاشة الرئيسية أو باقية من
+  // بحث سابق) — نعرضها هي نفسها في الصندوق بدل إخفائها بالكامل
+  const matched = isGroupMode
+    ? groupMembers
+    : (q ? unifyGroupMatchContacts(q) : contacts.filter(c => unifyGroupSelectedIds.has(c.id)).sort((a,b) => a.fn.localeCompare(b.fn, 'ar')));
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
 
   if(!matched.length){
@@ -4457,7 +4472,7 @@ $('#unifyGroupSearch').addEventListener('keydown', (e) => {
 
 $('#unifyGroupSelectAll').addEventListener('click', () => {
   const q = unifyGroupPickedName !== null ? unifyGroupPickedName : $('#unifyGroupSearch').value.trim();
-  const matched = unifyGroupMatchContacts(q);
+  const matched = q ? unifyGroupMatchContacts(q) : contacts.filter(c => unifyGroupSelectedIds.has(c.id));
   const allSelected = matched.length > 0 && matched.every(c => unifyGroupSelectedIds.has(c.id));
   if(allSelected) matched.forEach(c => unifyGroupSelectedIds.delete(c.id));
   else matched.forEach(c => unifyGroupSelectedIds.add(c.id));
