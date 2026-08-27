@@ -727,6 +727,10 @@
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصور</div>
 
+    <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:11px;">
+      <button type="button" id="bulkPhotoShowAllBtn" class="link-btn" style="color:var(--muted); font-size:12.5px; font-weight:700; background:none; padding:0; position:relative; right:1px;">عرض الكل</button>
+    </div>
+
     <input type="text" id="bulkPhotoSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
@@ -739,6 +743,7 @@
     </div>
 
     <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
+    <label style="margin-bottom:11px;">اختيار الصورة</label>
     <div id="bulkPhotoPickWrap" style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:10px; border:1.07px solid var(--border-light); border-radius:10px;">
       <div id="bulkPhotoPreviewWrap" style="width:52px; height:52px; border-radius:14px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:var(--card2); color:var(--muted); font-size:10px; text-align:center;">
         <span id="bulkPhotoPreviewPlaceholder" style="font-size:8.5px; line-height:1.25; padding:0 2px;">بدون صورة</span>
@@ -825,7 +830,7 @@
   <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:90vh; overflow-y:auto; display:flex; flex-direction:column;">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصيغة</div>
 
-    <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:6px;">
+    <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:11px;">
       <button type="button" id="nameFormatShowAllBtn" class="link-btn" style="color:var(--muted); font-size:12.5px; font-weight:700; background:none; padding:0; position:relative; right:1px;">عرض الكل</button>
     </div>
 
@@ -4028,6 +4033,7 @@ $('#menuDupOpt').addEventListener('click', () => {
 
 let bulkPhotoSelectedIds = new Set();
 let bulkPhotoDataUrl = null;
+let bulkPhotoShowAll = false;
 
 $('#menuBulkPhotoOpt').addEventListener('click', () => {
   closeListMenuDropdown();
@@ -4040,6 +4046,7 @@ $('#menuBulkPhotoOpt').addEventListener('click', () => {
 function resetBulkPhotoFields(){
   bulkPhotoSelectedIds = new Set();
   bulkPhotoDataUrl = null;
+  bulkPhotoShowAll = false;
   $('#bulkPhotoSearch').value = '';
   $('#bulkPhotoPreviewImg').style.display = 'none';
   $('#bulkPhotoPreviewPlaceholder').style.display = 'block';
@@ -4086,7 +4093,7 @@ function renderBulkPhotoList(){
   const countEl = $('#bulkPhotoCount');
   const selectAllBtn = $('#bulkPhotoSelectAll');
 
-  if(!q){
+  if(!q && !bulkPhotoShowAll){
     listWrap.style.display = 'none';
     list.innerHTML = '';
     countEl.textContent = '';
@@ -4096,7 +4103,7 @@ function renderBulkPhotoList(){
   }
   listWrap.style.display = 'block';
 
-  const matched = bulkPhotoMatchContacts(q);
+  const matched = (bulkPhotoShowAll && !q) ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : bulkPhotoMatchContacts(q);
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
 
   if(!matched.length){
@@ -4143,9 +4150,17 @@ function updateBulkPhotoCountAndSelectAll(matched){
   selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
 }
 
-$('#bulkPhotoSearch').addEventListener('input', renderBulkPhotoList);
+$('#bulkPhotoSearch').addEventListener('input', () => {
+  if($('#bulkPhotoSearch').value.trim()) bulkPhotoShowAll = false;
+  renderBulkPhotoList();
+});
 $('#bulkPhotoSearch').addEventListener('keydown', (e) => {
   if(e.key === 'Enter'){ e.preventDefault(); $('#bulkPhotoSearch').blur(); }
+});
+$('#bulkPhotoShowAllBtn').addEventListener('click', () => {
+  bulkPhotoShowAll = !bulkPhotoShowAll;
+  if(bulkPhotoShowAll) $('#bulkPhotoSearch').value = '';
+  renderBulkPhotoList();
 });
 
 $('#bulkPhotoSelectAll').addEventListener('click', () => {
