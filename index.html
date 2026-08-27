@@ -4092,6 +4092,8 @@ function renderBulkPhotoList(){
   const listWrap = $('#bulkPhotoListWrap');
   const countEl = $('#bulkPhotoCount');
   const selectAllBtn = $('#bulkPhotoSelectAll');
+  const showAllBtn = $('#bulkPhotoShowAllBtn');
+  showAllBtn.textContent = bulkPhotoShowAll ? 'إخفاء الكل' : 'عرض الكل';
 
   if(!q && !bulkPhotoShowAll){
     listWrap.style.display = 'none';
@@ -4624,6 +4626,7 @@ function renderNameFormatList(){
   const countEl = $('#nameFormatCount');
   const selectAllBtn = $('#nameFormatSelectAll');
   const showAllBtn = $('#nameFormatShowAllBtn');
+  showAllBtn.textContent = nameFormatShowAll ? 'إخفاء الكل' : 'عرض الكل';
 
   if(!q && !nameFormatShowAll){
     listWrap.style.display = 'none';
