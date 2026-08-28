@@ -434,14 +434,25 @@
       <div class="summary" id="summaryText" style="margin:0;"></div>
       <div style="display:flex; align-items:center; gap:11px;">
         <button type="button" class="sel-icon-btn icon-accent" id="prefixSelectedBtn" style="display:none;" aria-label="تعديل البادئة" title="تعديل البادئة"><svg viewBox="0 0 24 24" style="width:19.5px; height:19.5px;"><text x="12" y="19.1" font-size="19.5" font-weight="500" stroke="none" fill="currentColor" font-family="Arial, sans-serif" text-anchor="middle" letter-spacing="1">00</text></svg></button>
+        <button type="button" class="sel-icon-btn icon-accent" id="groupsSelectedBtn" style="display:none;" aria-label="المجموعات" title="المجموعات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="width:19px; height:19px;">
+  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+  <circle cx="9" cy="7" r="4"/>
+  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+</svg></button>
         <button type="button" class="sel-icon-btn icon-accent" id="favoriteSelectedBtn" style="display:none;" aria-label="مفضلة" title="مفضلة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17.5px; height:17.5px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></button>
         <button type="button" class="sel-icon-btn icon-accent" id="mergeSelectedBtn" style="display:none;" aria-label="دمج" title="دمج"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" style="width:19.5px; height:19.5px;"><path d="M8 4H4v16h4"/><path d="M16 4h4v16h-4"/></svg></button>
         <button type="button" class="sel-icon-btn icon-danger" id="deleteSelectedBtn" style="display:none;" aria-label="حذف" title="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17.5px; height:17.5px;"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>
       </div>
       <button class="sel-icon-btn icon-accent" id="fabAdd" aria-label="إضافة جهة اتصال" title="إضافة جهة اتصال"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg></button>
-  <div id="prefixBtnGroup" style="display:none; align-items:center; gap:9px;">
+  <div id="prefixBtnGroup" style="display:none; align-items:center; gap:10px;">
         <button type="button" class="sel-icon-btn icon-accent" id="prefixReplaceBtn" style="display:none;" aria-label="تعديل البادئة" title="تعديل البادئة"><svg viewBox="0 0 24 24" style="width:19.5px; height:19.5px;"><text x="12" y="19.1" font-size="19.5" font-weight="500" stroke="none" fill="currentColor" font-family="Arial, sans-serif" text-anchor="middle" letter-spacing="1">00</text></svg></button>
-        <button type="button" class="link-btn" id="removeGroupBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; white-space:nowrap;">إزالة المجموعة</button>
+        <button type="button" class="link-btn" id="removeGroupBtn" style="display:none; align-items:center; justify-content:center; gap:2px; height:36px; color:var(--accent); background: rgba(65,105,225,0.06); padding: 0 10px; white-space:nowrap;" aria-label="إزالة المجموعة" title="إزالة المجموعة"><span style="font-size:18px; font-weight:800; line-height:1;">−</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="width:19px; height:19px; flex-shrink:0;">
+  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+  <circle cx="9" cy="7" r="4"/>
+  <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+  <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+</svg></button>
         <button type="button" class="sel-icon-btn icon-danger" id="prefixDeleteBtn" style="display:none;" aria-label="حذف النتائج" title="حذف النتائج"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17.5px; height:17.5px;"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg></button>
       </div>
     </div>
@@ -2230,8 +2241,7 @@ function renderList(filter=''){
       $('#summaryText').textContent = selectedIds.size + ' \u00A0محدد';
     } else {
       const listForCount = f ? filtered : contacts;
-      $('#summaryText').textContent = listForCount.length + ' \u00A0جهة اتصال'
-        + (detectedCompatLabel ? ' \u00A0-\u00A0 ' + detectedCompatLabel : '');
+      $('#summaryText').textContent = listForCount.length + ' \u00A0جهة اتصال';
     }
   }
 
@@ -2603,8 +2613,7 @@ function exitSelectionMode(){
   } else {
     const f = normalizeArabic(filter.trim().toLowerCase());
     const listForCount = f ? getFilteredContacts(filter) : contacts;
-    $('#summaryText').textContent = listForCount.length + ' \u00A0جهة اتصال'
-      + (detectedCompatLabel ? ' \u00A0-\u00A0 ' + detectedCompatLabel : '');
+    $('#summaryText').textContent = listForCount.length + ' \u00A0جهة اتصال';
   }
 }
 // يُستدعى عند إنهاء وضع التحديد من أي مكان غير معالج popstate (أي أن مُدخل
@@ -2704,13 +2713,14 @@ function syncFilterUI(){
   $('#prefixReplaceBtn').style.display = (isNumericSearch && !selectionMode) ? 'flex' : 'none';
   $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'flex' : 'none';
   const groupMatched = (active && !selectionMode && !isNumericSearch) ? getContactsWithCategory(searchVal) : [];
-  $('#removeGroupBtn').style.display = groupMatched.length ? 'inline-block' : 'none';
+  $('#removeGroupBtn').style.display = groupMatched.length ? 'flex' : 'none';
   $('#prefixBtnGroup').style.display = (active && !selectionMode) ? 'flex' : 'none';
   $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'flex';
   $('#summaryText').style.display = 'block';
   $('#mergeSelectedBtn').style.display = (selectionMode && selectedIds.size >= 2 && selectedIds.size <= 5) ? 'flex' : 'none';
   $('#deleteSelectedBtn').style.display = selectionMode ? 'flex' : 'none';
   $('#favoriteSelectedBtn').style.display = selectionMode ? 'flex' : 'none';
+  $('#groupsSelectedBtn').style.display = selectionMode ? 'flex' : 'none';
   $('#prefixSelectedBtn').style.display = (selectionMode && selectionHasAnyPhone()) ? 'flex' : 'none';
   updateScrollTopBtn();
 }
@@ -2746,6 +2756,11 @@ $('#favoriteSelectedBtn').addEventListener('click', () => {
   exitSelectionModeAndSync();
   renderList($('#search').value);
   toast('تم تحديث المفضلة لـ ' + count + ' جهة اتصال');
+});
+$('#groupsSelectedBtn').addEventListener('click', () => {
+  if(selectedIds.size === 0) return;
+  const seedIds = new Set(selectedIds);
+  openUnifyGroupModal(seedIds);
 });
 $('#deleteSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size === 0) return;
