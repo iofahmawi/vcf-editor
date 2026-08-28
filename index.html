@@ -733,7 +733,7 @@
 
     <input type="text" id="bulkPhotoSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+    <div id="bulkPhotoSelectAllRow" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="bulkPhotoSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
       <span id="bulkPhotoCount" style="font-size:12px; color:var(--muted);"></span>
     </div>
@@ -743,7 +743,7 @@
     </div>
 
     <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
-    <label style="margin-bottom:11px;">اختيار الصورة</label>
+    <label style="margin-bottom:11px; margin-top:2px;">اختيار الصورة</label>
     <div id="bulkPhotoPickWrap" style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:10px; border:1.07px solid var(--border-light); border-radius:10px;">
       <div id="bulkPhotoPreviewWrap" style="width:52px; height:52px; border-radius:14px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:var(--card2); color:var(--muted); font-size:10px; text-align:center;">
         <span id="bulkPhotoPreviewPlaceholder" style="font-size:8.5px; line-height:1.25; padding:0 2px;">بدون صورة</span>
@@ -752,7 +752,7 @@
       <button type="button" id="bulkPhotoPickBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center;">اختر صورة</button>
     </div>
 
-    <div style="display:flex; gap:8px;">
+    <div style="display:flex; gap:8px; margin-top:2px;">
       <button type="button" id="bulkPhotoCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="bulkPhotoConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
     </div>
@@ -4095,6 +4095,7 @@ function renderBulkPhotoList(){
   const listWrap = $('#bulkPhotoListWrap');
   const countEl = $('#bulkPhotoCount');
   const selectAllBtn = $('#bulkPhotoSelectAll');
+  const selectAllRow = $('#bulkPhotoSelectAllRow');
   const showAllBtn = $('#bulkPhotoShowAllBtn');
   showAllBtn.textContent = bulkPhotoShowAll ? 'إخفاء الكل' : 'عرض الكل';
 
@@ -4103,6 +4104,7 @@ function renderBulkPhotoList(){
     list.innerHTML = '';
     countEl.textContent = '';
     selectAllBtn.style.display = 'none';
+    selectAllRow.style.marginTop = '0';
     updateBulkPhotoConfirmState();
     return;
   }
@@ -4114,6 +4116,8 @@ function renderBulkPhotoList(){
     ? bulkPhotoMatchContacts(q)
     : (bulkPhotoShowAll ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : contacts.filter(c => bulkPhotoSelectedIds.has(c.id)).sort((a,b) => a.fn.localeCompare(b.fn, 'ar')));
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+  // نضيف 2px إضافية فوق هذا السطر فقط عندما توجد جهات اتصال معروضة فعلاً
+  selectAllRow.style.marginTop = matched.length ? '2px' : '0';
 
   if(!matched.length){
     list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
