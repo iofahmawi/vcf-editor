@@ -836,7 +836,7 @@
 
     <input type="text" id="nameFormatSearch" placeholder="الكلمة المراد البحث عنها في جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
 
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+    <div id="nameFormatSelectRow" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
       <button type="button" id="nameFormatSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
       <span id="nameFormatCount" style="font-size:12px; color:var(--muted);"></span>
     </div>
@@ -845,7 +845,7 @@
       <div id="nameFormatList" style="max-height:223px; overflow-y:auto; overflow-x:hidden;"></div>
     </div>
 
-    <div class="field-group" style="margin-bottom:14px;">
+    <div class="field-group" style="margin-top:2px; margin-bottom:14px;">
       <label>الصيغة الجديدة</label>
       <input type="text" id="nameFormatValue" placeholder="تطبق على الاسم واللقب والشركة والوظيفة">
     </div>
@@ -853,13 +853,13 @@
     <div style="margin:2px 0 18px;">
       <label style="display:block; font-size:12.5px; color:var(--muted); margin-bottom:12px;">توحيد نمط الأحرف</label>
       <div style="display:flex; gap:8px;">
-        <button type="button" id="caseStyleTitle" data-case="title" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:12px; font-family:var(--font-body); font-weight:700; font-size:14.80px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">Aa</button>
-        <button type="button" id="caseStyleUpper" data-case="upper" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:12px; font-family:var(--font-body); font-weight:700; font-size:14.80px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">AA</button>
-        <button type="button" id="caseStyleLower" data-case="lower" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:12px; font-family:var(--font-body); font-weight:700; font-size:14.80px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">aa</button>
+        <button type="button" id="caseStyleTitle" data-case="title" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">Aa</button>
+        <button type="button" id="caseStyleUpper" data-case="upper" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">AA</button>
+        <button type="button" id="caseStyleLower" data-case="lower" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">aa</button>
       </div>
     </div>
 
-    <div style="display:flex; gap:8px;">
+    <div style="display:flex; gap:8px; margin-top:2px;">
       <button type="button" id="nameFormatCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="nameFormatConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
     </div>
@@ -4662,6 +4662,7 @@ function renderNameFormatList(){
   const listWrap = $('#nameFormatListWrap');
   const countEl = $('#nameFormatCount');
   const selectAllBtn = $('#nameFormatSelectAll');
+  const selectRow = $('#nameFormatSelectRow');
   const showAllBtn = $('#nameFormatShowAllBtn');
   showAllBtn.textContent = nameFormatShowAll ? 'إخفاء الكل' : 'عرض الكل';
 
@@ -4670,6 +4671,8 @@ function renderNameFormatList(){
     list.innerHTML = '';
     countEl.textContent = '';
     selectAllBtn.style.display = 'none';
+    selectRow.style.marginTop = '0';
+    selectRow.style.marginBottom = '8px';
     updateNameFormatConfirmState();
     return;
   }
@@ -4677,6 +4680,9 @@ function renderNameFormatList(){
 
   const matched = (nameFormatShowAll && !q) ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : nameFormatMatchContacts(q);
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+  // نضيف 2px إضافية فوق صف "تحديد الكل" وتحته فقط عند وجود جهات اتصال معروضة فعلاً
+  selectRow.style.marginTop = matched.length ? '2px' : '0';
+  selectRow.style.marginBottom = matched.length ? '10px' : '8px';
 
   if(!matched.length){
     list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
