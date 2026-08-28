@@ -877,6 +877,9 @@
 
 <script>
 let contacts = [];
+// نوع توافق الملف المستورد (يُكتشف تلقائياً من محتوى الملف عند الاستيراد،
+// ويُعرض بجانب عدد جهات الاتصال)؛ null يعني تعذّر التحديد أو خلط عدة صيغ
+let detectedCompatLabel = null;
 
 // ============ حفظ دائم بالجهاز عبر IndexedDB ============
 // يحل محل الاعتماد الكامل على ذاكرة الصفحة المؤقتة: أي تغيير على جهات
@@ -928,6 +931,10 @@ async function loadContactsFromDB(){
     const saved = await idbGet('contacts');
     if(Array.isArray(saved) && saved.length) contacts = saved;
   } catch(err){ /* أول تشغيل، أو المتصفح لا يدعم IndexedDB */ }
+  try{
+    const savedCompat = await idbGet('compatLabel');
+    if(typeof savedCompat === 'string') detectedCompatLabel = savedCompat;
+  } catch(err){ /* تجاهل */ }
 }
 
 let undoSnapshot = null;
@@ -1570,6 +1577,33 @@ function detectAndParse(text, filename){
   return parseCSV(text);
 }
 
+// يكتشف الجهة/الخدمة المصدر للملف المستورد من بصمات صيغته (VERSION وحقول
+// مخصّصة كـ X-ANDROID-CUSTOM لسامسونج، أو itemN.X-ABLabel لجوجل/iOS، أو
+// عناوين أعمدة CSV جوجل مقابل آوتلوك) — تُستخدم فقط للعرض، لا للتحليل
+function detectFileCompatLabel(text, filename){
+  const trimmed = text.replace(/^\uFEFF/, '').trimStart();
+  const lowerName = (filename || '').toLowerCase();
+  const isVCF = lowerName.endsWith('.vcf') || /^BEGIN:VCARD/i.test(trimmed);
+  if(isVCF){
+    if(/VERSION:2\.1/i.test(trimmed) && (/X-ANDROID-CUSTOM/i.test(trimmed) || /X-SAMSUNGADR/i.test(trimmed))){
+      return 'سامسونج';
+    }
+    if(/VERSION:3\.0/i.test(trimmed)){
+      return 'جوجل و iOS';
+    }
+    return null;
+  }
+  try{
+    const rows = parseCSVRows(text);
+    if(rows.length < 1) return null;
+    const headers = rows[0].map(h => h.trim());
+    const isGoogleFormat = headers.some(h => /^Phone \d+ - Label$/i.test(h));
+    return isGoogleFormat ? 'جوجل و iOS' : 'Outlook';
+  }catch(err){
+    return null;
+  }
+}
+
 function isAsciiStr(s){ return /^[\x00-\x7F]*$/.test(s || ''); }
 
 // يطوي نص QUOTED-PRINTABLE إلى أسطر لا يتجاوز طول كل منها ~71 محرفاً مُرمّزاً،
@@ -1826,12 +1860,15 @@ async function loadFiles(fileList){
 
   let allParsed = [];
   const failedFiles = [];
+  const compatLabels = new Set();
 
   for(const file of files){
     try{
       const text = await readFileAsText(file);
       const parsed = detectAndParse(text, file.name);
       allParsed = allParsed.concat(parsed);
+      const label = detectFileCompatLabel(text, file.name);
+      if(label) compatLabels.add(label);
     }catch(err){
       console.error(err);
       failedFiles.push(file.name);
@@ -1845,6 +1882,10 @@ async function loadFiles(fileList){
 
   // عرض جهات الاتصال فوراً بدون انتظار جلب الصور
   contacts = allParsed;
+  // نعرض نوع التوافق فقط لو كانت كل الملفات المستوردة بنفس الصيغة؛ خلط عدة
+  // صيغ بملفات متعددة يجعل التصنيف غير دقيق فنخفيه (null)
+  detectedCompatLabel = compatLabels.size === 1 ? [...compatLabels][0] : null;
+  idbSet('compatLabel', detectedCompatLabel).catch(() => {});
   clearUndoSnapshot();
   clearListFilters();
   expandedContactId = null;
@@ -2185,24 +2226,35 @@ function renderList(filter=''){
       ? selectedIds.size + ' \u00A0محدد'
       : phoneCount + ' \u00A0نتيجة';
   } else {
-    $('#summaryText').textContent = selectionMode
-      ? selectedIds.size + ' \u00A0محدد'
-      : (f ? filtered.length : contacts.length) + ' \u00A0جهة اتصال';
+    if(selectionMode){
+      $('#summaryText').textContent = selectedIds.size + ' \u00A0محدد';
+    } else {
+      const listForCount = f ? filtered : contacts;
+      $('#summaryText').textContent = listForCount.length + ' \u00A0جهة اتصال'
+        + (detectedCompatLabel ? ' \u00A0-\u00A0 ' + detectedCompatLabel : '');
+    }
   }
 
   let lastGroupKey = null;
   const showLetterHeaders = !f && !isNumericSearch;
   const showCategoryHeaders = isPlainTextSearch;
+  // إن لم تُعرض أي صفوف بعد (أي لا توجد جهات مفضلة سبقت هذه المجموعة)، فحرف
+  // أول مجموعة أبجدية بديهي أصلاً كونه أول شيء بالقائمة، فلا داعي لعنوانه
+  // (يحجز صفاً فارغاً بلا فائدة). العنوان يظهر بعدها بشكل طبيعي مع كل تغيّر حرف،
+  // وأيضاً فور وجود جهات مفضلة سبقته (فحينها يفيد كفاصل بينها وبين الأبجدية).
+  let renderedAnyRow = false;
   for(const c of filtered){
     if(showLetterHeaders){
       const starred = isStarredContact(c);
       if(!starred){
         const groupKey = getContactLetterKey(c.fn);
         if(groupKey !== lastGroupKey){
-          const header = document.createElement('div');
-          header.className = 'contact-letter-header';
-          header.textContent = groupKey === 'ه' ? 'هـ' : groupKey;
-          fragment.appendChild(header);
+          if(renderedAnyRow){
+            const header = document.createElement('div');
+            header.className = 'contact-letter-header';
+            header.textContent = groupKey === 'ه' ? 'هـ' : groupKey;
+            fragment.appendChild(header);
+          }
           lastGroupKey = groupKey;
         }
       }
@@ -2217,6 +2269,7 @@ function renderList(filter=''){
       }
     }
     fragment.appendChild(buildContactRowElement(c, f));
+    renderedAnyRow = true;
   }
   list.appendChild(fragment);
 }
@@ -2549,8 +2602,9 @@ function exitSelectionMode(){
     $('#summaryText').textContent = phoneCount + ' \u00A0نتيجة';
   } else {
     const f = normalizeArabic(filter.trim().toLowerCase());
-    const count = f ? getFilteredContacts(filter).length : contacts.length;
-    $('#summaryText').textContent = count + ' \u00A0جهة اتصال';
+    const listForCount = f ? getFilteredContacts(filter) : contacts;
+    $('#summaryText').textContent = listForCount.length + ' \u00A0جهة اتصال'
+      + (detectedCompatLabel ? ' \u00A0-\u00A0 ' + detectedCompatLabel : '');
   }
 }
 // يُستدعى عند إنهاء وضع التحديد من أي مكان غير معالج popstate (أي أن مُدخل
