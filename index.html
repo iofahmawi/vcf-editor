@@ -4106,6 +4106,7 @@ function renderBulkPhotoList(){
     countEl.textContent = '';
     selectAllBtn.style.display = 'none';
     selectAllRow.style.marginTop = '0';
+    selectAllRow.style.marginBottom = '8px';
     pickLabel.style.marginTop = '0';
     updateBulkPhotoConfirmState();
     return;
@@ -4118,8 +4119,10 @@ function renderBulkPhotoList(){
     ? bulkPhotoMatchContacts(q)
     : (bulkPhotoShowAll ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : contacts.filter(c => bulkPhotoSelectedIds.has(c.id)).sort((a,b) => a.fn.localeCompare(b.fn, 'ar')));
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
-  // نضيف 2px إضافية فوق هذا السطر وفوق "اختيار الصورة" فقط عندما توجد جهات اتصال معروضة فعلاً
+  // نضيف 2px إضافية فوق هذا السطر وفوق "اختيار الصورة"، و2px إضافية تحته أيضاً،
+  // فقط عندما توجد جهات اتصال معروضة فعلاً
   selectAllRow.style.marginTop = matched.length ? '2px' : '0';
+  selectAllRow.style.marginBottom = matched.length ? '10px' : '8px';
   pickLabel.style.marginTop = matched.length ? '2px' : '0';
 
   if(!matched.length){
