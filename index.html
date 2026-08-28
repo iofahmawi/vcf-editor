@@ -743,7 +743,7 @@
     </div>
 
     <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
-    <label style="margin-bottom:11px;">اختيار الصورة</label>
+    <label id="bulkPhotoPickLabel" style="margin-bottom:11px;">اختيار الصورة</label>
     <div id="bulkPhotoPickWrap" style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:10px; border:1.07px solid var(--border-light); border-radius:10px;">
       <div id="bulkPhotoPreviewWrap" style="width:52px; height:52px; border-radius:14px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:var(--card2); color:var(--muted); font-size:10px; text-align:center;">
         <span id="bulkPhotoPreviewPlaceholder" style="font-size:8.5px; line-height:1.25; padding:0 2px;">بدون صورة</span>
@@ -4096,6 +4096,7 @@ function renderBulkPhotoList(){
   const countEl = $('#bulkPhotoCount');
   const selectAllBtn = $('#bulkPhotoSelectAll');
   const selectAllRow = $('#bulkPhotoSelectAllRow');
+  const pickLabel = $('#bulkPhotoPickLabel');
   const showAllBtn = $('#bulkPhotoShowAllBtn');
   showAllBtn.textContent = bulkPhotoShowAll ? 'إخفاء الكل' : 'عرض الكل';
 
@@ -4105,6 +4106,7 @@ function renderBulkPhotoList(){
     countEl.textContent = '';
     selectAllBtn.style.display = 'none';
     selectAllRow.style.marginTop = '0';
+    pickLabel.style.marginTop = '0';
     updateBulkPhotoConfirmState();
     return;
   }
@@ -4116,8 +4118,9 @@ function renderBulkPhotoList(){
     ? bulkPhotoMatchContacts(q)
     : (bulkPhotoShowAll ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : contacts.filter(c => bulkPhotoSelectedIds.has(c.id)).sort((a,b) => a.fn.localeCompare(b.fn, 'ar')));
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
-  // نضيف 2px إضافية فوق هذا السطر فقط عندما توجد جهات اتصال معروضة فعلاً
+  // نضيف 2px إضافية فوق هذا السطر وفوق "اختيار الصورة" فقط عندما توجد جهات اتصال معروضة فعلاً
   selectAllRow.style.marginTop = matched.length ? '2px' : '0';
+  pickLabel.style.marginTop = matched.length ? '2px' : '0';
 
   if(!matched.length){
     list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
