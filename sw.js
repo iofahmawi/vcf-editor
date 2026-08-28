@@ -1,35 +1,5822 @@
-const CACHE_NAME = 'vcf-editor-v258';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-1440.png'
-];
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>محرر جهات الإتصال</title>
+<meta name="theme-color" content="#4169E1">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icon-1440.png">
+<link rel="apple-touch-icon" href="icon-1440.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="جهات الاتصال">
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@300;400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F1F5F9;
+    --card: #FFFFFF;
+    --card2: #F1F5F9;
+    --accent: #4169E1; /* Royal Blue */
+    --accent2: #274472;
+    --text: #0F172A;
+    --muted: #64748B;
+    --danger: #EF4444;
+    --border: #E2E8F0;
+    --border-light: rgba(226,232,240,0.85);
+    --font-display: 'Almarai', Tahoma, Arial, sans-serif;
+    --font-body: 'Almarai', Tahoma, Arial, sans-serif;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.02);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent; outline:none;}
+  html{ height:100%; }
+  body{
+    margin:0;
+    font-family:var(--font-body);
+    font-size: 13.5px;
+    background:var(--bg);
+    color:var(--text);
+    height:100vh;
+    height:100dvh;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    -webkit-tap-highlight-color: transparent;
+  }
+  header{
+    flex:0 0 auto;
+    position:relative; z-index:20;
+    padding:12px 16px;
+    padding-top: calc(12px + env(safe-area-inset-top));
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom: 1px solid var(--border);
+    box-shadow: none;
+  }
+  header h1{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:15px; margin:0; color:var(--text); letter-spacing:.3px;
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    pointer-events:none; white-space:nowrap;
+  }
+  .icon-btn{
+    background:var(--card2); border:none; color:var(--accent);
+    font-size:18px; cursor:pointer; width:36px; height:36px;
+    border-radius:10px; display:flex; align-items:center; justify-content:center;
+    line-height:1; padding:0;
+    transition: all 0.2s;
+  }
+  .icon-btn:active{ transform: scale(0.95); background: var(--border); }
+  
+  #screens{ position:relative; flex:1 1 auto; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; overscroll-behavior-y:contain; padding-bottom: env(safe-area-inset-bottom); }
+  .screen{ display:none; min-height:100%; padding:10px 16px 30px; animation: fadeIn .25s ease-out; }
+  .screen.active{ display:block; }
+  @keyframes fadeIn{ from{opacity:0; transform: translateY(4px)} to{opacity:1; transform: translateY(0)} }
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
-  self.skipWaiting();
+  /* ---- Home (cover page) ---- */
+  .hero{ text-align:center; padding-top:25px; }
+  .hero-title{ font-family:var(--font-display); font-weight:800; font-size:22px; margin:0 0 23px; color:var(--text); }
+  .hero-sub{ color:var(--muted); font-size:13px; margin:0 auto 28px; line-height:1.6; max-width: 90%; }
+  #drop{
+    border:2px dashed var(--border);
+    border-radius:16px;
+    max-width:320px;
+    margin:0 auto;
+    padding:36px 20px;
+    text-align:center;
+    color:var(--muted);
+    background: #FBFCFE;
+    transition:all .2s ease;
+    box-shadow: none;
+  }
+  #drop svg{ color:var(--accent); margin-bottom:12px; width: 38px; height: 38px; }
+  #drop.drag{ border-color:var(--accent); background:var(--card2); color:var(--accent); transform: scale(1.02); }
+  #drop:active{ border-color:var(--accent); background:var(--card2); }
+  #drop p{ margin:0 0 16px; font-size:13.5px; font-weight: 700; }
+  #fileInput{ display:none; }
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    background:var(--accent); color:#FFFFFF;
+    border:none; border-radius:10px;
+    padding:13px 22px;
+    font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal;
+    cursor:pointer; box-shadow: none;
+    transition: all 0.2s;
+  }
+  .btn:active{ transform:translateY(2px); box-shadow:none; }
+  .btn.block{ display:block; width:100%; margin-top:8px; }
+  #empty-state{ text-align:center; color:var(--muted); margin-top:30px; font-size:13px; }
+  
+  .signature { text-align: center; margin-top: 40px; font-size: 12.5px; color: #8b98b8; font-weight: 600; }
+
+  /* ---- Directory / contact list ---- */
+  .list-toolbar{ padding-top:0; }
+  .search-wrap{ position:relative; }
+  .search-wrap svg{ position:absolute; top:50%; right:14px; transform:translateY(-50%); color:var(--muted); }
+  #search{
+    width:100%; padding:10px 40px 12px 14px; border-radius:12px;
+    border:1.07px solid var(--border-light); background:var(--card); color:var(--text);
+    font-family:var(--font-body); font-size:14px;
+    transition: all 0.2s;
+  }
+  #search:focus{ outline:none; border-color:var(--accent); box-shadow: none; }
+  
+  .toolbar-links{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin:12px 4px 10px; }
+  .link-btn{
+    background:none; border:none; padding:8px 10px; cursor:pointer;
+    font-family:var(--font-body); font-size:13.5px; font-weight:700;
+    border-radius: 8px; transition: background 0.2s;
+  }
+  .link-btn.add{ color:var(--accent); background: rgba(65,105,225,0.06); padding:10px 10px; }
+  .link-btn.export{ color:var(--muted); }
+  .summary{ color:var(--muted); font-size:13.5px; font-weight:700; margin:10px 4px 6px; }
+
+  .contact-row{
+    position:relative; margin:10px 0; border-radius:12px;
+    overflow:hidden; box-shadow: var(--shadow-sm);
+  }
+  .contact-row-delete-action{
+    position:absolute; inset:0; background:var(--danger); color:#fff;
+    opacity:0; pointer-events:none; z-index:0;
+  }
+  .contact-row-delete-action svg{
+    position:absolute; left:22px; top:50%; width:21.5px; height:21.5px; transform:translateY(-50%);
+  }
+  .contact-row-edit-action{
+    position:absolute; inset:0; background:var(--accent); color:#fff;
+    opacity:0; pointer-events:none; z-index:0;
+  }
+  .contact-row-edit-action svg{
+    position:absolute; right:22px; top:50%; width:21.5px; height:21.5px; transform:translateY(-50%);
+  }
+  .contact-row-surface{
+    position:relative; z-index:1; padding:12px 14px; border-radius:12px;
+    border:1px solid var(--border); background:var(--card);
+    cursor:pointer; transition: transform 0.15s, box-shadow 0.15s;
+    -webkit-touch-callout:none; -webkit-user-select:none; user-select:none;
+    touch-action: pan-y;
+  }
+  .contact-expand, .contact-expand *{
+    -webkit-touch-callout:default; -webkit-user-select:text; user-select:text;
+  }
+  .contact-row-header{ display:flex; align-items:center; gap:12px; }
+  .contact-row.selected .contact-row-surface{ border-color:var(--accent); background:var(--card); }
+  .contact-checkbox{
+    flex:0 0 22px; width:22px; height:22px; border-radius:50%;
+    border:2px solid var(--border); background:var(--card);
+    display:flex; align-items:center; justify-content:center;
+    transition: all 0.15s; flex-shrink:0;
+  }
+  .contact-row.selected .contact-checkbox{ background:var(--accent); border-color:var(--accent); }
+  .contact-checkbox svg{ width:13px; height:13px; color:#fff; opacity:0; transition: opacity .15s; }
+  .contact-row.selected .contact-checkbox svg{ opacity:1; }
+  .link-btn.delete-selected{ color:var(--danger); background: rgba(239, 68, 68, 0.07); padding:10px 10px; }
+  .link-btn.merge-selected{ color:var(--accent); background: rgba(65,105,225,0.06); padding:10px 10px; }
+  .link-btn.merge-selected:disabled{ opacity:.4; cursor:not-allowed; }
+  .contact-avatar{
+    flex:0 0 40px; width:40px; height:40px; border-radius:12px;
+    background:var(--card2); color:var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-display); font-weight:800; font-size:15px;
+    overflow:hidden; cursor:pointer;
+  }
+  .contact-avatar img{ width:100%; height:100%; object-fit:cover; }
+  .contact-info{ min-width:0; flex:1; }
+  .contact-info.centered{ display:flex; flex-direction:column; justify-content:center; align-self:stretch; }
+  .contact-name{ font-family:var(--font-display); font-size:14px; font-weight:700; margin-bottom:8px; }
+  .contact-star{ flex:0 0 auto; align-self:center; }
+  .contact-realname{ font-size:12px; color:var(--muted); margin-bottom:10px; }
+  .contact-sub{ font-size:13px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; direction: ltr; text-align: right; }
+  .contact-expand{ margin-top:12px; padding-top:12px; border-top:1px solid var(--border); cursor:default; }
+  .contact-expand-group{ margin-bottom:10px; }
+  .contact-expand-group:last-of-type{ margin-bottom:0; }
+  .contact-expand-label{ font-size:11px; color:var(--muted); margin-bottom:3px; }
+  .contact-expand-edit-icon{ display:flex; align-items:center; justify-content:center; flex:0 0 32px; width:32px; height:32px; padding:0; margin-inline-start:auto; border:none; border-radius:8px; background:transparent; color:var(--accent); cursor:pointer; }
+  .contact-expand-edit-icon svg{ width:15px; height:15px; }
+  .contact-expand-row{ display:flex; justify-content:flex-start; align-items:center; gap:8px; padding:4px 0; font-size:13.5px; }
+  .contact-expand-value{ color:var(--text); direction:ltr; text-align:left; overflow-wrap:anywhere; }
+  .contact-expand-value.copyable, .contact-expand-note.copyable{ cursor:pointer; }
+  .contact-expand-value.copyable:active, .contact-expand-note.copyable:active{ opacity:0.6; }
+  .contact-expand-type{ flex:0 0 auto; font-size:11.5px; color:var(--muted); }
+  .contact-expand-note{ font-size:13px; color:var(--text); white-space:pre-wrap; line-height:1.6; }
+
+  /* ---- Edit screen: grouped panels ---- */
+  #screen-home{ background:var(--bg); position:relative; }
+  #screen-edit{ background:var(--bg); }
+  .panel{
+    background:var(--card); border:1px solid var(--border); border-radius:16px;
+    padding:18px 16px; margin:14px 0; box-shadow: var(--shadow-sm);
+  }
+  #notesPanel{ padding-bottom:18px; }
+  .field-group{ margin-bottom:14px; position:relative; }
+  .field-group:last-child{ margin-bottom:0; }
+  label{ display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin-bottom:11px; position:relative; right:1px; }
+  .contact-letter-header{ background:var(--bg); color:var(--accent); font-family:var(--font-display); font-weight:800; font-size:13px; padding:6px 8px; margin-top:4px; }
+  input[type=text], input[type=tel], input[type=email], input[type=url], input[type=date], textarea, select{
+    width:100%; padding:11px 14px; border-radius:10px;
+    border:1.07px solid var(--border-light); background:transparent; color:var(--text);
+    font-size:13.5px; font-family:var(--font-body); transition: all 0.2s; line-height:1.6;
+  }
+  input:focus, textarea:focus, select:focus{ outline:none; border-color:var(--accent); background:transparent; box-shadow: none; }
+  .merge-custom-name::placeholder{ color: #B6BEC9; }
+  #unifyGroupSearch::placeholder, #unifyGroupValue::placeholder{ color: #B6BEC9; }
+  #bulkPhotoSearch::placeholder{ color: #B6BEC9; }
+  #search::placeholder{ color: #B6BEC9; }
+  .mp-old::placeholder, .mp-new::placeholder{ color: #B6BEC9; }
+  #nameFormatSearch::placeholder, #nameFormatValue::placeholder{ color: #B6BEC9; }
+  #listPhotoUrlInline::placeholder{ color: #B6BEC9; }
+  #bulkFieldTextValue::placeholder{ color: #B6BEC9; }
+  #unifyGroupValue{ padding-top:8px; padding-bottom:8px; line-height:2; }
+  .merge-custom-name{ border:none !important; border-radius:0 !important; transition: background 0.2s; }
+  .merge-custom-name:focus{ background:var(--card2); }
+  textarea{ resize:none; height:46px; min-height:46px; overflow:hidden; }
+  
+  #f-samsungadr{ padding:11px 10px; }
+  .multi-row{ display:flex; align-items:center; gap:8px; margin-bottom:10px; touch-action:pan-y; }
+  .multi-row select, .multi-row input.type-text{
+    flex:1; min-width:0; padding:11px 8px; border-radius:10px;
+    font-size:13px; font-weight: 500; line-height:1.6;
+    box-sizing:border-box; -webkit-appearance:none; appearance:none;
+  }
+  .multi-row.row-tel select, .multi-row.row-tel input.type-text{ padding:11px 10px; }
+  .multi-row input[type=tel]{
+    flex:0 0 120px; width:120px; direction: ltr; text-align: left; border-radius: 10px;
+    box-sizing:border-box; padding:11px 10px; line-height:1.6;
+  }
+  .multi-row.row-email select, .multi-row.row-email input.type-text,
+  .multi-row.row-url select, .multi-row.row-url input.type-text{
+    flex:0 0 102px; width:102px; padding:11px 10px;
+  }
+  .multi-row.row-address select, .multi-row.row-address input.type-text{
+    flex:0 0 102px; width:102px; padding:11px 10px;
+  }
+  .multi-row input[type=email], .multi-row input[type=url]{
+    flex:1; min-width:0; direction: ltr; text-align: left; border-radius: 10px;
+    box-sizing:border-box; padding:11px 10px; line-height:1.6;
+  }
+  .multi-row.row-address input[type=text]:not(.type-text){
+    flex:1; min-width:0; border-radius: 10px;
+    box-sizing:border-box; padding:11px 10px; line-height:1.6;
+  }
+  .rm-btn{ background:var(--danger); color:white; border:none; width: 40px; height: 40px; border-radius: 10px; font-size:14px; font-weight:bold; cursor:pointer; display:none; align-items:center; justify-content:center; flex-shrink:0; }
+  
+  .multi-row.dragging-row{
+    box-shadow:0 10px 20px rgba(0,0,0,.12);
+    background:var(--card); border-radius:10px; padding:6px; margin:0;
+  }
+  .drag-placeholder{ border:2px dashed var(--border); border-radius:10px; margin-bottom:10px; }
+  
+  .add-link{ color:var(--accent); font-weight:700; font-size:13px; cursor:pointer; background:var(--card2); border:none; padding:0 12px; height:43px; box-sizing:border-box; border-radius: 10px; width: 100%; font-family:var(--font-body); margin-top: 4px; transition: background 0.2s; }
+  .add-link:active { background: var(--border); }
+  
+  .section-title{
+    font-size:12.5px; font-weight:700; color:var(--muted); margin:0 0 11px;
+  }
+  .raw-note{ font-size:11.5px; color:var(--muted); line-height:1.5; background: var(--card2); padding: 10px; border-radius: 8px; }
+  .raw-note:empty{ display: none; margin: 0; padding: 0; border: none; background: none; }
+  .raw-note:not(:empty){ margin-top:12px; }
+  
+  #prefixModalCancel:active { background: var(--border); }
+
+  /* ---- Bottom save bar (edit only) ---- */
+  .toast{
+    position:fixed; bottom:34px; left:50%; transform:translateX(-50%);
+    background:var(--text); color:#FFFFFF; padding:11px 20px;
+    border-radius:24px; font-size:13px; font-weight: 700; opacity:0; pointer-events:none;
+    transition:opacity .3s; z-index:200; white-space:nowrap; box-shadow: var(--shadow-md);
+  }
+  .toast.show{ opacity:1; }
+
+  /* ---- Scroll-to-top (selection mode) ---- */
+  .scroll-top-btn{
+    position:fixed; left:18px; bottom:calc(24px + env(safe-area-inset-bottom));
+    width:46px; height:46px; border-radius:50%; border:1.07px solid var(--border-light);
+    background:transparent; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    color:var(--accent); box-shadow: var(--shadow-md);
+    display:none; align-items:center; justify-content:center;
+    z-index:40; cursor:pointer; opacity:0; transform:translateY(8px) scale(.9);
+    transition: opacity .2s ease, transform .2s ease;
+  }
+  .scroll-top-btn.show{ display:flex; opacity:1; transform:translateY(0) scale(1); }
+  .scroll-top-btn:active{ background:rgba(0,0,0,.04); }
+
+  /* Menu Dropdown Style Enhancement */
+  #listMenuDropdown {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.1) !important;
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 4px !important;
+  }
+  #listMenuDropdown button {
+    border-radius: 0;
+    border: none;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+  }
+  #listMenuDropdown button:hover, #listMenuDropdown button:active { background: var(--card2); border-radius: 6px; }
+
+  /* ---- Merge conflict options ---- */
+  .merge-field-label{ font-size:12.5px; font-weight:700; color:var(--muted); margin:14px 0 8px; }
+  .merge-field-label.merge-name-label{ margin-bottom:10px; }
+  .merge-name-group{ border:1.5px solid var(--border-light); border-radius:10px; overflow:hidden; margin-bottom:4px; }
+  .merge-opt{
+    border-bottom:1px solid var(--border); padding:10px 12px;
+    font-size:13.5px; font-weight:600; color:var(--text); cursor:pointer; transition: background 0.2s, color 0.2s;
+  }
+  .merge-opt.selected{ background:var(--card2); color:var(--accent); }
+  .merge-opt.name-opt-lg{ padding:13px 12px; font-size:14px; line-height:normal; }
+
+  #bulkPhotoList{ scrollbar-width:thin; scrollbar-color: var(--border) transparent; }
+  #bulkPhotoList::-webkit-scrollbar{ width:5px; }
+  #bulkPhotoList::-webkit-scrollbar-track{ background:transparent; }
+  #bulkPhotoList::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
+  #unifyGroupPickerList, #unifyGroupList, #bulkFieldPickerList{ scrollbar-width:thin; scrollbar-color: var(--border) transparent; }
+  #unifyGroupPickerList::-webkit-scrollbar, #unifyGroupList::-webkit-scrollbar, #bulkFieldPickerList::-webkit-scrollbar{ width:4px; }
+  #unifyGroupPickerList::-webkit-scrollbar-track, #unifyGroupList::-webkit-scrollbar-track, #bulkFieldPickerList::-webkit-scrollbar-track{ background:transparent; margin:6px 0; }
+  #unifyGroupPickerList::-webkit-scrollbar-thumb, #unifyGroupList::-webkit-scrollbar-thumb, #bulkFieldPickerList::-webkit-scrollbar-thumb{ background:var(--border); border-radius:10px; }
+  #unifyGroupPickerList::-webkit-scrollbar{ display:none; }
+  #bulkFieldPickerList::-webkit-scrollbar{ display:none; }
+  .merge-photo-row{ display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; justify-content:center; }
+  .merge-photo-opt{
+    width:56px; height:56px; border-radius:12px; border:2px solid var(--border); cursor:pointer;
+    display:flex; align-items:center; justify-content:center; overflow:hidden; color:var(--muted); font-size:11px; font-weight:700; text-align:center;
+  }
+  .merge-photo-opt img{ width:100%; height:100%; object-fit:cover; }
+  .merge-photo-opt.selected{ border-color:var(--accent); }
+  .dup-merge-btn{
+    color:var(--accent); background:var(--card2); border:none; border-radius:8px; padding:6px 10px 10px;
+    font-family:var(--font-body); font-weight:700; font-size:12px; cursor:pointer;
+  }
+  .dup-merge-btn:active{ background:var(--border); }
+  /* في وضع PWA (مثبّت كتطبيق) تكون المسافة العلوية لنافذة إدارة المجموعات 35px
+     بدل 25px في المتصفح العادي، لتفادي التداخل مع شريط الحالة/النوتش. */
+  @media (display-mode: standalone){
+    #unifyGroupModalOverlay{ padding-top:35px !important; }
+  }
+</style>
+</head>
+<body>
+
+<header id="mainHeader" style="display:none;">
+  <button class="icon-btn" id="backBtn" style="visibility:hidden;">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 19l7-7-7-7"/></svg>
+  </button>
+  <h1 id="screenTitle">جهات الإتصال</h1>
+  <div class="search-wrap" id="headerSearchWrap" style="display:none; flex:1; margin:1px 16px 0; max-width:88%;">
+    <input type="text" id="search" placeholder="بحث بكل الحقول" enterkeyhint="search" style="padding-left:34px;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+    <button type="button" id="searchAddTerm" title="إضافة شرط بحث آخر" style="display:none; position:absolute; top:50%; left:17px; transform:translateY(calc(-50% + 0px)); padding:0; margin:0; border:none; background:none; color:var(--accent); font-size:20px; font-weight:500; line-height:1; cursor:pointer; align-items:center; justify-content:center;">+</button>
+  </div>
+  <div style="position:relative; display:inline-block;">
+    <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
+    <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:147px; z-index:30; overflow:hidden;">
+      <button type="button" class="link-btn" id="menuUndoOpt" style="display:none; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);"><span id="menuUndoOptText">تراجع</span></button>
+      <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
+      <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
+      <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">إدارة المجموعات</button>
+      <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصور</button>
+      <button type="button" class="link-btn" id="menuEmbedLinkedPhotosOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تضمين صور الروابط</button>
+      <button type="button" class="link-btn" id="menuNameFormatOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصيغة</button>
+      <button type="button" class="link-btn" id="menuBulkActionOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);"><span id="menuBulkActionOptText">إضافة نص إلى حقل</span></button>
+      <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
+    </div>
+  </div>
+  <div id="headerEditActions" style="display:flex; gap:8px;">
+    <button class="link-btn" id="headerStarBtn" aria-label="تفضيل" style="display:none; color:#FFD33D; background: var(--card2); width:36px; height:36px; padding:0; border-radius:10px; align-items:center; justify-content:center;">
+      <svg id="headerStarIcon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    </button>
+    <button class="link-btn" id="headerDeleteBtn" aria-label="حذف" style="display:none; color:var(--danger); background: var(--card2); width:36px; height:36px; padding:0; border-radius:10px; align-items:center; justify-content:center;">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+    </button>
+  </div>
+  <button class="link-btn" id="mergeAllIntraBtn" style="display:none; color:var(--accent); font-size:13.5px; font-weight:700; background: var(--card2); padding: 0 14px; height:36px; align-items:center; justify-content:center;"><span style="position:relative; top:-2px;">دمج</span></button>
+</header>
+
+<div id="screens">
+
+  <!-- HOME -->
+  <div class="screen active" id="screen-home">
+    <div class="hero">
+      <div class="hero-title">جهات الإتصال</div>
+      <div class="hero-sub">ارفع ملف VCF لعرض جهات الاتصال وتعديلها وحفظها</div>
+    </div>
+    <div id="drop" style="margin-top:6px;">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4v-1z"/>
+      </svg>
+      <p>اسحب ملف VCF هنا</p>
+      <button class="btn" id="chooseFileBtn">اختر ملفاً من جهازك</button>
+      <input type="file" id="fileInput" accept=".vcf,.csv,text/vcard,text/x-vcard,text/csv,text/plain" multiple>
+    </div>
+    <button type="button" id="newFileBtn" style="display:block; margin:24px auto 0; background:none; border:none; color:var(--accent); font-family:var(--font-body); font-size:13.25px; font-weight:800; cursor:pointer; text-decoration:none; padding:6px 10px;">إنشاء ملف جديد</button>
+    <div class="signature" style="position:fixed; bottom:calc(30px + env(safe-area-inset-bottom)); left:0; right:0;">طوّر بواسطة&nbsp;&nbsp;<a href="https://github.com/iofahmawi" target="_blank" rel="noopener" style="color:var(--accent); font-size:15px; text-decoration:none;">iofahmawi</a></div>
+  </div>
+
+  <!-- LIST -->
+  <div class="screen" id="screen-list">
+    <div class="list-toolbar">
+      <select id="prefixFilter" title="تصفية حسب أول 3 أرقام" style="position:absolute; opacity:0; width:1px; height:1px; pointer-events:none;">
+      </select>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin:10px 2px 4px;">
+      <div class="summary" id="summaryText" style="margin:0;"></div>
+      <div style="display:flex; align-items:center; gap:9px;">
+        <button type="button" class="link-btn" id="prefixSelectedBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; min-width:0; white-space:nowrap;">تعديل البادئة</button>
+        <button type="button" class="link-btn" id="favoriteSelectedBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; min-width:0; white-space:nowrap;">مفضلة</button>
+        <button type="button" class="link-btn merge-selected" id="mergeSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">دمج</button>
+        <button type="button" class="link-btn delete-selected" id="deleteSelectedBtn" style="display:none; min-width:0; white-space:nowrap;">حذف</button>
+      </div>
+      <button class="link-btn add" id="fabAdd" style="min-width:0; white-space:nowrap;">+ إضافة جهة اتصال</button>
+  <div id="prefixBtnGroup" style="display:none; align-items:center; gap:9px;">
+        <button type="button" class="link-btn" id="prefixReplaceBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; white-space:nowrap;">تعديل البادئة</button>
+        <button type="button" class="link-btn" id="removeGroupBtn" style="display:none; color:var(--accent); background: rgba(65,105,225,0.06); padding: 10px 10px; white-space:nowrap;">إزالة المجموعة</button>
+        <button type="button" class="link-btn" id="prefixDeleteBtn" style="display:none; color:var(--danger); background: rgba(239, 68, 68, 0.07); padding: 10px 10px; white-space:nowrap;">حذف النتائج</button>
+      </div>
+    </div>
+    <div id="contactList"></div>
+    <button type="button" id="scrollTopBtn" class="scroll-top-btn" aria-label="العودة للأعلى">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+    </button>
+  </div>
+
+  <!-- DUPLICATES -->
+  <div class="screen" id="screen-duplicates">
+    <div class="summary" id="dupSummaryText" style="margin:12px 4px 18px;"></div>
+    <div id="duplicatesList"></div>
+  </div>
+
+  <!-- EDIT -->
+  <div class="screen" id="screen-edit">
+    <div class="panel" style="text-align:center;">
+      <div id="photoWrap" style="position:relative; width:86px; height:86px; margin:0 auto; cursor:pointer;">
+        <img id="f-photo" style="display:none; width:86px; height:86px; border-radius:20px; object-fit:cover; box-shadow: var(--shadow-sm);">
+        <div id="photoPlaceholder" style="width:86px; height:86px; border-radius:20px; border:2px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:12px; font-weight:700;">إضافة صورة</div>
+      </div>
+      <div id="photoMenu" style="display:none; justify-content:center; gap:10px; margin:15px 0 0; flex-wrap:wrap;">
+        <button type="button" class="link-btn" id="photoChangeOpt" style="color:var(--accent); background: var(--card2);">من الجهاز</button>
+        <button type="button" class="link-btn" id="photoUrlOpt" style="color:var(--accent); background: var(--card2);">من رابط</button>
+        <button type="button" class="link-btn" id="photoRemoveOpt" style="color:var(--danger); background: rgba(239, 68, 68, 0.1);">حذف الصورة</button>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" style="display:none;">
+    </div>
+
+    <div class="panel">
+      <div class="field-group">
+        <label>الاسم الكامل</label>
+        <input type="text" id="f-fn" placeholder="">
+      </div>
+      <div class="field-group">
+        <label>اللقب</label>
+        <input type="text" id="f-nick">
+      </div>
+      <div class="field-group">
+        <label>تاريخ الميلاد</label>
+        <input type="text" id="f-bday-display" readonly style="cursor:pointer;">
+        <input type="date" id="f-bday" style="position:absolute; width:1px; height:1px; opacity:0; pointer-events:none;">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="field-group">
+        <label>الشركة</label>
+        <input type="text" id="f-org">
+      </div>
+      <div class="field-group">
+        <label>القسم</label>
+        <input type="text" id="f-dept">
+      </div>
+      <div class="field-group">
+        <label>الوظيفة</label>
+        <input type="text" id="f-title">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">أرقام الهاتف</div>
+      <div id="phoneList"></div>
+      <button class="add-link" id="addPhone">+ إضافة رقم</button>
+    </div>
+
+    <div class="panel">
+      <div class="section-title">البريد الإلكتروني</div>
+      <div id="emailList"></div>
+      <button class="add-link" id="addEmail">+ إضافة بريد</button>
+      <div class="section-title" style="margin-top:16px;">الموقع الإلكتروني</div>
+      <div id="urlList"></div>
+      <button class="add-link" id="addUrl">+ إضافة رابط</button>
+    </div>
+
+    <div class="panel" id="notesPanel">
+      <div class="field-group">
+        <label>العنوان</label>
+        <div id="adrList"></div>
+        <div id="samsungAdrGroup" style="display:none;margin-top:14px;margin-bottom:8px;">
+          <label>معلومات اضافية للموقع</label>
+          <input type="text" id="f-samsungadr">
+        </div>
+        <button class="add-link" id="addAdr">+ إضافة عنوان</button>
+      </div>
+      <div class="field-group">
+        <label>المجموعات</label>
+        <input type="text" id="f-categories">
+      </div>
+      <div class="field-group">
+        <label>ملاحظات</label>
+        <textarea id="f-note" rows="1"></textarea>
+      </div>
+      <div class="raw-note" id="rawNote"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div id="photoUrlModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إضافة صورة من رابط</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6; text-align:center;">الصق رابط الصورة المباشر</div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label>الرابط</label>
+      <input type="url" id="photoUrlModalInput" inputmode="url" placeholder="https://" style="direction:ltr; text-align:left; font-size:14px; padding:13px 14px; line-height:normal;">
+    </div>
+    <div style="display:flex; gap:8px; margin-top:18px;">
+      <button type="button" id="photoUrlModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="photoUrlModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">إضافة</button>
+    </div>
+  </div>
+</div>
+
+<div id="listPhotoMenuOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; padding-top:21px; padding-bottom:21px; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div id="listPhotoMenuImgWrap" style="width:140px; height:140px; margin:0 auto; border-radius:22px; overflow:hidden; background:var(--card2); display:flex; align-items:center; justify-content:center; border:1.07px solid var(--border-light); cursor:pointer;">
+      <img id="listPhotoMenuImg" style="display:none; width:100%; height:100%; object-fit:cover;">
+      <svg id="listPhotoMenuPlaceholder" width="52" height="52" viewBox="0 0 24 24" fill="var(--muted)"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4v-1z"/></svg>
+    </div>
+    <div id="listPhotoRemoveWrap" style="text-align:center; margin:17px 0;">
+      <button type="button" class="link-btn" id="listPhotoRemoveOpt" style="display:none; color:var(--danger); background:none;">حذف الصورة</button>
+    </div>
+    <div style="margin-bottom:18px;">
+      <button type="button" id="listPhotoChangeOpt" style="width:100%; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center;">اختر ملفاً من جهازك</button>
+    </div>
+    <div class="field-group" style="margin-bottom:18px;">
+      <label>أو من رابط</label>
+      <input type="url" id="listPhotoUrlInline" inputmode="url" placeholder="https://" style="direction:ltr; text-align:left; font-size:14px; padding:13px 14px; line-height:normal;">
+    </div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="listPhotoMenuCancelBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer;">إلغاء</button>
+      <button type="button" id="listPhotoMenuConfirmBtn" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تأكيد</button>
+    </div>
+  </div>
+</div>
+<input type="file" id="listPhotoInput" accept="image/*" style="display:none;">
+
+<div id="prefixModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">تعديل البادئة</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:15px 0 16px; line-height:1.6;" id="prefixModalDesc"></div>
+    <div class="field-group" style="margin-bottom:0;">
+      <label>البادئة الجديدة</label>
+      <input type="tel" id="prefixModalInput" inputmode="tel" style="direction:ltr; text-align:left; font-size:15.5px; padding:13px 14px; line-height:normal;">
+    </div>
+    <div style="display:flex; gap:8px; margin-top:18px;">
+      <button type="button" id="prefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="prefixModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تعديل</button>
+    </div>
+  </div>
+</div>
+
+<div id="multiPrefixModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:380px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 94px); max-height:calc(100dvh - 94px); display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">تعديل البادئة</div>
+    <div style="font-size:12.5px; color:var(--muted); margin:10px 0 14px; line-height:1.6; text-align:center;">اترك الحقول فارغة إذا كنت لا تريد إجراء أي تعديل</div>
+    <div id="multiPrefixList" style="overflow-y:auto; overflow-x:hidden; flex:1; margin-bottom:14px;"></div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="multiPrefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="multiPrefixModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+<div id="searchExportConfirmModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:16px; color:var(--text); text-align:center;">البحث ما زال مفعّلاً</div>
+    <div id="searchExportConfirmText" style="font-size:14px; color:var(--muted); margin:0 0 16px; line-height:1.7; text-align:center;"></div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" id="searchExportConfirmCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="searchExportConfirmProceed" class="btn" style="flex:1 1 0; margin:0; padding:13px;">متابعة</button>
+    </div>
+  </div>
+</div>
+
+<div id="exitListModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">الخروج من جهات الاتصال</div>
+    <div style="font-size:14px; color:var(--muted); margin:17px 0 19px; line-height:1.7; text-align:center;">تأكد من حفظ تعديلاتك أولاً قبل الخروج</div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" id="exitListModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; line-height:normal; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="exitListModalConfirm" style="flex:1 1 0; background:var(--danger); color:#fff; border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; text-align:center; line-height:normal; transition: background 0.2s;">خروج</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); padding:24px 20px;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">حذف جهة الاتصال</div>
+    <div style="font-size:14px; color:var(--muted); margin:0 0 22px; line-height:1.7; text-align:center;">هل تريد حذف جهة الاتصال هذه؟ لا يمكن التراجع عن هذا الإجراء.</div>
+    <div style="display:flex; gap:10px;">
+      <button type="button" id="deleteModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="deleteModalConfirm" style="flex:1 1 0; background:var(--danger); color:#fff; border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+    </div>
+  </div>
+</div>
+
+<div id="prefixDeleteModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">حذف النتائج</div>
+    <div style="font-size:14px; color:var(--muted); margin:15px 0 16px; line-height:1.7; text-align:center;" id="prefixDeleteModalDesc"></div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="prefixDeleteModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="prefixDeleteModalConfirm" style="flex:1 1 0; margin:0; padding:13px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+    </div>
+  </div>
+</div>
+
+<div id="bulkFieldTextModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div id="bulkFieldTextTitle" style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">إضافة نص لحقل</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:16px 0 18px; line-height:1; text-align:center;">اختر الحقل</div>
+    <div style="border:1.07px solid var(--border-light); border-radius:10px; overflow:hidden; position:relative; margin-bottom:18px;">
+      <div id="bulkFieldPickerList" style="max-height:175px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; scrollbar-width:none;"></div>
+      <div id="bulkFieldPickerScrollThumb" style="position:absolute; left:0; top:0; width:4px; border-radius:10px; background:var(--border); display:none; pointer-events:none;"></div>
+    </div>
+    <textarea id="bulkFieldTextValue" rows="3" placeholder="النص الذي سيحل محل محتوى الحقل الحالي" style="width:100%; box-sizing:border-box; height:auto; min-height:70px; resize:none; margin-bottom:14px;"></textarea>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="bulkFieldTextCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="bulkFieldTextConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="saveFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div id="saveFormatTitle" style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">اختر صيغة الحفظ</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:18px 0 14px; line-height:1.6; text-align:center;">التوافق مع</div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="compatSamsungBtn" class="compat-opt" style="flex:1 1 0; min-width:0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">سامسونج</button>
+      <button type="button" id="compatGoogleBtn" class="compat-opt" style="flex:1 1 0; min-width:0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">جوجل و iOS</button>
+    </div>
+    <div id="saveFormatPhotoSizeSection">
+      <div style="font-size:13.5px; color:var(--muted); margin:18px 0 14px; line-height:1.6; text-align:center;">أبعاد الصور</div>
+      <div style="display:flex; gap:8px;">
+        <button type="button" id="photoSize512Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">512</button>
+        <button type="button" id="photoSize720Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid var(--accent); border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">720</button>
+        <button type="button" id="photoSize1080Btn" class="photo-size-opt" style="flex:1 1 0; margin:0; padding:11px; background:var(--card2); color:var(--text); border:2px solid transparent; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">1024</button>
+      </div>
+    </div>
+    <div style="margin:18px 0 14px;"></div>
+    <div id="saveFormatSubtitle" style="font-size:13.5px; color:var(--muted); margin:0 0 14px; line-height:1.6; text-align:center;">صيغة الملف</div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="saveFormatCsvBtn" style="flex:1 1 0; margin:0; padding:13px; background:var(--card2); color:var(--text); border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">CSV</button>
+      <button type="button" id="saveFormatVcfBtn" style="flex:1 1 0; margin:0; padding:13px; background:var(--card2); color:var(--text); border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">VCF</button>
+    </div>
+    <div id="saveFormatPhotoNote" style="font-size:12px; color:var(--muted); margin-top:20px; line-height:normal; text-align:center;">الصور المضمّنة بالملف تصدر فقط مع صيغة VCF</div>
+  </div>
+</div>
+
+<div id="removeGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إزالة المجموعة</div>
+    <div style="font-size:13.5px; color:var(--muted); margin:17px 0 19px; line-height:1.6; text-align:center;" id="removeGroupModalDesc"></div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="removeGroupModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="removeGroupModalConfirm" style="flex:1 1 0; margin:0; padding:13px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إزالة</button>
+    </div>
+  </div>
+</div>
+
+<div id="deleteSelectedModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:16px; margin-bottom:10px; color:var(--text); text-align:center;">حذف جهات الاتصال</div>
+    <div style="font-size:14px; color:var(--muted); margin:15px 0 16px; line-height:1.7; text-align:center;" id="deleteSelectedModalDesc"></div>
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="deleteSelectedModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="deleteSelectedModalConfirm" style="flex:1 1 0; margin:0; padding:13px; background:var(--danger); color:white; border:none; border-radius:10px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">حذف</button>
+    </div>
+  </div>
+</div>
+
+<div id="mergeModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:center; justify-content:center; padding:20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:calc(100vh - 40px); max-height:calc(100dvh - 40px); overflow-y:auto;">
+    <div id="mergeModalTitle" style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">دمج جهات الاتصال</div>
+    <div id="mergeModalSubtitle" style="font-size:13px; color:var(--muted); margin:15px 0 4px; line-height:1.6; text-align:center;">يوجد تعارض — اختر ما تريد الاحتفاظ به</div>
+    <div id="mergeModalBody"></div>
+    <div style="display:flex; gap:8px; margin-top:18px;">
+      <button type="button" id="mergeModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="mergeModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">دمج</button>
+    </div>
+  </div>
+</div>
+
+<div id="bulkPhotoModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; max-height:86dvh; overflow-y:auto; display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصور</div>
+
+    <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:11px;">
+      <button type="button" id="bulkPhotoShowAllBtn" class="link-btn" style="color:var(--muted); font-size:12.5px; font-weight:700; background:none; padding:0; position:relative; right:1px;">عرض الكل</button>
+    </div>
+
+    <input type="text" id="bulkPhotoSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+
+    <div id="bulkPhotoSelectAllRow" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+      <button type="button" id="bulkPhotoSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
+      <span id="bulkPhotoCount" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+
+    <div id="bulkPhotoListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
+      <div id="bulkPhotoList" style="max-height:223px; overflow-y:auto; overflow-x:hidden;"></div>
+    </div>
+
+    <input type="file" id="bulkPhotoInput" accept="image/*" style="display:none;">
+    <label id="bulkPhotoPickLabel" style="margin-bottom:11px;">اختيار الصورة</label>
+    <div id="bulkPhotoPickWrap" style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding:10px; border:1.07px solid var(--border-light); border-radius:10px;">
+      <div id="bulkPhotoPreviewWrap" style="width:52px; height:52px; border-radius:14px; overflow:hidden; flex:0 0 auto; display:flex; align-items:center; justify-content:center; background:var(--card2); color:var(--muted); font-size:10px; text-align:center;">
+        <span id="bulkPhotoPreviewPlaceholder" style="font-size:8.5px; line-height:1.25; padding:0 2px;">بدون صورة</span>
+        <img id="bulkPhotoPreviewImg" style="display:none; width:100%; height:100%; object-fit:cover;">
+      </div>
+      <button type="button" id="bulkPhotoPickBtn" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center;">اختر صورة</button>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:2px;">
+      <button type="button" id="bulkPhotoCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="bulkPhotoConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+<div id="embedPhotosModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:86vh; max-height:86dvh; overflow-y:auto; display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تضمين صور الروابط</div>
+
+    <input type="text" id="embedPhotosSearch" placeholder="ابحث عن جهات الاتصال" style="width:100%; box-sizing:border-box; padding:11px 14px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:14px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding:0 4px;">
+      <button type="button" id="embedPhotosSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
+      <span id="embedPhotosCount" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+
+    <div id="embedPhotosListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:18px; overflow:hidden;">
+      <div id="embedPhotosList" style="max-height:335px; overflow-y:auto; overflow-x:hidden;"></div>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="embedPhotosCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="embedPhotosConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+<div id="unifyGroupModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:25px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:94vh; max-height:94dvh; overflow-y:auto; display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">إدارة المجموعات</div>
+
+    <div class="field-group" style="margin-bottom:20px;">
+      <label>اختر مجموعة موجودة</label>
+      <div style="border:1.07px solid var(--border-light); border-radius:10px; overflow:hidden; position:relative;">
+        <div id="unifyGroupPickerList" style="max-height:131px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; scrollbar-width:none;"></div>
+        <div id="unifyGroupPickerScrollThumb" style="position:absolute; left:0; top:0; width:4px; border-radius:10px; background:var(--border); display:none; pointer-events:none;"></div>
+      </div>
+    </div>
+
+    <div class="field-group" style="margin-bottom:6px;">
+      <label>البحث عن جهات الاتصال</label>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="text" id="unifyGroupSearch" placeholder="ابحث عن جهات الاتصال" style="flex:1 1 auto; min-width:0; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px;">
+        <button type="button" id="unifyGroupAddSearchBtn" title="إضافة المحدد وبدء بحث جديد" style="flex:0 0 auto; width:38px; height:38px; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--accent); font-size:20px; font-weight:700; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;">+</button>
+      </div>
+    </div>
+    <div id="unifyGroupTotalSelected" style="display:none; font-size:11.5px; color:var(--muted); margin:1px 4px 14px; text-align:center;">
+      <span id="unifyGroupTotalSelectedText"></span>
+      <button type="button" id="unifyGroupClearSelectionBtn" style="background:none; border:none; color:var(--accent); font-family:var(--font-body); font-size:11.5px; font-weight:400; padding:2px 6px; cursor:pointer;">مسح التحديد</button>
+    </div>
+
+    <div id="unifyGroupSelectRow" style="display:none; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+      <button type="button" id="unifyGroupSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
+      <span id="unifyGroupCount" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+
+    <div id="unifyGroupListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden; flex-shrink:0;">
+      <div id="unifyGroupList" style="max-height:167px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; flex-shrink:0;"></div>
+    </div>
+
+    <div class="field-group" style="margin-top:14px; margin-bottom:18px;">
+      <label id="unifyGroupValueLabel">اسم المجموعة</label>
+      <input type="text" id="unifyGroupValue" placeholder="اترك الحقل فارغاً للإزالة">
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="unifyGroupCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="unifyGroupConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+<div id="nameFormatModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:340px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18); max-height:90vh; max-height:90dvh; overflow-y:auto; display:flex; flex-direction:column;">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:20px; color:var(--text); text-align:center;">تعديل الصيغة</div>
+
+    <div style="display:flex; align-items:center; justify-content:flex-start; margin-bottom:11px;">
+      <button type="button" id="nameFormatShowAllBtn" class="link-btn" style="color:var(--muted); font-size:12.5px; font-weight:700; background:none; padding:0; position:relative; right:1px;">عرض الكل</button>
+    </div>
+
+    <input type="text" id="nameFormatSearch" placeholder="الكلمة المراد البحث عنها في جهات الاتصال" style="width:100%; box-sizing:border-box; padding:8px 14px; line-height:2; border-radius:10px; border:1.07px solid var(--border-light); background:transparent; color:var(--text); font-size:13.5px; margin-bottom:10px;">
+
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding:0 4px;">
+      <button type="button" id="nameFormatSelectAll" class="link-btn" style="color:var(--accent); font-size:12px; background:none; padding:4px;">تحديد الكل</button>
+      <span id="nameFormatCount" style="font-size:12px; color:var(--muted);"></span>
+    </div>
+
+    <div id="nameFormatListWrap" style="display:none; border:1.07px solid var(--border-light); border-radius:10px; margin-bottom:14px; overflow:hidden;">
+      <div id="nameFormatList" style="max-height:223px; overflow-y:auto; overflow-x:hidden;"></div>
+    </div>
+
+    <div class="field-group" style="margin-bottom:14px;">
+      <label>الصيغة الجديدة</label>
+      <input type="text" id="nameFormatValue" placeholder="تطبق على الاسم واللقب والشركة والوظيفة">
+    </div>
+
+    <div style="margin:2px 0 18px;">
+      <label style="display:block; font-size:12.5px; color:var(--muted); margin-bottom:12px;">توحيد نمط الأحرف</label>
+      <div style="display:flex; gap:8px;">
+        <button type="button" id="caseStyleTitle" data-case="title" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:12px; font-family:var(--font-body); font-weight:700; font-size:14.80px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">Aa</button>
+        <button type="button" id="caseStyleUpper" data-case="upper" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:12px; font-family:var(--font-body); font-weight:700; font-size:14.80px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">AA</button>
+        <button type="button" id="caseStyleLower" data-case="lower" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:12px; font-family:var(--font-body); font-weight:700; font-size:14.80px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: all 0.15s;">aa</button>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button type="button" id="nameFormatCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="nameFormatConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let contacts = [];
+
+// ============ حفظ دائم بالجهاز عبر IndexedDB ============
+// يحل محل الاعتماد الكامل على ذاكرة الصفحة المؤقتة: أي تغيير على جهات
+// الاتصال (إضافة/تعديل/حذف/دمج...) يُحفظ تلقائياً على تخزين المتصفح الدائم
+// بالجهاز، ويُعاد تحميله عند فتح الصفحة من جديد دون الحاجة لاستيراد VCF
+// كل مرة. تصدير VCF يبقى متاحاً كما هو كنسخة احتياطية يدوية إضافية.
+const IDB_NAME = 'contactsAppDB';
+const IDB_VERSION = 1;
+const IDB_STORE = 'kv';
+let idbPromise = null;
+function openIDB(){
+  if(idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject) => {
+    if(!('indexedDB' in window)){ reject(new Error('IndexedDB غير مدعوم')); return; }
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => { req.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return idbPromise;
+}
+function idbGet(key){
+  return openIDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readonly');
+    const req = tx.objectStore(IDB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  }));
+}
+function idbSet(key, value){
+  return openIDB().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+let saveContactsTimer = null;
+// حفظ مؤجَّل (debounce) لتفادي كتابة متكررة أثناء الكتابة بحقل البحث؛ يكفي
+// أن تُستقر التغييرات نصف ثانية قبل الحفظ الفعلي على القرص
+function saveContactsToDB(){
+  clearTimeout(saveContactsTimer);
+  saveContactsTimer = setTimeout(() => {
+    idbSet('contacts', contacts).catch(() => {});
+  }, 400);
+}
+async function loadContactsFromDB(){
+  try{
+    const saved = await idbGet('contacts');
+    if(Array.isArray(saved) && saved.length) contacts = saved;
+  } catch(err){ /* أول تشغيل، أو المتصفح لا يدعم IndexedDB */ }
+}
+
+let undoSnapshot = null;
+
+function saveUndoSnapshot(description){
+  undoSnapshot = { contacts: JSON.parse(JSON.stringify(contacts)), description };
+  const btn = $('#menuUndoOpt');
+  if(btn){
+    btn.style.display = 'block';
+  }
+}
+
+// تصفّر لقطة التراجع وتخفي زر "تراجع" — تُستدعى عند بدء ملف جديد كلياً
+// (رفع ملف جديد أو "ملف جديد") لمنع تراجع قديم من الكتابة فوق الملف الجديد
+function clearUndoSnapshot(){
+  undoSnapshot = null;
+  const btn = $('#menuUndoOpt');
+  if(btn){
+    btn.style.display = 'none';
+  }
+}
+
+function performUndo(){
+  if(!undoSnapshot) return;
+  contacts = undoSnapshot.contacts;
+  const desc = undoSnapshot.description;
+  undoSnapshot = null;
+  const btn = $('#menuUndoOpt');
+  if(btn){
+    btn.style.display = 'none';
+  }
+  refreshPrefixOptions();
+  renderList($('#search').value);
+  if(typeof renderDuplicates === 'function') renderDuplicates();
+  toast('تم التراجع عن ' + desc);
+}
+
+let currentId = null;
+let swipeDeleteTargetId = null;
+
+const $ = (sel) => document.querySelector(sel);
+
+// بعض بيئات المعاينة (مثل about:srcdoc) تمنع تعديل سجل المتصفح لأسباب أمنية
+// وترمي SecurityError. هذا لا يحدث عند فتح الملف فعلياً على الجهاز/المتصفح،
+// لكن نلتقطه هنا احتياطاً حتى لا يتوقف التطبيق بسبب بيئة معاينة فقط.
+function safePushState(state, title, url){
+  try{ history.pushState(state, title, url); }catch(err){ /* بيئة لا تدعم تعديل السجل */ }
+}
+function safeReplaceState(state, title, url){
+  try{ history.replaceState(state, title, url); }catch(err){ /* بيئة لا تدعم تعديل السجل */ }
+}
+const screens = { home: $('#screen-home'), list: $('#screen-list'), edit: $('#screen-edit'), duplicates: $('#screen-duplicates') };
+const titles = { home: 'جهات الإتصال', list: 'جهات الاتصال', edit: 'تعديل جهة اتصال', duplicates: 'أرقام مكررة' };
+
+// تحديث الواجهة فقط لعرض شاشة معيّنة (بدون لمس سجل المتصفح إطلاقاً)
+function renderScreenUI(name){
+  if(name !== 'list'){ if(typeof closeOpenSwipe === 'function') closeOpenSwipe(); if(selectionMode){ selectionMode = false; selectedIds.clear(); } if(typeof updateScrollTopBtn === 'function') updateScrollTopBtn(); }
+  Object.values(screens).forEach(s=>s.classList.remove('active'));
+  screens[name].classList.add('active');
+  $('#screenTitle').textContent = titles[name];
+  $('#screenTitle').style.display = name === 'list' ? 'none' : 'block';
+  $('#headerSearchWrap').style.display = name === 'list' ? 'flex' : 'none';
+  $('#backBtn').style.visibility = name === 'home' ? 'hidden' : 'visible';
+  $('#headerStarBtn').style.display = name === 'edit' ? 'inline-flex' : 'none';
+  $('#headerDeleteBtn').style.display = name === 'edit' ? 'inline-flex' : 'none';
+  $('#mergeAllIntraBtn').style.display = name === 'duplicates' ? 'inline-flex' : 'none';
+  $('#listMenuBtn').style.display = name === 'list' ? 'inline-block' : 'none';
+  closeListMenuDropdown();
+  $('#mainHeader').style.display = name === 'home' ? 'none' : 'flex';
+  const scroller = $('#screens');
+  if(name === 'list' && expandedContactId){
+    // نرجع للقائمة وبطاقة مفتوحة: نمرّر لموضع البطاقة نفسها بدل تصفير
+    // التمرير للأعلى، حتى لا يضطر المستخدم للبحث عنها من جديد.
+    const target = $('.contact-row[data-id="' + CSS.escape(String(expandedContactId)) + '"]');
+    if(target){
+      target.scrollIntoView({ block: 'center' });
+    } else {
+      window.scrollTo(0,0);
+      if(scroller) scroller.scrollTop = 0;
+    }
+  } else {
+    window.scrollTo(0,0);
+    if(scroller) scroller.scrollTop = 0;
+  }
+}
+
+// تنقّل للأمام (رئيسية←قائمة، قائمة←تعديل/تكرارات...): يضيف مُدخلاً حقيقياً
+// في سجل المتصفح خاصاً بهذه الشاشة بالتحديد. بهذا يعرف زر الرجوع (سواء زر
+// الجهاز الفعلي أو زر الرجوع داخل التطبيق) دائماً إلى أين يعود بالضبط —
+// أياً كانت الطريقة التي وصل بها المستخدم لهذه الشاشة (بحث، ضغط مباشر...) —
+// بدلاً من الاعتماد على عداد ضغطات لا يميّز بين الشاشات.
+function showScreen(name){
+  safePushState({ screen: name }, '', '#' + name);
+  if(name === 'list'){
+    // القائمة تحتاج تأكيد قبل الخروج منها دائماً؛ نضيف مُدخل حماية فوراً
+    // (وليس لاحقاً وقت الرجوع) حتى لا نعتمد على "استدراك" رجوع تم بالفعل.
+    safePushState({ screen: 'list', guard: true }, '', '#list');
+  }
+  renderScreenUI(name);
+}
+
+// تنقّل للخلف: نطلب من المتصفح التراجع فعلياً لمُدخل السجل السابق؛ معالجة
+// popstate أدناه هي من تعرض الشاشة الصحيحة فور تأكيد المتصفح للتراجع.
+function goBack(){
+  history.back();
+}
+
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+function unescapeVal(v){
+  return v.replace(/\\n/gi,'\n').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\');
+}
+function escapeVal(v){
+  return (v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+}
+
+// جوجل أحياناً يصدّر الأرقام مجزأة بمسافات (مثل "+962 7 9573 1514")، ما يسبب
+// مشاكل عند نسخ الرقم ولصقه ببرامج أخرى. نزيل المسافات فقط ونُبقي على أي
+// رموز أخرى (مثل * و # بأكواد USSD) كما هي دون المساس بها.
+function normalizePhoneValue(v){
+  return v.replace(/\s+/g, '');
+}
+
+// يطبّع صيغ تاريخ الميلاد المختلفة القادمة من الهواتف (YYYYMMDD، YYYY-MM-DD،
+// أو مع وقت ملحق) إلى صيغة YYYY-MM-DD التي يفهمها input[type=date].
+function normalizeBdayForInput(v){
+  if(!v) return '';
+  const s = v.trim();
+  let m = s.match(/^(\d{4})-?(\d{2})-?(\d{2})/);
+  if(m) return m[1] + '-' + m[2] + '-' + m[3];
+  return '';
+}
+
+function encodeQuotedPrintable(str){
+  const bytes = new TextEncoder().encode(str);
+  let out = '';
+  for(const b of bytes){
+    if((b>=0x41&&b<=0x5A)||(b>=0x61&&b<=0x7A)||(b>=0x30&&b<=0x39)){
+      out += String.fromCharCode(b);
+    } else {
+      out += '=' + b.toString(16).toUpperCase().padStart(2,'0');
+    }
+  }
+  return out;
+}
+
+function decodeQuotedPrintable(str){
+  str = str.replace(/=(\r\n|\n|\r)/g, '');
+  const bytes = [];
+  for(let i=0;i<str.length;i++){
+    if(str[i]==='=' && /[0-9A-Fa-f]{2}/.test(str.substr(i+1,2))){
+      bytes.push(parseInt(str.substr(i+1,2),16));
+      i+=2;
+    } else {
+      bytes.push(str.charCodeAt(i));
+    }
+  }
+  try{
+    return new TextDecoder('utf-8').decode(new Uint8Array(bytes));
+  }catch(e){ return str; }
+}
+
+function parseVCF(text){
+  text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+  const rawLines = text.split('\n');
+  const lines = [];
+  for(const line of rawLines){
+    if((line.startsWith(' ') || line.startsWith('\t')) && lines.length>0){
+      lines[lines.length-1] += line.slice(1);
+      continue;
+    }
+    if(lines.length > 0){
+      const prev = lines[lines.length-1];
+      const colonIdx = prev.indexOf(':');
+      const keyPart = colonIdx !== -1 ? prev.slice(0, colonIdx) : prev;
+      const isQP = /QUOTED-PRINTABLE/i.test(keyPart);
+      if(isQP && /=$/.test(prev)){
+        lines[lines.length-1] = prev.slice(0, -1) + line;
+        continue;
+      }
+    }
+    if(line.trim() !== ''){
+      lines.push(line);
+    }
+  }
+
+  const cards = [];
+  let cur = null;
+
+  for(const line of lines){
+    const upper = line.toUpperCase();
+    if(upper.startsWith('BEGIN:VCARD')){
+      cur = { id: 'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adrs:[], categories:'', bday:'',
+              phones:[], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null, samsungAdr:'', _itemRefs:{} };
+      continue;
+    }
+    if(upper.startsWith('END:VCARD')){
+      if(cur){
+        if(!cur.fn) cur.fn = '(بدون اسم)';
+        delete cur._itemRefs;
+        cards.push(cur);
+      }
+      cur = null;
+      continue;
+    }
+    if(!cur) continue;
+
+    const colonIdx = line.indexOf(':');
+    if(colonIdx === -1) continue;
+    let key = line.slice(0, colonIdx);
+    let value = line.slice(colonIdx+1);
+
+    const keyParts = key.split(';');
+    // جوجل يصدّر بعض الحقول (TEL/EMAIL/ADR) بادئة "itemN." لربطها بتسمية مخصصة
+    // بسطر منفصل "itemN.X-ABLabel"، فنفصل هذه البادئة عن اسم الخاصية الحقيقي
+    const groupMatch = keyParts[0].match(/^item(\d+)\.(.+)$/i);
+    const itemGroup = groupMatch ? groupMatch[1] : null;
+    const propName = (groupMatch ? groupMatch[2] : keyParts[0]).toUpperCase();
+    const params = keyParts.slice(1);
+
+    const isQP = params.some(p => /^ENCODING=QUOTED-PRINTABLE$/i.test(p.trim()));
+    if(isQP){
+      value = decodeQuotedPrintable(value);
+    }
+
+    let typeParam = '';
+    for(const p of params){
+      const m = p.match(/^TYPE=(.*)$/i);
+      const custom = p.match(/^X-CUSTOM\((.*)\)$/i);
+      if(m){ typeParam = m[1].split(',')[0]; }
+      else if(custom){
+        const inner = custom[1].split(',');
+        let label = inner[inner.length-1] || '';
+        if(/QUOTED-PRINTABLE/i.test(custom[1])){
+          label = decodeQuotedPrintable(label);
+        }
+        typeParam = typeParam || label;
+      }
+      else if(!p.includes('=') && !/^(ENCODING|CHARSET|PREF)/i.test(p)){
+        typeParam = typeParam || p;
+      }
+    }
+
+    switch(propName){
+      case 'VERSION':
+        cur.version = value.trim();
+        break;
+      case 'FN':
+        cur.fn = unescapeVal(value);
+        break;
+      case 'N':
+        if(!cur.fn || cur.fn === '(بدون اسم)'){
+          const parts = value.split(';').map(unescapeVal);
+          cur.fn = [parts[1],parts[2],parts[0]].filter(Boolean).join(' ');
+        }
+        break;
+      case 'ORG': {
+        const orgParts = value.split(';').map(unescapeVal);
+        if(orgParts[0]) cur.org = orgParts[0];
+        if(orgParts[1]) cur.dept = orgParts[1];
+        break;
+      }
+      case 'TITLE':
+        cur.title = unescapeVal(value);
+        break;
+      case 'NOTE':
+        cur.note = unescapeVal(value);
+        break;
+      case 'ADR': {
+        const v = unescapeVal(value.split(';').filter(Boolean).join(', ')).replace(/^[\u200E\u200F]+/, '');
+        const t = typeParam || 'أخرى';
+        if(!cur.adrs) cur.adrs = [];
+        let obj = cur.adrs.find(a => a.value === v && a.type === t);
+        if(v && !obj){
+          obj = { type: t, value: v };
+          cur.adrs.push(obj);
+        }
+        if(itemGroup && obj) cur._itemRefs[itemGroup] = obj;
+        break;
+      }
+      case 'CATEGORIES':
+        cur.categories = unescapeVal(value).split(',').map(s => s.trim()).filter(Boolean).join(', ');
+        break;
+      case 'BDAY':
+        cur.bday = normalizeBdayForInput(unescapeVal(value));
+        break;
+      case 'TEL': {
+        const v = normalizePhoneValue(unescapeVal(value));
+        const t = typeParam || 'أخرى';
+        let obj = cur.phones.find(p => p.value === v && p.type === t);
+        if(!obj){
+          obj = { type: t, value: v };
+          cur.phones.push(obj);
+        }
+        if(itemGroup) cur._itemRefs[itemGroup] = obj;
+        break;
+      }
+      case 'EMAIL': {
+        const v = unescapeVal(value);
+        const t = typeParam || 'أخرى';
+        let obj = cur.emails.find(e => e.value === v && e.type === t);
+        if(!obj){
+          obj = { type: t, value: v };
+          cur.emails.push(obj);
+        }
+        if(itemGroup) cur._itemRefs[itemGroup] = obj;
+        break;
+      }
+      case 'URL': {
+        const v = unescapeVal(value);
+        const t = typeParam || 'أخرى';
+        if(!cur.urls.some(u => u.value === v && u.type === t)){
+          cur.urls.push({ type: t, value: v });
+        }
+        break;
+      }
+      case 'NICKNAME':
+        cur.nickname = unescapeVal(value.split(';')[0]);
+        break;
+      case 'PHOTO': {
+        const isBase64 = params.some(p => /BASE64/i.test(p) || /^ENCODING=b$/i.test(p) || /^b$/i.test(p));
+        if(isBase64){
+          const fmtMatch = params.find(p => /^(JPEG|PNG|GIF)$/i.test(p) || /^TYPE=(JPEG|PNG|GIF)/i.test(p));
+          let fmt = 'jpeg';
+          if(fmtMatch){
+            const m = fmtMatch.match(/(JPEG|PNG|GIF)/i);
+            if(m) fmt = m[1].toLowerCase();
+          }
+          cur.photo = 'data:image/' + fmt + ';base64,' + value.replace(/\s+/g,'');
+        }else if(/^https?:\/\//i.test(value.trim())){
+          cur.photoUrl = value.trim();
+        }
+        break;
+      }
+      case 'X-ABLABEL': {
+        if(itemGroup && cur._itemRefs[itemGroup]){
+          const label = unescapeVal(value.split(';')[0]);
+          // جوجل أحياناً يستخدم تسميات داخلية مثل _$!<Mobile>!$_ للأنواع القياسية
+          const generic = label.match(/^_\$!<(.+)>!\$_$/);
+          cur._itemRefs[itemGroup].type = generic ? generic[1] : label;
+        }
+        break;
+      }
+      case 'X-SAMSUNGADR':
+        if(!cur.samsungAdr) cur.samsungAdr = unescapeVal(value.split(';').filter(Boolean).join(', ')).replace(/^[\u200E\u200F]+/, '');
+        break;
+      case 'X-ANDROID-CUSTOM': {
+        const parts = value.split(';');
+        if(parts[0] && parts[0].toLowerCase() === 'vnd.android.cursor.item/nickname' && parts[1]){
+          cur.nickname = unescapeVal(parts[1]);
+        } else {
+          cur.rawExtra.push(line);
+        }
+        break;
+      }
+      case 'BEGIN':
+      case 'END':
+        break;
+      default:
+        cur.rawExtra.push(line);
+    }
+  }
+
+  return cards;
+}
+
+// محلل CSV عام يتعامل مع الحقول المحاطة بعلامات اقتباس (قد تحتوي فواصل أو أسطر جديدة داخلها)
+function parseCSVRows(text){
+  text = text.replace(/^\uFEFF/, ''); // إزالة BOM إن وجد
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  let i = 0;
+  const len = text.length;
+  while(i < len){
+    const c = text[i];
+    if(inQuotes){
+      if(c === '"'){
+        if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+        inQuotes = false; i++; continue;
+      }
+      field += c; i++; continue;
+    } else {
+      if(c === '"'){ inQuotes = true; i++; continue; }
+      if(c === ','){ row.push(field); field = ''; i++; continue; }
+      if(c === '\r'){ i++; continue; }
+      if(c === '\n'){ row.push(field); field = ''; rows.push(row); row = []; i++; continue; }
+      field += c; i++; continue;
+    }
+  }
+  if(field.length || row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+
+// يدعم صيغة تصدير جهات اتصال جوجل بأعمدة (Phone N / E-mail N / Address N / Website N)
+function parseCSVGoogle(text){
+  const rows = parseCSVRows(text);
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  const idx = name => headers.indexOf(name);
+
+  const phoneCols = [], emailCols = [], urlCols = [], addrCols = [];
+  headers.forEach((h, i) => {
+    let m;
+    if((m = h.match(/^Phone (\d+) - Label$/i))) phoneCols.push({ labelIdx:i, valueIdx: idx(`Phone ${m[1]} - Value`) });
+    if((m = h.match(/^E-mail (\d+) - Label$/i))) emailCols.push({ labelIdx:i, valueIdx: idx(`E-mail ${m[1]} - Value`) });
+    if((m = h.match(/^Website (\d+) - Label$/i))) urlCols.push({ labelIdx:i, valueIdx: idx(`Website ${m[1]} - Value`) });
+    if((m = h.match(/^Address (\d+) - Label$/i))){
+      const n = m[1];
+      addrCols.push({
+        labelIdx:i,
+        formattedIdx: idx(`Address ${n} - Formatted`),
+        streetIdx: idx(`Address ${n} - Street`),
+        cityIdx: idx(`Address ${n} - City`),
+        regionIdx: idx(`Address ${n} - Region`),
+        postalIdx: idx(`Address ${n} - Postal Code`),
+        countryIdx: idx(`Address ${n} - Country`),
+        poBoxIdx: idx(`Address ${n} - PO Box`),
+        extIdx: idx(`Address ${n} - Extended Address`)
+      });
+    }
+  });
+
+  const firstIdx = idx('First Name'), middleIdx = idx('Middle Name'), lastIdx = idx('Last Name');
+  const nicknameIdx = idx('Nickname'), fileAsIdx = idx('File As');
+  const orgIdx = idx('Organization Name'), titleIdx = idx('Organization Title'), deptIdx = idx('Organization Department');
+  const bdayIdx = idx('Birthday'), notesIdx = idx('Notes'), labelsIdx = idx('Labels');
+  const photoIdx = idx('Photo');
+
+  const cards = [];
+  for(let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if(!row || row.every(v => !v || !v.trim())) continue;
+    const get = (i) => (i >= 0 && row[i] !== undefined) ? row[i].trim().replace(/[\u200e\u200f\u202a-\u202e]/g, '') : '';
+    // أحياناً يضع جوجل أكثر من رقم/بريد بنفس الخانة مفصولة بـ " ::: " عندما يشتركون بنفس التسمية
+    const splitMulti = (v) => v.split(':::').map(s => s.trim()).filter(Boolean);
+
+    let fn = [get(firstIdx), get(middleIdx), get(lastIdx)].filter(Boolean).join(' ');
+    if(!fn) fn = get(fileAsIdx);
+    if(!fn) fn = '(بدون اسم)';
+
+    const phones = [];
+    for(const pc of phoneCols){
+      const raw = get(pc.valueIdx);
+      if(!raw) continue;
+      const t = get(pc.labelIdx) || 'أخرى';
+      for(const rawV of splitMulti(raw)){
+        const v = normalizePhoneValue(rawV);
+        if(!phones.some(p => p.value === v && p.type === t)) phones.push({ type:t, value:v });
+      }
+    }
+    const emails = [];
+    for(const ec of emailCols){
+      const raw = get(ec.valueIdx);
+      if(!raw) continue;
+      const t = get(ec.labelIdx) || 'أخرى';
+      for(const v of splitMulti(raw)){
+        if(!emails.some(e => e.value === v && e.type === t)) emails.push({ type:t, value:v });
+      }
+    }
+    const urls = [];
+    for(const uc of urlCols){
+      const raw = get(uc.valueIdx);
+      if(!raw) continue;
+      const t = get(uc.labelIdx) || 'أخرى';
+      for(const v of splitMulti(raw)){
+        if(!urls.some(u => u.value === v && u.type === t)) urls.push({ type:t, value:v });
+      }
+    }
+    const adrs = [];
+    for(const ac of addrCols){
+      let v = get(ac.formattedIdx);
+      if(!v){
+        v = [get(ac.streetIdx), get(ac.cityIdx), get(ac.regionIdx), get(ac.postalIdx), get(ac.countryIdx), get(ac.poBoxIdx), get(ac.extIdx)].filter(Boolean).join(', ');
+      }
+      if(!v) continue;
+      const t = get(ac.labelIdx) || 'أخرى';
+      if(!adrs.some(a => a.value === v && a.type === t)) adrs.push({ type:t, value:v });
+    }
+
+    const rawLabels = get(labelsIdx);
+    const categories = rawLabels
+      ? rawLabels.split(':::').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join(', ')
+      : '';
+
+    // عمود Photo قد يحمل رابطاً حقيقياً (سلوك جوجل الأصلي) أو data URI كامل
+    // بصيغة base64 (تصديرنا الخاص عند تضمين الصور) — نميّز بينهما هنا بدل
+    // اعتبار كل قيمة رابطاً دائماً، وإلا تحوّلت الصورة المضمّنة أصلاً غلطاً
+    // إلى نص "رابط" طويل بدل صورة فعلية عند إعادة الاستيراد.
+    const photoRaw = get(photoIdx) || null;
+    const isEmbeddedPhoto = photoRaw && /^data:image\/\w+;base64,/.test(photoRaw);
+
+    cards.push({
+      id: 'c'+Math.random().toString(36).slice(2,9),
+      fn, nickname: get(nicknameIdx), org: get(orgIdx), dept: get(deptIdx), title: get(titleIdx),
+      note: get(notesIdx), adrs, categories, bday: normalizeBdayForInput(get(bdayIdx)),
+      phones, emails, urls, rawExtra: [], version: '3.0',
+      photo: isEmbeddedPhoto ? photoRaw : null,
+      photoUrl: isEmbeddedPhoto ? null : photoRaw
+    });
+  }
+  return cards;
+}
+
+// يدعم صيغة تصدير جهات اتصال آوتلوك (أعمدة مسطّحة بأسماء ثابتة لكل نوع رقم/عنوان،
+// واللقب يكون مدمجاً داخل حقل الملاحظات بصيغة "الاسم المستعار: XXX")
+function parseCSVOutlook(text){
+  const rows = parseCSVRows(text);
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  const idx = name => headers.indexOf(name);
+
+  const firstIdx = idx('First Name'), middleIdx = idx('Middle Name'), lastIdx = idx('Last Name');
+  const notesIdx = idx('Notes'), bdayIdx = idx('Birthday'), webIdx = idx('Web Page');
+  const companyIdx = idx('Company'), jobTitleIdx = idx('Job Title'), deptIdx = idx('Department');
+  const catIdx = idx('Categories');
+
+  const phoneFields = [
+    ['Primary Phone', 'أساسي'], ['Mobile Phone', 'محمول'],
+    ['Home Phone', 'منزل'], ['Home Phone 2', 'منزل 2'], ['Home Fax', 'فاكس المنزل'],
+    ['Company Main Phone', 'الشركة'], ['Business Phone', 'عمل'], ['Business Phone 2', 'عمل 2'], ['Business Fax', 'فاكس العمل'],
+    ['Other Phone', 'أخرى'], ['Other Fax', 'فاكس أخرى'],
+    ['Assistant\'s Phone', 'هاتف المساعد'], ['Callback', 'معاودة الاتصال'], ['Car Phone', 'هاتف السيارة'],
+    ['Pager', 'بيجر'], ['Radio Phone', 'هاتف لاسلكي'], ['ISDN', 'ISDN'], ['TTY/TDD Phone', 'TTY/TDD'], ['Telex', 'تلكس']
+  ].map(([name,label]) => ({ i: idx(name), label })).filter(f => f.i !== -1);
+
+  const emailFields = [
+    ['E-mail Address', 'بريد إلكتروني'], ['E-mail 2 Address', 'بريد إلكتروني 2'], ['E-mail 3 Address', 'بريد إلكتروني 3']
+  ].map(([name,label]) => ({ i: idx(name), label })).filter(f => f.i !== -1);
+
+  const addrGroups = ['Home', 'Business', 'Other'].map(prefix => ({
+    label: prefix === 'Home' ? 'المنزل' : (prefix === 'Business' ? 'العمل' : 'أخرى'),
+    fullIdx: idx(`${prefix} Address`),
+    streetIdx: idx(`${prefix} Street`), street2Idx: idx(`${prefix} Street 2`), street3Idx: idx(`${prefix} Street 3`),
+    poIdx: idx(`${prefix} Address PO Box`), cityIdx: idx(`${prefix} City`), stateIdx: idx(`${prefix} State`),
+    postalIdx: idx(`${prefix} Postal Code`), countryIdx: idx(`${prefix} Country`)
+  }));
+
+  const cards = [];
+  for(let r = 1; r < rows.length; r++){
+    const row = rows[r];
+    if(!row || row.every(v => !v || !v.trim())) continue;
+    const get = (i) => (i >= 0 && row[i] !== undefined) ? row[i].trim().replace(/[\u200e\u200f\u202a-\u202e]/g, '') : '';
+    const splitMulti = (v) => v.split(':::').map(s => s.trim()).filter(Boolean);
+
+    let fn = [get(firstIdx), get(middleIdx), get(lastIdx)].filter(Boolean).join(' ');
+    if(!fn) fn = '(بدون اسم)';
+
+    // استخراج اللقب المدمج بحقل الملاحظات بصيغة "الاسم المستعار: XXX" وإزالته من نص الملاحظة
+    let nickname = '';
+    let note = get(notesIdx);
+    const nickMatch = note.match(/^\s*الاسم المستعار\s*:\s*(.+?)\s*$/m);
+    if(nickMatch){
+      nickname = nickMatch[1].trim();
+      note = note.replace(nickMatch[0], '').trim();
+    }
+
+    // أرقام إضافية زايدة عن أعمدة الهاتف الثابتة تُدمج بالملاحظات بصيغة
+    // "هاتف (التسمية): الرقم" كل رقم بسطر مستقل، فنسحبها ونحذفها من نص الملاحظة
+    const notePhones = [];
+    note = note.split('\n').filter(line => {
+      const m = line.match(/^\s*هاتف\s*\(([^)]+)\)\s*:\s*(.+?)\s*$/);
+      if(m){
+        notePhones.push({ type: m[1].trim(), value: normalizePhoneValue(m[2]) });
+        return false;
+      }
+      return true;
+    }).join('\n').trim();
+
+    const phones = [];
+    for(const pf of phoneFields){
+      const raw = get(pf.i);
+      if(!raw) continue;
+      for(const rawV of splitMulti(raw)){
+        const v = normalizePhoneValue(rawV);
+        if(!phones.some(p => p.value === v && p.type === pf.label)) phones.push({ type: pf.label, value: v });
+      }
+    }
+    for(const np of notePhones){
+      if(!phones.some(p => p.value === np.value && p.type === np.type)) phones.push(np);
+    }
+    const emails = [];
+    for(const ef of emailFields){
+      const v = get(ef.i);
+      if(!v) continue;
+      if(!emails.some(e => e.value === v && e.type === ef.label)) emails.push({ type: ef.label, value: v });
+    }
+    const urls = [];
+    const webVal = get(webIdx);
+    if(webVal) urls.push({ type: 'الموقع الإلكتروني', value: webVal });
+
+    const adrs = [];
+    for(const ag of addrGroups){
+      let v = get(ag.fullIdx);
+      if(!v){
+        v = [get(ag.streetIdx), get(ag.street2Idx), get(ag.street3Idx), get(ag.poIdx), get(ag.cityIdx), get(ag.stateIdx), get(ag.postalIdx), get(ag.countryIdx)].filter(Boolean).join(', ');
+      }
+      if(!v) continue;
+      if(!adrs.some(a => a.value === v && a.type === ag.label)) adrs.push({ type: ag.label, value: v });
+    }
+
+    const rawCats = get(catIdx);
+    const categories = rawCats
+      ? rawCats.split(';').map(s => s.trim().replace(/^\*\s*/, '')).filter(Boolean).join(', ')
+      : '';
+
+    cards.push({
+      id: 'c'+Math.random().toString(36).slice(2,9),
+      fn, nickname, org: get(companyIdx), dept: get(deptIdx), title: get(jobTitleIdx),
+      note, adrs, categories, bday: normalizeBdayForInput(get(bdayIdx)),
+      phones, emails, urls, rawExtra: [], version: '3.0', photo: null
+    });
+  }
+  return cards;
+}
+
+// يكتشف صيغة ملف CSV (جوجل أو آوتلوك) من عناوين الأعمدة ويوجّه للمحلل المناسب
+function parseCSV(text){
+  const rows = parseCSVRows(text);
+  if(rows.length < 2) return [];
+  const headers = rows[0].map(h => h.trim());
+  const isGoogleFormat = headers.some(h => /^Phone \d+ - Label$/i.test(h));
+  return isGoogleFormat ? parseCSVGoogle(text) : parseCSVOutlook(text);
+}
+
+// يحدد نوع الملف (VCF أو CSV) تلقائياً من الامتداد أو من محتوى الملف نفسه
+function detectAndParse(text, filename){
+  const trimmed = text.replace(/^\uFEFF/, '').trimStart();
+  const lowerName = (filename || '').toLowerCase();
+  if(lowerName.endsWith('.vcf') || /^BEGIN:VCARD/i.test(trimmed)){
+    return parseVCF(text);
+  }
+  return parseCSV(text);
+}
+
+function isAsciiStr(s){ return /^[\x00-\x7F]*$/.test(s || ''); }
+
+// يطوي نص QUOTED-PRINTABLE إلى أسطر لا يتجاوز طول كل منها ~71 محرفاً مُرمّزاً،
+// دون تقطيع أي رمز escape؛=XX في المنتصف (يطابق آلية الطي في ملفات سامسونج
+// الحقيقية التي تمت مقارنتها بايت ببايت)
+function qpFold(str){
+  if(!str) return '';
+  const enc = encodeQuotedPrintable(str);
+  const tokens = [];
+  let i = 0;
+  while(i < enc.length){
+    if(enc[i] === '='){ tokens.push(enc.substr(i,3)); i += 3; }
+    else { tokens.push(enc[i]); i += 1; }
+  }
+  let lines = [], cur = '';
+  for(const tok of tokens){
+    if(cur.length + tok.length > 71){ lines.push(cur); cur = ''; }
+    cur += tok;
+  }
+  lines.push(cur);
+  return lines.join('=\n');
+}
+
+// حقل نصي بسيط (FN/TITLE/NOTE): يُصدَّر خاماً لو كان كله ASCII، أو
+// CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE مطوياً لو يحتوي عربي — يطابق سلوك
+// تصدير سامسونج الحقيقي (لاحظنا أن الحقول الفارغة/الإنجليزية بالكامل تبقى
+// بلا ترميز في ملف سامسونج الأصلي الذي قارناه)
+function qpField(prop, value){
+  if(!value) return '';
+  if(isAsciiStr(value)) return prop + ':' + value + '\n';
+  return prop + ';CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:' + qpFold(value) + '\n';
+}
+
+// صيغة معامل النوع (TEL/EMAIL/URL) الخاصة بسامسونج: كلمة نوع خام بلا "TYPE="
+// (مثل TEL;HOME:...) للتسميات الإنجليزية القياسية، أو حيلة X-CUSTOM(...)
+// للتسميات العربية المخصّصة — تعمل فقط ضمن إصدار 2.1 كما تأكد عملياً بمقارنة
+// ملف سامسونج الحقيقي بايت ببايت
+function buildTypeSamsung(type){
+  const t = (type || '').trim();
+  if(!t) return 'HOME';
+  if(isAsciiStr(t)){
+    const clean = t.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    return clean || 'HOME';
+  }
+  return 'X-CUSTOM(CHARSET=UTF-8,ENCODING=QUOTED-PRINTABLE,' + encodeQuotedPrintable(t) + ')';
+}
+
+function buildAdrSamsung(a){
+  const typeToken = buildTypeSamsung(a.type);
+  const raw = '\u200E' + (a.value || '');
+  if(isAsciiStr(a.value || '')){
+    return 'ADR;' + typeToken + ':;;' + raw + ';;;;\n';
+  }
+  return 'ADR;' + typeToken + ';CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:;;' + qpFold(raw) + ';;;;\n';
+}
+
+// معامل النوع الخاص بجوجل: تسميات إنجليزية قياسية تُصدَّر كـ TYPE=، وتسميات
+// عربية مخصّصة تُصدَّر بحيلة itemN.<الخاصية> + itemN.X-ABLabel (نفس ما تعتمده
+// جهات اتصال جوجل الحقيقية للتسميات العربية)
+function cleanAsciiType(t){
+  const clean = (t || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return clean;
+}
+
+// يصغّر صورة data URL موجودة إلى حد أقصى معيّن (بدون تكبير إذا كانت أصغر أصلاً)، تُستخدم فقط عند التصدير لمحاكاة أبعاد جوجل دون المساس بالصورة المخزّنة أصلاً بالتطبيق
+function resizeDataUrlToSquare(dataUrl, maxSize){
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const side = Math.min(img.width, img.height);
+      const outSize = Math.min(maxSize, side);
+      if(outSize === side && img.width === img.height){
+        resolve(dataUrl);
+        return;
+      }
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const canvas = document.createElement('canvas');
+      canvas.width = outSize;
+      canvas.height = outSize;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+      resolve(canvas.toDataURL('image/jpeg', 0.95));
+    };
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+function buildVCF(contactsArr){
+  return selectedExportCompat === 'google' ? buildVCFGoogle(contactsArr) : buildVCFSamsung(contactsArr);
+}
+
+// تصدير بصيغة سامسونج الأصلية (VERSION 2.1، CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE
+// لأي حقل نصي يحتوي عربي، TEL;HOME/التسمية الخام أو X-CUSTOM(...) للأرقام،
+// X-ANDROID-CUSTOM للقب، لا CATEGORIES) — مطابقة لملف سامسونج حقيقي قارناه بايت ببايت
+function buildVCFSamsung(contactsArr){
+  let out = '';
+  for(const c of contactsArr){
+    out += 'BEGIN:VCARD\n';
+    out += 'VERSION:2.1\n';
+    out += qpField('FN', c.fn);
+    if(isAsciiStr(c.fn)){
+      out += 'N:' + c.fn + ';;;;\n';
+    } else {
+      out += 'N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:' + qpFold(c.fn) + ';;;;\n';
+    }
+    if(c.nickname){
+      out += 'X-ANDROID-CUSTOM;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:vnd.android.cursor.item/nickname;' + qpFold(c.nickname) + ';1;;;;;;;;;;;;;\n';
+    }
+    if(c.org || c.dept){
+      if(isAsciiStr(c.org || '') && isAsciiStr(c.dept || '')){
+        out += 'ORG:' + (c.org || '') + (c.dept ? ';' + c.dept : '') + '\n';
+      } else {
+        out += 'ORG;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:' + (c.org ? qpFold(c.org) : '') + (c.dept ? ';' + qpFold(c.dept) : '') + '\n';
+      }
+    }
+    if(c.title) out += qpField('TITLE', c.title);
+    for(const p of c.phones){
+      if(!p.value) continue;
+      out += 'TEL;' + buildTypeSamsung(p.type) + ':' + p.value + '\n';
+    }
+    for(const e of c.emails){
+      if(!e.value) continue;
+      out += 'EMAIL;' + buildTypeSamsung(e.type) + ':' + e.value + '\n';
+    }
+    for(const u of (c.urls || [])){
+      if(!u.value) continue;
+      out += 'URL;' + buildTypeSamsung(u.type) + ':' + u.value + '\n';
+    }
+    for(const a of (c.adrs || [])){
+      if(!a.value) continue;
+      out += buildAdrSamsung(a);
+    }
+    if(c.samsungAdr) out += qpField('X-SAMSUNGADR', c.samsungAdr);
+    // ملاحظة: سامسونج لا تدعم CATEGORIES أصلاً في تصديرها الأصلي، لذا لا تُصدَّر
+    // هنا (تُفقد علامة المفضّلة/المجموعات عند التصدير بهذه الصيغة تحديداً)
+    if(c.bday) out += 'BDAY:' + c.bday + '\n';
+    if(c.note) out += qpField('NOTE', c.note);
+    if(c.photo){
+      const m = c.photo.match(/^data:image\/(\w+);base64,(.*)$/s);
+      if(m) out += 'PHOTO;ENCODING=BASE64;' + m[1].toUpperCase() + ':' + m[2] + '\n';
+    } else if(c.photoUrl){
+      // صورة لم تُضمَّن بعد (رابط فقط): تُصدَّر كرابط بصيغة 2.1 (VALUE=URL)
+      // بدل تضمينها قسرياً؛ المستخدم يقرر التضمين صراحة قبل التصدير إن أراد.
+      out += 'PHOTO;VALUE=URL:' + c.photoUrl + '\n';
+    }
+    for(const line of c.rawExtra){
+      out += line + '\n';
+    }
+    out += 'END:VCARD\n';
+  }
+  return out;
+}
+
+// تصدير بصيغة جوجل الأصلية (VERSION 3.0، UTF-8 خام بلا ترميز، itemN.<خاصية>
+// + itemN.X-ABLabel للتسميات العربية المخصّصة، TYPE= للتسميات الإنجليزية
+// القياسية، NICKNAME/CATEGORIES قياسيان) — مطابقة لملف جوجل حقيقي قارناه
+function buildVCFGoogle(contactsArr){
+  let out = '';
+  for(const c of contactsArr){
+    out += 'BEGIN:VCARD\n';
+    out += 'VERSION:3.0\n';
+    out += 'FN:' + escapeVal(c.fn) + '\n';
+    out += 'N:' + escapeVal(c.fn) + ';;;;\n';
+    if(c.nickname) out += 'NICKNAME:' + escapeVal(c.nickname) + '\n';
+    let itemN = 1;
+    for(const p of c.phones){
+      if(!p.value) continue;
+      const t = (p.type || '').trim();
+      if(t && !isAsciiStr(t)){
+        out += 'item' + itemN + '.TEL:' + escapeVal(p.value) + '\n';
+        out += 'item' + itemN + '.X-ABLabel:' + escapeVal(t) + '\n';
+        itemN++;
+      } else {
+        out += 'TEL;TYPE=' + (cleanAsciiType(t) || 'CELL') + ':' + escapeVal(p.value) + '\n';
+      }
+    }
+    for(const e of c.emails){
+      if(!e.value) continue;
+      const t = (e.type || '').trim();
+      if(t && !isAsciiStr(t)){
+        out += 'item' + itemN + '.EMAIL;TYPE=INTERNET:' + escapeVal(e.value) + '\n';
+        out += 'item' + itemN + '.X-ABLabel:' + escapeVal(t) + '\n';
+        itemN++;
+      } else {
+        out += 'EMAIL;TYPE=INTERNET' + (cleanAsciiType(t) ? ';TYPE=' + cleanAsciiType(t) : '') + ':' + escapeVal(e.value) + '\n';
+      }
+    }
+    for(const u of (c.urls || [])){
+      if(!u.value) continue;
+      const t = (u.type || '').trim();
+      if(t && !isAsciiStr(t)){
+        out += 'item' + itemN + '.URL:' + escapeVal(u.value) + '\n';
+        out += 'item' + itemN + '.X-ABLabel:' + escapeVal(t) + '\n';
+        itemN++;
+      } else {
+        out += 'URL' + (cleanAsciiType(t) ? ';TYPE=' + cleanAsciiType(t) : '') + ':' + escapeVal(u.value) + '\n';
+      }
+    }
+    for(const a of (c.adrs || [])){
+      if(!a.value) continue;
+      const t = (a.type || '').trim();
+      // علامة الاتجاه غير المرئية (LRM) تضمن عرض العنوان من اليسار لليمين
+      // بشكل صحيح داخل تطبيقات جهات اتصال أخرى ذات واجهة عربية (RTL)
+      if(t && !isAsciiStr(t)){
+        out += 'item' + itemN + '.ADR:;;\u200E' + escapeVal(a.value) + ';;;;\n';
+        out += 'item' + itemN + '.X-ABLabel:' + escapeVal(t) + '\n';
+        itemN++;
+      } else {
+        out += 'ADR' + (cleanAsciiType(t) ? ';TYPE=' + cleanAsciiType(t) : '') + ':;;\u200E' + escapeVal(a.value) + ';;;;\n';
+      }
+    }
+    if(c.samsungAdr) out += 'X-SAMSUNGADR:' + escapeVal(c.samsungAdr) + '\n';
+    if(c.org || c.dept) out += 'ORG:' + escapeVal(c.org || '') + (c.dept ? ';' + escapeVal(c.dept) : '') + '\n';
+    if(c.title) out += 'TITLE:' + escapeVal(c.title) + '\n';
+    if(c.categories){
+      const cats = c.categories.split(',').map(s => s.trim()).filter(Boolean)
+        .map(v => v.replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/;/g,'\\;'));
+      if(cats.length) out += 'CATEGORIES:' + cats.join(',') + '\n';
+    }
+    if(c.bday) out += 'BDAY:' + c.bday + '\n';
+    if(c.note) out += 'NOTE:' + escapeVal(c.note) + '\n';
+    if(c.photo){
+      const m = c.photo.match(/^data:image\/(\w+);base64,(.*)$/s);
+      if(m) out += 'PHOTO;ENCODING=b;TYPE=' + m[1].toUpperCase() + ':' + m[2] + '\n';
+    } else if(c.photoUrl){
+      // صورة لم تُضمَّن بعد (رابط فقط): تُصدَّر كرابط بصيغة 3.0 (VALUE=URI)
+      // بدل تضمينها قسرياً؛ المستخدم يقرر التضمين صراحة قبل التصدير إن أراد.
+      out += 'PHOTO;VALUE=URI:' + c.photoUrl + '\n';
+    }
+    for(const line of c.rawExtra){
+      out += line + '\n';
+    }
+    out += 'END:VCARD\n';
+  }
+  return out;
+}
+
+function readFileAsText(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file, 'UTF-8');
+  });
+}
+
+async function loadFiles(fileList){
+  const files = Array.from(fileList || []).filter(f => f);
+  if(files.length === 0) return;
+
+  let allParsed = [];
+  const failedFiles = [];
+
+  for(const file of files){
+    try{
+      const text = await readFileAsText(file);
+      const parsed = detectAndParse(text, file.name);
+      allParsed = allParsed.concat(parsed);
+    }catch(err){
+      console.error(err);
+      failedFiles.push(file.name);
+    }
+  }
+
+  if(allParsed.length === 0){
+    toast(failedFiles.length ? 'حدث خطأ أثناء قراءة الملفات' : 'لم يتم العثور على أي جهة اتصال في الملفات');
+    return;
+  }
+
+  // عرض جهات الاتصال فوراً بدون انتظار جلب الصور
+  contacts = allParsed;
+  clearUndoSnapshot();
+  clearListFilters();
+  expandedContactId = null;
+  refreshPrefixOptions();
+  renderList();
+  showScreen('list');
+
+  if(failedFiles.length){
+    toast('تم تحميل ' + allParsed.length + ' جهة اتصال (تعذّرت قراءة ' + failedFiles.length + ' ملف)');
+  }else if(files.length > 1){
+    toast('تم تحميل ' + allParsed.length + ' جهة اتصال من ' + files.length + ' ملفات');
+  }else{
+    toast('تم تحميل ' + allParsed.length + ' جهة اتصال');
+  }
+
+  // لا نجلب صور الروابط تلقائياً بعد الاستيراد: تبقى الصور المستوردة كروابط
+  // (تُعرض من الرابط مباشرة بلا تخزين) حتى يضغط المستخدم "تضمين" لها صراحةً
+  // (لكل جهة من شاشة التعديل، أو دفعة واحدة من قائمة ⋮ ← "تضمين الصور المرتبطة")
+  // — بدل تحويلها base64 وتضمينها بالملف قسرياً فور الاستيراد.
+}
+
+$('#chooseFileBtn').addEventListener('click', (e) => { e.stopPropagation(); $('#fileInput').click(); });
+$('#fileInput').addEventListener('change', (e) => {
+  if(e.target.files.length) loadFiles(e.target.files);
+  e.target.value = '';
+});
+const dropZone = $('#drop');
+dropZone.addEventListener('click', () => $('#fileInput').click());
+['dragover','dragenter'].forEach(evt => dropZone.addEventListener(evt, e => {
+  e.preventDefault(); dropZone.classList.add('drag');
+}));
+['dragleave','drop'].forEach(evt => dropZone.addEventListener(evt, e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+}));
+dropZone.addEventListener('drop', e => {
+  if(e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+$('#newFileBtn').addEventListener('click', () => {
+  contacts = [];
+  clearUndoSnapshot();
+  clearListFilters();
+  expandedContactId = null;
+  refreshPrefixOptions();
+  renderList();
+  showScreen('list');
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      }).catch(() => cached);
-    })
-  );
+// يقارن أرقام الهاتف مع رقم بحث مدخل، مع التعامل مع تكافؤ رمز الدولة
+// الأردني (962) مع الصفر المحلي في بداية الرقم؛ فبحث "962" يطابق أي رقم
+// محلي (0...) لأن كل الأرقام المحلية تنتمي لنفس رمز الدولة، وبالعكس.
+// تسامح بالبحث العربي: يعامل أ/إ/آ/ا كحرف واحد، بحيث كتابة أي منها تُظهر
+// النتائج التي تحتوي أياً من الأشكال الأخرى (مثال: كتابة "ا" تُطابق "أحمد"
+// و"إحسان" و"آدم" أيضاً).
+function normalizeArabic(s){
+  return s.replace(/[أإآا]/g, 'ا');
+}
+
+// يستبدل كل تكرار للكلمة/النص المطابق (بعد تطبيع الألف وتجاهل حالة الأحرف) داخل النص الأصلي
+// بالنص البديل، مع الحفاظ على بقية النص كما هو (وليس استبدال النص كاملاً).
+function normalizedReplaceAll(original, query, replacement){
+  if(!original || !query) return original;
+  const normOrig = normalizeArabic(original.toLowerCase());
+  const normQuery = normalizeArabic(query.toLowerCase());
+  if(!normQuery) return original;
+  let result = '';
+  let i = 0;
+  let changed = false;
+  while(i < original.length){
+    if(normOrig.slice(i, i + normQuery.length) === normQuery){
+      result += replacement;
+      i += normQuery.length;
+      changed = true;
+    } else {
+      result += original[i];
+      i++;
+    }
+  }
+  return changed ? result : original;
+}
+
+function getFilteredContacts(filter=''){
+  const f = normalizeArabic(filter.trim().toLowerCase());
+  const isNumericSearch = /^\+?\d+$/.test(filter.trim());
+  const digitsSearch = isNumericSearch ? filter.trim().replace(/\D/g,'') : '';
+  const terms = f.split('+').map(s => s.trim()).filter(Boolean);
+  return contacts.filter(c => {
+    if(!f) return true;
+    if(isNumericSearch){
+      return c.phones.some(p => p.value.replace(/\D/g,'').startsWith(digitsSearch));
+    }
+    const hay = normalizeArabic([
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
+      ...c.phones.map(p => p.value),
+      ...c.phones.map(p => PHONE_LABELS[p.type] || p.type || ''),
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
+    ].join(' ').toLowerCase());
+    if(terms.length > 1){
+      // في البحث المركب، أي جزء رقمي (مثل 079) يجب أن يطابق بداية رقم هاتف فعلي
+      // وليس أي ظهور للرقم في أي حقل نصي آخر
+      return terms.every(t => {
+        if(/^\+?\d+$/.test(t)){
+          const digits = t.replace(/\D/g,'');
+          return c.phones.some(p => p.value.replace(/\D/g,'').startsWith(digits));
+        }
+        return hay.includes(t);
+      });
+    }
+    return hay.includes(f);
+  });
+}
+
+function getContactsWithCategory(term){
+  const t = term.trim().toLowerCase();
+  if(!t) return [];
+  return contacts.filter(c => (c.categories || '').split(',').map(s => s.trim()).some(tag => tag.toLowerCase() === t));
+}
+
+// اسم عرض ودّي للوسم الداخلي "starred" (المفضلة)، بينما تبقى المطابقة الفعلية
+// في البيانات تعتمد دائماً على النص الخام "starred" حفاظاً على عمل أيقونة النجمة.
+function groupDisplayLabel(tag){
+  return /^starred$/i.test(tag) ? 'المفضلة' : tag;
+}
+// كل أسماء المجموعات الموجودة فعلياً مع عدد أعضاء كل واحدة، لعرضها بالقائمة
+// المنسدلة بنافذة إدارة المجموعات. نُدرج "المفضلة" (starred) كعنصر أول بتسمية
+// عربية ودّية، للسماح بإزالتها جماعياً، لكن دون السماح بإعادة تسميتها لاحقاً
+// (انظر setUnifyGroupFieldMode) حتى لا تنكسر آلية أيقونة النجمة.
+function getAllGroupsWithCounts(){
+  const map = new Map();
+  contacts.forEach(c => {
+    (c.categories || '').split(',').map(s => s.trim()).filter(Boolean).forEach(tag => {
+      const key = tag.toLowerCase();
+      if(!map.has(key)) map.set(key, { name: tag, count: 0 });
+      map.get(key).count++;
+    });
+  });
+  return Array.from(map.values())
+    .map(g => ({ name: groupDisplayLabel(g.name), tag: g.name, count: g.count, isStarredGroup: /^starred$/i.test(g.name) }))
+    .sort((a,b) => {
+      if(a.isStarredGroup) return -1;
+      if(b.isStarredGroup) return 1;
+      return a.name.localeCompare(b.name, 'ar');
+    });
+}
+
+let selectionMode = false;
+let sortReversed = false;
+let selectedIds = new Set();
+let longPressTimer = null;
+let longPressTriggered = false;
+let expandedContactId = null;
+
+function escapeAttr(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+}
+
+function buildContactExpandHtml(c){
+  const groups = [];
+
+  const phones = c.phones.filter(p => p.value);
+  if(phones.length){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">أرقام الهاتف</div>${
+      phones.map(p => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(PHONE_LABELS[p.type] || p.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(p.value)}">${escapeHtml(p.value)}</span></div>`).join('')
+    }</div>`);
+  }
+
+  const emails = c.emails.filter(e => e.value);
+  if(emails.length){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">البريد الإلكتروني</div>${
+      emails.map(e => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(EMAIL_LABELS[e.type] || e.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(e.value)}">${escapeHtml(e.value)}</span></div>`).join('')
+    }</div>`);
+  }
+
+  const urls = (c.urls || []).filter(u => u.value);
+  if(urls.length){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">الروابط</div>${
+      urls.map(u => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(URL_LABELS[u.type] || u.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(u.value)}">${escapeHtml(u.value)}</span></div>`).join('')
+    }</div>`);
+  }
+
+  if(c.org || c.title || c.dept){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">الجهة</div><div class="contact-expand-note">${escapeHtml([c.org, c.title, c.dept].filter(Boolean).join(' - '))}</div></div>`);
+  }
+
+  if(c.categories){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">المجموعات</div><div class="contact-expand-note copyable" data-copy="${escapeAttr(categoriesToDisplay(c.categories))}">${escapeHtml(categoriesToDisplay(c.categories))}</div></div>`);
+  }
+
+  if(c.bday){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">تاريخ الميلاد</div><div class="contact-expand-note">${escapeHtml(c.bday)}</div></div>`);
+  }
+
+  const adrs = (c.adrs || []).filter(a => a.value);
+  if(adrs.length){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">العناوين</div>${
+      adrs.map(a => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(ADR_LABELS[a.type] || a.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(a.value)}">${escapeHtml(a.value)}</span></div>`).join('')
+    }</div>`);
+  }
+
+  if(c.note){
+    groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">ملاحظات</div><div class="contact-expand-note">${escapeHtml(c.note)}</div></div>`);
+  }
+
+  if(!groups.length) return '';
+
+  return `<div class="contact-expand">${groups.join('')}</div>`;
+}
+
+function updateSelectionSummaryText(){
+  $('#summaryText').textContent = selectedIds.size + ' \u00A0محدد';
+}
+
+// المجموعات تُخزَّن وتُصدَّر دائماً بالفاصلة القياسية "," (متوافق مع VCF/جوجل)،
+// لكن نعرضها للمستخدم ونقبل كتابتها بصيغة أسهل بالشرطة " - " فقط داخل الواجهة.
+function categoriesToDisplay(str){
+  return (str || '').split(',').map(s => s.trim()).filter(Boolean).join(' - ');
+}
+function categoriesFromDisplay(str){
+  return (str || '').split('-').map(s => s.trim()).filter(Boolean).join(', ');
+}
+
+// جهة مفضلة = لديها مجموعة (CATEGORIES) تحتوي كلمة starred، وهي الطريقة التي
+// يصدّر بها جوجل جهات الاتصال المفضلة (مثال: "* Starred in Android")
+function isStarredContact(c){
+  return (c.categories || '').split(',').some(tag => /starred/i.test(tag.trim()));
+}
+
+// تفعيل/تعطيل مظهر زر النجمة بأعلى شاشة التعديل حسب حالة الجهة الحالية
+function updateHeaderStarBtn(c){
+  const btn = $('#headerStarBtn');
+  if(!btn) return;
+  const starred = isStarredContact(c);
+  const svg = btn.querySelector('svg');
+  svg.setAttribute('fill', starred ? '#FFD33D' : 'none');
+  svg.style.opacity = starred ? '1' : '0.55';
+}
+
+// إضافة/إزالة مجموعة starred لجهة الاتصال المفتوحة حالياً بضغطة واحدة
+function toggleStarredCurrentContact(){
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  const tags = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
+  if(isStarredContact(c)){
+    c.categories = tags.filter(tag => !/starred/i.test(tag)).join(', ');
+  } else {
+    tags.push('starred');
+    c.categories = tags.join(', ');
+  }
+  $('#f-categories').value = categoriesToDisplay(c.categories);
+  updateHeaderStarBtn(c);
+}
+
+const ALEF_VARIANT_PRIORITY = { 'أ':1, 'ا':2, 'إ':3, 'آ':4 };
+function getAlefVariantPriority(name){
+  const trimmed = (name || '').trim();
+  if(!trimmed) return null;
+  const first = trimmed[0];
+  if(!(first in ALEF_VARIANT_PRIORITY)) return null;
+  if(first === 'ا' && trimmed[1] === 'ل') return 5; // مجموعة "ال" (أداة التعريف) تُرتّب أخيراً ضمن حروف الألف
+  return ALEF_VARIANT_PRIORITY[first];
+}
+// فرز أبجدي يراعي ترتيب أشكال الألف: أ ثم ا ثم إ ثم آ ثم ال، وبعدها الفرز الأبجدي العادي
+function contactNameCompare(nameA, nameB){
+  const pa = getAlefVariantPriority(nameA), pb = getAlefVariantPriority(nameB);
+  if(pa !== null && pb !== null && pa !== pb) return pa - pb;
+  return nameA.localeCompare(nameB, 'ar');
+}
+function getContactLetterKey(name){
+  const trimmed = (name || '').trim();
+  if(!trimmed) return '#';
+  const first = trimmed[0];
+  if(first in ALEF_VARIANT_PRIORITY) return first;
+  return /[a-zA-Z]/.test(first) ? first.toUpperCase() : first;
+}
+// يرجع فهرس المقطع (الكلمة) الأول اللي فيه كلمة البحث ضمن نص مكوّن من عدة مقاطع
+function getMatchSegmentIndex(text, f){
+  if(!text) return 99;
+  const words = text.trim().split(/\s+/);
+  for(let i = 0; i < words.length; i++){
+    if(normalizeArabic(words[i].toLowerCase()).includes(f)) return i;
+  }
+  return 99;
+}
+// يحدد الحقل الذي طابقت فيه كلمة البحث (لترتيب النتائج ولتصنيفها بعناوين
+// فاصلة فوق كل مجموعة، بنفس أسلوب عناوين الحروف الأبجدية). كل نتيجة تصنَّف
+// بحقلها الأعلى أولوية فقط حتى لا تتكرر ضمن أكثر من عنوان.
+function getMatchCategory(c, f){
+  const norm = (t) => normalizeArabic((t || '').toLowerCase());
+  const name = norm(c.fn);
+  const nick = norm(c.nickname);
+  if(name.startsWith(f)) return { rank:0, seg:0, label:'يبدأ به الاسم' };
+  if(name.includes(f)) return { rank:1, seg:getMatchSegmentIndex(name, f), label:'يوجد بالاسم' };
+  if(nick.startsWith(f)) return { rank:2, seg:0, label:'اللقب' };
+  if(nick.includes(f)) return { rank:3, seg:getMatchSegmentIndex(nick, f), label:'اللقب' };
+  if(norm(c.org).includes(f)) return { rank:4, seg:0, label:'الشركة' };
+  if(norm(c.dept).includes(f)) return { rank:5, seg:0, label:'القسم' };
+  if(norm(c.title).includes(f)) return { rank:6, seg:0, label:'المسمى الوظيفي' };
+  if(c.phones.some(p => norm(p.value).includes(f))) return { rank:7, seg:0, label:'الهاتف' };
+  if(c.phones.some(p => norm(PHONE_LABELS[p.type] || p.type || '').includes(f))) return { rank:8, seg:0, label:'نوع الرقم' };
+  if(c.emails.some(e => norm(e.value).includes(f))) return { rank:9, seg:0, label:'البريد الإلكتروني' };
+  if((c.urls || []).some(u => norm(u.value).includes(f))) return { rank:10, seg:0, label:'رابط' };
+  if((c.adrs || []).some(a => norm(a.value).includes(f))) return { rank:11, seg:0, label:'العنوان' };
+  if(norm(c.categories).includes(f)) return { rank:12, seg:0, label:'المجموعة' };
+  if(norm(c.note).includes(f)) return { rank:13, seg:0, label:'ملاحظة' };
+  return { rank:14, seg:0, label:'أخرى' };
+}
+function renderList(filter=''){
+  saveContactsToDB();
+  const list = $('#contactList');
+  list.innerHTML = '';
+  const fragment = document.createDocumentFragment();
+  const f = normalizeArabic(filter.trim().toLowerCase());
+  const isPlainTextSearch = f && !/^\+?\d+$/.test(filter.trim()) && !f.includes('+');
+  const filtered = getFilteredContacts(filter).slice().sort((a,b) => {
+    if(isPlainTextSearch){
+      const ra = getMatchCategory(a, f), rb = getMatchCategory(b, f);
+      if(ra.rank !== rb.rank) return ra.rank - rb.rank;
+      if(ra.seg !== rb.seg) return ra.seg - rb.seg;
+    }
+    const aStar = isStarredContact(a), bStar = isStarredContact(b);
+    if(aStar !== bStar) return aStar ? -1 : 1;
+    return sortReversed ? contactNameCompare(b.fn, a.fn) : contactNameCompare(a.fn, b.fn);
+  });
+
+  const isNumericSearch = /^\+?\d+$/.test(filter.trim());
+  const digitsPrefix = isNumericSearch ? filter.trim().replace(/\D/g,'') : '';
+
+  if(digitsPrefix){
+    let phoneCount = 0;
+    for(const c of contacts){
+      for(const p of c.phones){
+        if(p.value.replace(/\D/g,'').startsWith(digitsPrefix)) phoneCount++;
+      }
+    }
+    $('#summaryText').textContent = selectionMode
+      ? selectedIds.size + ' \u00A0محدد'
+      : phoneCount + ' \u00A0نتيجة';
+  } else {
+    $('#summaryText').textContent = selectionMode
+      ? selectedIds.size + ' \u00A0محدد'
+      : (f ? filtered.length : contacts.length) + ' \u00A0جهة اتصال';
+  }
+
+  let lastGroupKey = null;
+  const showLetterHeaders = !f && !isNumericSearch;
+  const showCategoryHeaders = isPlainTextSearch;
+  for(const c of filtered){
+    if(showLetterHeaders){
+      const starred = isStarredContact(c);
+      if(!starred){
+        const groupKey = getContactLetterKey(c.fn);
+        if(groupKey !== lastGroupKey){
+          const header = document.createElement('div');
+          header.className = 'contact-letter-header';
+          header.textContent = groupKey === 'ه' ? 'هـ' : groupKey;
+          fragment.appendChild(header);
+          lastGroupKey = groupKey;
+        }
+      }
+    } else if(showCategoryHeaders){
+      const groupKey = getMatchCategory(c, f).label;
+      if(groupKey !== lastGroupKey){
+        const header = document.createElement('div');
+        header.className = 'contact-letter-header';
+        header.textContent = groupKey;
+        fragment.appendChild(header);
+        lastGroupKey = groupKey;
+      }
+    }
+    fragment.appendChild(buildContactRowElement(c, f));
+  }
+  list.appendChild(fragment);
+}
+
+function buildContactRowElement(c, f){
+    const row = document.createElement('div');
+    const isExpanded = !selectionMode && expandedContactId === c.id;
+    row.className = 'contact-row' + (selectedIds.has(c.id) ? ' selected' : '') + (isExpanded ? ' expanded' : '');
+    row.dataset.id = c.id;
+    const searchTermsForRow = f.split('+').map(s => s.trim()).filter(Boolean);
+    const numericTermForRow = searchTermsForRow.find(t => /^\+?\d+$/.test(t));
+    let matchedPhone = null;
+    if(numericTermForRow){
+      const digitsForRow = numericTermForRow.replace(/\D/g,'');
+      matchedPhone = c.phones.find(p => p.value.replace(/\D/g,'').startsWith(digitsForRow));
+    }
+    if(!matchedPhone && f){
+      matchedPhone = c.phones.find(p => normalizeArabic(p.value.toLowerCase()).includes(f));
+    }
+    if(!matchedPhone && f){
+      matchedPhone = c.phones.find(p => normalizeArabic((PHONE_LABELS[p.type] || p.type || '').toLowerCase()).includes(f));
+    }
+    const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
+    // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
+    // حتى لا يبدو للمستخدم أن النتيجة خاطئة، مع سطر خافت للاسم الحقيقي تحته
+    // (نفحص كل شرط من شروط البحث المركب على حدة، مو النص الكامل)
+    let displayName = c.fn;
+    let realNameLine = '';
+    if(f && c.nickname){
+      const matchesNickname = searchTermsForRow.some(t => normalizeArabic(c.nickname.toLowerCase()).includes(t) && !normalizeArabic(c.fn.toLowerCase()).includes(t));
+      if(matchesNickname){
+        displayName = c.nickname;
+        realNameLine = `<div class="contact-realname"${isExpanded ? ' style="margin-bottom:0"' : ''}>${escapeHtml(c.fn)}</div>`;
+      }
+    }
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="">`
+      : `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7v1H4v-1z"/></svg>`;
+    const checkboxHtml = selectionMode
+      ? `<div class="contact-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`
+      : '';
+    const starHtml = (isStarredContact(c) && !isExpanded)
+      ? `<svg class="contact-star" width="15.5" height="15.5" viewBox="0 0 24 24" fill="#FFD33D"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`
+      : '';
+    const expandHtml = isExpanded ? buildContactExpandHtml(c) : '';
+    const editIconHtml = isExpanded
+      ? `<button type="button" class="contact-expand-edit-icon" data-edit-id="${escapeAttr(c.id)}" aria-label="تعديل جهة الاتصال"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>`
+      : '';
+    row.innerHTML = `
+      <div class="contact-row-delete-action" data-swipe-delete="${escapeAttr(c.id)}" aria-label="حذف">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>
+      </div>
+      <div class="contact-row-edit-action" data-swipe-edit="${escapeAttr(c.id)}" aria-label="تعديل">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
+      <div class="contact-row-surface">
+        <div class="contact-row-header">
+          ${checkboxHtml}
+          <div class="contact-avatar">${avatarInner}</div>
+          <div class="contact-info${isExpanded ? ' centered' : ''}">
+            <div class="contact-name"${(() => { const s = []; if(isExpanded && !realNameLine) s.push('margin:0'); else if(realNameLine) s.push('margin-bottom:10px'); return s.filter(Boolean).length ? ` style="${s.filter(Boolean).join(';')}"` : ''; })()}>${escapeHtml(displayName)}</div>
+            ${realNameLine}
+            ${isExpanded ? '' : `<div class="contact-sub">${escapeHtml(sub)}</div>`}
+          </div>
+          ${starHtml}
+          ${editIconHtml}
+        </div>
+        ${expandHtml}
+      </div>
+    `;
+    return row;
+}
+
+// تحديث بطاقة واحدة فقط في مكانها (بدل إعادة بناء القائمة كاملة) — تُستخدم
+// عند توسيع/طي بطاقة لتفادي بطء إعادة تصيير مئات البطاقات في كل نقرة.
+function updateRowElement(id){
+  const existing = document.querySelector(`.contact-row[data-id="${CSS.escape(id)}"]`);
+  if(!existing) return false;
+  const c = contacts.find(x => x.id === id);
+  if(!c) return false;
+  const f = normalizeArabic($('#search').value.trim().toLowerCase());
+  const newRow = buildContactRowElement(c, f);
+  existing.replaceWith(newRow);
+  return true;
+}
+
+const SWIPE_ACTION_WIDTH = 64;   // موضع استقرار البطاقة عند التفعيل (تتوسط الأيقونة هذه المسافة)
+const SWIPE_TRIGGER_WIDTH = 72;  // مسافة السحب لتفعيل تأكيد الحذف
+const SWIPE_MAX_DRAG = 96;
+let openSwipeRow = null; // { id, surface, action }
+
+function closeOpenSwipe(){
+  if(!openSwipeRow) return;
+  const { surface, action } = openSwipeRow;
+  surface.style.transition = 'transform .2s ease';
+  action.style.transition = 'opacity .2s ease';
+  surface.style.transform = 'translateX(0)';
+  action.style.opacity = '0';
+  action.style.pointerEvents = 'none';
+  openSwipeRow = null;
+}
+
+let swipeState = null; // { id, row, surface, deleteAction, editAction, startX, startY, dx, active, decided, isHorizontal }
+
+function copyToClipboard(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text){
+  try{
+    const span = document.createElement('span');
+    span.textContent = text;
+    span.style.position = 'fixed';
+    span.style.top = '0';
+    span.style.left = '-9999px';
+    span.style.whiteSpace = 'pre';
+    document.body.appendChild(span);
+    const range = document.createRange();
+    range.selectNodeContents(span);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+    document.body.removeChild(span);
+  } catch(err){
+    toast('تعذّر النسخ');
+  }
+}
+
+function handleListClick(e){
+  const copyable = e.target.closest('.copyable[data-copy]');
+  if(copyable){
+    e.stopPropagation();
+    copyToClipboard(copyable.dataset.copy || copyable.textContent || '');
+    return;
+  }
+  const editIcon = e.target.closest('.contact-expand-edit-icon');
+  if(editIcon){
+    e.stopPropagation();
+    openEdit(editIcon.dataset.editId);
+    return;
+  }
+  const avatar = e.target.closest('.contact-avatar');
+  if(avatar && !selectionMode){
+    e.stopPropagation();
+    const row = avatar.closest('.contact-row');
+    if(row) openListPhotoMenu(row.dataset.id);
+    return;
+  }
+  const header = e.target.closest('.contact-row-header');
+  if(!header) return;
+  const row = header.closest('.contact-row');
+  if(!row) return;
+  const id = row.dataset.id;
+  if(longPressTriggered){ longPressTriggered = false; return; }
+  if(openSwipeRow){
+    const wasThisRow = openSwipeRow.id === id;
+    closeOpenSwipe();
+    if(wasThisRow) return; // أول ضغطة تُغلق الزر المكشوف فقط، دون تنفيذ إجراء آخر
+  }
+  if(selectionMode){ toggleSelect(id); return; }
+  const prevExpandedId = expandedContactId;
+  expandedContactId = (expandedContactId === id) ? null : id;
+  let handledInPlace = updateRowElement(id);
+  if(prevExpandedId && prevExpandedId !== id){
+    handledInPlace = updateRowElement(prevExpandedId) && handledInPlace;
+  }
+  if(!handledInPlace) renderList($('#search').value);
+}
+
+
+function handleListTouchStart(e){
+  const header = e.target.closest('.contact-row-header');
+  const row = e.target.closest('.contact-row');
+  if(!row) return;
+  const id = row.dataset.id;
+  if(header) startLongPress(id);
+
+  // سحب البطاقة لليمين/اليسار لكشف الحذف/التعديل خلفها. معطّل أثناء التحديد
+  // الجماعي أو التوسيع (نفحص الحالة الفعلية الآن بدل الاعتماد على وقت التصيير).
+  if(selectionMode || row.classList.contains('expanded')) return;
+  const surface = row.querySelector('.contact-row-surface');
+  const deleteAction = row.querySelector('.contact-row-delete-action');
+  const editAction = row.querySelector('.contact-row-edit-action');
+  if(!surface || !deleteAction || !editAction) return;
+  const t = e.touches[0];
+  swipeState = { id, row, surface, deleteAction, editAction, startX: t.clientX, startY: t.clientY, dx: 0, active: true, decided: false, isHorizontal: false };
+  surface.style.transition = 'none';
+  deleteAction.style.transition = 'none';
+  editAction.style.transition = 'none';
+}
+
+function handleListTouchMove(e){
+  cancelLongPress(); // أي تحرك يُلغي الضغط المطوّل فورًا، مطابقة للسلوك الأصلي
+  const s = swipeState;
+  if(!s || !s.active) return;
+  const t = e.touches[0];
+  const rawDx = t.clientX - s.startX;
+  const rawDy = t.clientY - s.startY;
+  if(!s.decided){
+    if(Math.abs(rawDx) < 8 && Math.abs(rawDy) < 8) return;
+    s.decided = true;
+    s.isHorizontal = Math.abs(rawDx) > Math.abs(rawDy);
+  }
+  if(!s.isHorizontal) return;
+  e.preventDefault();
+  const pos = Math.max(-SWIPE_MAX_DRAG, Math.min(rawDx, SWIPE_MAX_DRAG));
+  s.dx = pos;
+  s.surface.style.transform = `translateX(${pos}px)`;
+  if(pos >= 0){
+    s.deleteAction.style.opacity = String(Math.min(1, pos / SWIPE_ACTION_WIDTH));
+    s.editAction.style.opacity = '0';
+  } else {
+    s.editAction.style.opacity = String(Math.min(1, -pos / SWIPE_ACTION_WIDTH));
+    s.deleteAction.style.opacity = '0';
+  }
+}
+
+function handleListTouchEnd(){
+  cancelLongPress();
+  const s = swipeState;
+  if(!s) return;
+  swipeState = null;
+  if(!s.active) return;
+  s.active = false;
+  if(!s.isHorizontal) return;
+  s.surface.style.transition = 'transform .2s ease';
+  s.deleteAction.style.transition = 'opacity .2s ease';
+  s.editAction.style.transition = 'opacity .2s ease';
+  s.surface.style.transform = 'translateX(0)';
+  s.deleteAction.style.opacity = '0';
+  s.editAction.style.opacity = '0';
+  if(s.dx > SWIPE_TRIGGER_WIDTH){
+    deleteContactFromList(s.id);
+  } else if(s.dx < -SWIPE_TRIGGER_WIDTH){
+    openEdit(s.id);
+  }
+}
+
+function handleListMouseDown(e){
+  const header = e.target.closest('.contact-row-header');
+  if(!header) return;
+  const row = header.closest('.contact-row');
+  if(!row) return;
+  startLongPress(row.dataset.id);
+}
+
+function handleListMouseOut(e){
+  const header = e.target.closest('.contact-row-header');
+  if(!header) return;
+  if(header.contains(e.relatedTarget)) return; // ما زال داخل نفس الهيدر
+  cancelLongPress();
+}
+
+function wireContactListDelegation(){
+  const list = $('#contactList');
+  list.addEventListener('click', handleListClick);
+  list.addEventListener('touchstart', handleListTouchStart, { passive:true });
+  list.addEventListener('touchmove', handleListTouchMove, { passive:false });
+  list.addEventListener('touchend', handleListTouchEnd, { passive:true });
+  list.addEventListener('touchcancel', handleListTouchEnd, { passive:true });
+  list.addEventListener('mousedown', handleListMouseDown);
+  list.addEventListener('mouseout', handleListMouseOut);
+  document.addEventListener('mouseup', cancelLongPress);
+}
+wireContactListDelegation();
+
+function deleteContactFromList(id){
+  swipeDeleteTargetId = id;
+  $('#deleteModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'delete' }, '', '#list');
+}
+
+function startLongPress(id){
+  cancelLongPress();
+  longPressTimer = setTimeout(() => {
+    longPressTriggered = true;
+    if(navigator.vibrate) navigator.vibrate(15);
+    if(!selectionMode) enterSelectionMode();
+    toggleSelect(id);
+    // the row gets re-rendered immediately, so the browser may never fire
+    // the trailing click on the (now removed) element to clear this flag —
+    // clear it ourselves shortly after instead of relying on that click.
+    setTimeout(() => { longPressTriggered = false; }, 350);
+  }, 240);
+}
+function cancelLongPress(){
+  if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+}
+
+let selectionModeJustEnteredExpandedId = null;
+function enterSelectionMode(){
+  selectionMode = true;
+  selectedIds.clear();
+  selectionModeJustEnteredExpandedId = expandedContactId;
+  expandedContactId = null;
+  closeOpenSwipe();
+  syncFilterUI();
+  safePushState({ screen: 'list', selectionGuard: true }, '', '#list');
+}
+
+function removeCheckboxesInPlace(){
+  document.querySelectorAll('#contactList .contact-row').forEach(row => {
+    row.classList.remove('selected');
+    const checkbox = row.querySelector('.contact-checkbox');
+    if(checkbox) checkbox.remove();
+  });
+}
+
+function exitSelectionMode(){
+  selectionMode = false;
+  selectedIds.clear();
+  syncFilterUI();
+  removeCheckboxesInPlace();
+  const filter = $('#search').value;
+  const isNumericSearch = /^\+?\d+$/.test(filter.trim());
+  if(isNumericSearch){
+    const digitsPrefix = filter.trim().replace(/\D/g,'');
+    let phoneCount = 0;
+    for(const c of contacts){
+      for(const p of c.phones){
+        if(p.value.replace(/\D/g,'').startsWith(digitsPrefix)) phoneCount++;
+      }
+    }
+    $('#summaryText').textContent = phoneCount + ' \u00A0نتيجة';
+  } else {
+    const f = normalizeArabic(filter.trim().toLowerCase());
+    const count = f ? getFilteredContacts(filter).length : contacts.length;
+    $('#summaryText').textContent = count + ' \u00A0جهة اتصال';
+  }
+}
+// يُستدعى عند إنهاء وضع التحديد من أي مكان غير معالج popstate (أي أن مُدخل
+// selectionGuard ما زال أعلى السجل ولم يُستهلك بعد): ينهي وضع التحديد ثم
+// يسحب ذلك المُدخل بصمت (بلا renderScreenUI) حتى لا يبقى "يتيماً" يكسر
+// عدّاد ضغطات الخروج لاحقاً (وهذا بالضبط ما كان يسبب الحاجة لضغطات إضافية
+// أو نتيجة غير متوقعة عند الخروج بعد استخدام وضع التحديد).
+function exitSelectionModeAndSync(){
+  if(!selectionMode) return;
+  exitSelectionMode();
+  suppressPopstateSilentCount++;
+  goBack();
+}
+
+function insertCheckboxesInPlace(){
+  const checkboxHtml = `<div class="contact-checkbox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>`;
+  document.querySelectorAll('#contactList .contact-row').forEach(row => {
+    const header = row.querySelector('.contact-row-header');
+    if(header && !header.querySelector('.contact-checkbox')){
+      header.insertAdjacentHTML('afterbegin', checkboxHtml);
+    }
+  });
+}
+
+function toggleSelect(id){
+  if(selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  if(selectedIds.size === 0){ exitSelectionModeAndSync(); return; }
+  syncFilterUI();
+  const row = document.querySelector(`.contact-row[data-id="${CSS.escape(id)}"]`);
+  const needsCheckboxes = !row || !row.querySelector('.contact-checkbox');
+  if(needsCheckboxes){
+    if(selectionModeJustEnteredExpandedId){
+      updateRowElement(selectionModeJustEnteredExpandedId);
+      selectionModeJustEnteredExpandedId = null;
+    }
+    insertCheckboxesInPlace();
+    const freshRow = document.querySelector(`.contact-row[data-id="${CSS.escape(id)}"]`);
+    if(freshRow) freshRow.classList.toggle('selected', selectedIds.has(id));
+    updateSelectionSummaryText();
+  } else {
+    row.classList.toggle('selected', selectedIds.has(id));
+    updateSelectionSummaryText();
+  }
+}
+
+function longestCommonPrefixLen(a, b){
+  let j = 0;
+  while(j < a.length && j < b.length && a[j] === b[j]) j++;
+  return j;
+}
+
+function computeSelectionCommonPrefix(){
+  const selected = contacts.filter(c => selectedIds.has(c.id));
+  if(selected.length === 0) return '';
+  const numberLists = selected.map(c => c.phones.map(p => p.value.replace(/\D/g,'')).filter(Boolean));
+  if(numberLists.some(list => list.length === 0)) return '';
+
+  if(numberLists.length === 1){
+    // جهة واحدة محددة: لازم كل أرقامها تشترك بنفس البادئة، تفادياً لاختيار رقم عشوائي بينها
+    let prefix = numberLists[0][0];
+    for(let i = 1; i < numberLists[0].length; i++){
+      prefix = prefix.slice(0, longestCommonPrefixLen(prefix, numberLists[0][i]));
+      if(!prefix) return '';
+    }
+    return prefix.length >= 2 ? prefix : '';
+  }
+
+  // جهتان فأكثر: يكفي رقم واحد على الأقل من كل جهة يشترك بالبادئة
+  let best = '';
+  for(const candidate of numberLists[0]){
+    let prefixLen = candidate.length;
+    for(let i = 1; i < numberLists.length; i++){
+      let bestForThisContact = 0;
+      for(const num of numberLists[i]){
+        const len = longestCommonPrefixLen(candidate, num);
+        if(len > bestForThisContact) bestForThisContact = len;
+      }
+      prefixLen = Math.min(prefixLen, bestForThisContact);
+      if(prefixLen === 0) break;
+    }
+    if(prefixLen > best.length) best = candidate.slice(0, prefixLen);
+  }
+  return best.length >= 2 ? best : '';
+}
+
+function selectionHasAnyPhone(){
+  const selected = contacts.filter(c => selectedIds.has(c.id));
+  return selected.some(c => c.phones.some(p => p.value.replace(/\D/g,'')));
+}
+
+function syncFilterUI(){
+  const searchVal = $('#search').value.trim();
+  const searchActive = !!searchVal;
+  const isNumericSearch = /^\+?\d+$/.test(searchVal);
+  const active = searchActive;
+  $('#prefixReplaceBtn').style.display = (isNumericSearch && !selectionMode) ? 'inline-block' : 'none';
+  $('#prefixDeleteBtn').style.display = (active && !selectionMode) ? 'inline-block' : 'none';
+  const groupMatched = (active && !selectionMode && !isNumericSearch) ? getContactsWithCategory(searchVal) : [];
+  $('#removeGroupBtn').style.display = groupMatched.length ? 'inline-block' : 'none';
+  $('#prefixBtnGroup').style.display = (active && !selectionMode) ? 'flex' : 'none';
+  $('#fabAdd').style.display = (active || selectionMode) ? 'none' : 'inline-block';
+  $('#summaryText').style.display = 'block';
+  $('#mergeSelectedBtn').style.display = (selectionMode && selectedIds.size >= 2 && selectedIds.size <= 5) ? 'inline-block' : 'none';
+  $('#deleteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
+  $('#favoriteSelectedBtn').style.display = selectionMode ? 'inline-block' : 'none';
+  $('#prefixSelectedBtn').style.display = (selectionMode && selectionHasAnyPhone()) ? 'inline-block' : 'none';
+  if(selectionMode){
+    $('#deleteSelectedBtn').textContent = 'حذف';
+  }
+  updateScrollTopBtn();
+}
+
+// زر القفز للأعلى: يظهر فقط أثناء وضع التحديد الجماعي وبعد أن يبتعد المستخدم
+// عن أعلى القائمة، ليتمكن من الوصول بسرعة لأزرار الحذف/تعديل البادئة أعلى الشاشة.
+const scrollTopBtn = $('#scrollTopBtn');
+function updateScrollTopBtn(){
+  const scroller = $('#screens');
+  const shouldShow = screens.list.classList.contains('active') && scroller && scroller.scrollTop > 200;
+  scrollTopBtn.classList.toggle('show', !!shouldShow);
+}
+$('#screens').addEventListener('scroll', () => { updateScrollTopBtn(); if(openSwipeRow) closeOpenSwipe(); if($('#listMenuDropdown').style.display === 'block') closeListMenuDropdownAndSync(); }, { passive:true });
+scrollTopBtn.addEventListener('click', () => {
+  const scroller = $('#screens');
+  if(scroller) scroller.scrollTo({ top:0, behavior:'smooth' });
 });
+
+$('#favoriteSelectedBtn').addEventListener('click', () => {
+  if(selectedIds.size === 0) return;
+  const count = selectedIds.size;
+  saveUndoSnapshot('تبديل مفضلة ' + count + ' جهة اتصال');
+  contacts.forEach(c => {
+    if(!selectedIds.has(c.id)) return;
+    const tags = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
+    if(isStarredContact(c)){
+      c.categories = tags.filter(tag => !/starred/i.test(tag)).join(', ');
+    } else {
+      tags.push('starred');
+      c.categories = tags.join(', ');
+    }
+  });
+  exitSelectionModeAndSync();
+  renderList($('#search').value);
+  toast('تم تحديث المفضلة لـ ' + count + ' جهة اتصال');
+});
+$('#deleteSelectedBtn').addEventListener('click', () => {
+  if(selectedIds.size === 0) return;
+  $('#deleteSelectedModalDesc').textContent = 'هل تريد حذف ' + selectedIds.size + ' جهة اتصال محددة؟';
+  $('#deleteSelectedModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'deleteSelected' }, '', '#list');
+});
+$('#mergeSelectedBtn').addEventListener('click', () => {
+  if(selectedIds.size < 2 || selectedIds.size > 5) return;
+  const ids = Array.from(selectedIds);
+  // لا نستخدم exitSelectionModeAndSync هنا (تستدعي goBack غير المتزامنة) لأن
+  // startMerge قد يفتح نافذة الدمج فوراً بعدها بنفس اللحظة عبر safePushState؛
+  // استدعاء goBack ثم pushState متتاليين بلا انتظار popstate بينهما يُسبب
+  // تسابقاً يُفقد التزامن بين عداد suppressPopstateSilentCount والسجل الفعلي.
+  // بدلاً من ذلك: نصفّر حالة التحديد مباشرة (بلا لمس السجل)، ونمرّر
+  // replaceHistory لتستبدل startMerge/openMergeModal مُدخل الحماية الحالي
+  // بمُدخل نافذة الدمج في عملية واحدة ذرية.
+  selectionMode = false;
+  selectedIds.clear();
+  syncFilterUI();
+  renderList($('#search').value);
+  startMerge(ids, { replaceHistory: true });
+});
+function closeDeleteSelectedModal(){
+  if($('#deleteSelectedModalOverlay').style.display === 'none') return;
+  $('#deleteSelectedModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#deleteSelectedModalCancel').addEventListener('click', closeDeleteSelectedModal);
+$('#deleteSelectedModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteSelectedModalOverlay') closeDeleteSelectedModal(); });
+$('#deleteSelectedModalConfirm').addEventListener('click', () => {
+  const count = selectedIds.size;
+  saveUndoSnapshot('حذف ' + count + ' جهة اتصال');
+  contacts = contacts.filter(c => !selectedIds.has(c.id));
+  $('#deleteSelectedModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+  exitSelectionModeAndSync();
+  refreshPrefixOptions();
+  renderList($('#search').value);
+  toast('تم حذف ' + count + ' جهة اتصال');
+});
+
+function refreshPrefixOptions(){
+  // تصفية بالرقم أُزيلت من الواجهة؛ نُبقي هذه الدالة كمجرد نداء لتحديث حالة الأزرار
+  // حتى لا نضطر لتعديل كل نقاط الاستدعاء المنتشرة بالكود.
+  syncFilterUI();
+}
+
+$('#prefixReplaceBtn').addEventListener('click', () => {
+  const oldPrefix = $('#search').value.trim().replace(/\D/g,'');
+  if(!oldPrefix) return;
+  openPrefixModal(oldPrefix);
+});
+
+$('#prefixSelectedBtn').addEventListener('click', () => {
+  if(selectionHasAnyPhone()) openMultiPrefixModal(Array.from(selectedIds));
+});
+
+// نافذة "إضافة نص لحقل" — يفتحها زر "إضافة نص إلى حقل" بقائمة ⋮
+// (⋮ > إضافة نص إلى حقل، مفعّل فقط أثناء وجود تحديد فعّال)
+const BULK_FIELD_TEXT_LABELS = { fn:'الاسم', nickname:'اللقب', note:'الملاحظات', org:'الشركة', title:'المسمى الوظيفي', dept:'القسم', categories:'المجموعات' };
+const BULK_FIELD_TEXT_ORDER = ['fn', 'nickname', 'org', 'dept', 'title', 'categories', 'note'];
+let bulkFieldTextSelected = 'org';
+
+function renderBulkFieldPickerList(){
+  const listEl = $('#bulkFieldPickerList');
+  listEl.innerHTML = BULK_FIELD_TEXT_ORDER.map((key, idx) => {
+    const isLast = idx === BULK_FIELD_TEXT_ORDER.length - 1;
+    const isSel = key === bulkFieldTextSelected;
+    return `<button type="button" class="bulkFieldPickerItem" data-field="${key}" style="display:flex; align-items:center; justify-content:space-between; width:100%; height:44px; box-sizing:border-box; padding:0 14px; background:${isSel ? 'var(--card2)' : 'none'}; border:none; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; font-family:var(--font-body); font-weight:${isSel ? '700' : '400'}; font-size:13px; color:${isSel ? 'var(--accent)' : 'var(--text)'}; text-align:right;">
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.8;">${BULK_FIELD_TEXT_LABELS[key]}</span>
+      ${isSel ? '<span style="color:var(--accent); font-size:13px; flex:0 0 auto; margin-right:8px;">✓</span>' : ''}
+    </button>`;
+  }).join('');
+  listEl.querySelectorAll('.bulkFieldPickerItem').forEach(btn => {
+    btn.addEventListener('click', () => {
+      bulkFieldTextSelected = btn.dataset.field;
+      renderBulkFieldPickerList();
+    });
+  });
+  updateBulkFieldPickerThumb();
+}
+function updateBulkFieldPickerThumb(){
+  const list = $('#bulkFieldPickerList');
+  const thumb = $('#bulkFieldPickerScrollThumb');
+  const trackH = list.clientHeight;
+  const contentH = list.scrollHeight;
+  if(contentH <= trackH + 1){ thumb.style.display = 'none'; return; }
+  thumb.style.display = 'block';
+  const thumbH = Math.round(trackH * 0.65);
+  thumb.style.height = thumbH + 'px';
+  const maxScroll = contentH - trackH;
+  const maxThumbTravel = trackH - thumbH;
+  const scrollRatio = maxScroll > 0 ? (list.scrollTop / maxScroll) : 0;
+  thumb.style.top = Math.round(scrollRatio * maxThumbTravel) + 'px';
+}
+$('#bulkFieldPickerList').addEventListener('scroll', updateBulkFieldPickerThumb, { passive:true });
+
+function openBulkFieldTextModal(){
+  $('#bulkFieldTextTitle').textContent = 'إضافة نص لـ ' + selectedIds.size + ' جهة اتصال';
+  bulkFieldTextSelected = 'org';
+  $('#bulkFieldTextValue').value = '';
+  $('#bulkFieldTextModalOverlay').style.display = 'flex';
+  renderBulkFieldPickerList();
+  $('#bulkFieldPickerList').scrollTop = 0;
+  safeReplaceState({ screen: 'list', modal: 'bulkFieldText' }, '', '#list');
+  setTimeout(() => $('#bulkFieldTextValue').focus(), 50);
+}
+function closeBulkFieldTextModal(){
+  if($('#bulkFieldTextModalOverlay').style.display === 'none') return;
+  $('#bulkFieldTextModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#bulkFieldTextCancel').addEventListener('click', closeBulkFieldTextModal);
+$('#bulkFieldTextModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'bulkFieldTextModalOverlay') closeBulkFieldTextModal(); });
+$('#bulkFieldTextConfirm').addEventListener('click', () => {
+  const field = bulkFieldTextSelected;
+  const val = $('#bulkFieldTextValue').value.trim();
+  if(selectedIds.size === 0) return;
+  const label = BULK_FIELD_TEXT_LABELS[field] || field;
+  const actionDesc = val ? ('إضافة نص لحقل ' + label + ' لـ' + selectedIds.size + ' جهة اتصال') : ('مسح حقل ' + label + ' لـ' + selectedIds.size + ' جهة اتصال');
+  saveUndoSnapshot(actionDesc);
+  let count = 0;
+  contacts.forEach(c => {
+    if(selectedIds.has(c.id)){
+      c[field] = (field === 'categories') ? categoriesFromDisplay(val) : val;
+      count++;
+    }
+  });
+  exitSelectionModeAndSync();
+  renderList($('#search').value);
+  toast((val ? 'تم تحديث ' : 'تم مسح ') + label + ' لـ ' + count + ' جهة اتصال');
+  closeBulkFieldTextModal();
+});
+
+$('#prefixDeleteBtn').addEventListener('click', () => {
+  const matched = getFilteredContacts($('#search').value);
+  if(matched.length === 0) return;
+  openPrefixDeleteModal(matched.length);
+});
+
+function openPrefixDeleteModal(count){
+  $('#prefixDeleteModalDesc').textContent = 'هل تريد حذف ' + count + ' جهة اتصال من النتائج الحالية؟';
+  $('#prefixDeleteModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'prefixDelete' }, '', '#list');
+}
+function closePrefixDeleteModal(){
+  if($('#prefixDeleteModalOverlay').style.display === 'none') return;
+  $('#prefixDeleteModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#prefixDeleteModalCancel').addEventListener('click', closePrefixDeleteModal);
+$('#prefixDeleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'prefixDeleteModalOverlay') closePrefixDeleteModal(); });
+
+$('#removeGroupBtn').addEventListener('click', () => {
+  const term = $('#search').value.trim();
+  const matched = getContactsWithCategory(term);
+  if(matched.length === 0) return;
+  $('#removeGroupModalDesc').textContent = 'هل تريد إزالة مجموعة "' + term + '" من ' + matched.length + ' جهة اتصال؟';
+  $('#removeGroupModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'removeGroup' }, '', '#list');
+});
+function closeRemoveGroupModal(){
+  if($('#removeGroupModalOverlay').style.display === 'none') return;
+  $('#removeGroupModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#removeGroupModalCancel').addEventListener('click', closeRemoveGroupModal);
+$('#removeGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'removeGroupModalOverlay') closeRemoveGroupModal(); });
+$('#removeGroupModalConfirm').addEventListener('click', () => {
+  const term = $('#search').value.trim();
+  const t = term.toLowerCase();
+  const matched = getContactsWithCategory(term);
+  matched.forEach(c => {
+    const tags = c.categories.split(',').map(s => s.trim()).filter(Boolean).filter(tag => tag.toLowerCase() !== t);
+    c.categories = tags.join(', ');
+  });
+  closeRemoveGroupModal();
+  $('#search').value = '';
+  updateSearchAddTermBtn();
+  syncFilterUI();
+  renderList('');
+  toast('تمت إزالة المجموعة من ' + matched.length + ' جهة اتصال');
+});
+$('#prefixDeleteModalConfirm').addEventListener('click', () => {
+  const matched = getFilteredContacts($('#search').value);
+  const matchedIds = new Set(matched.map(c => c.id));
+  saveUndoSnapshot('حذف ' + matched.length + ' جهة اتصال');
+  contacts = contacts.filter(c => !matchedIds.has(c.id));
+  closePrefixDeleteModal();
+  $('#prefixFilter').value = '';
+  $('#search').value = '';
+  updateSearchAddTermBtn();
+  syncFilterUI();
+  refreshPrefixOptions();
+  renderList('');
+  toast('تم حذف ' + matched.length + ' جهة اتصال');
+});
+
+function openPrefixModal(oldPrefix, scopeIds){
+  $('#prefixModalOverlay').dataset.oldPrefix = oldPrefix;
+  $('#prefixModalOverlay').dataset.scopeIds = scopeIds ? JSON.stringify(scopeIds) : '';
+  $('#prefixModalDesc').textContent = 'تعديل البادئة "' + oldPrefix + '" إلى:';
+  $('#prefixModalInput').value = '';
+  $('#prefixModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'prefix' }, '', '#list');
+  setTimeout(() => { $('#prefixModalInput').focus(); $('#prefixModalInput').select(); }, 50);
+}
+function closePrefixModal(){
+  if($('#prefixModalOverlay').style.display === 'none') return;
+  $('#prefixModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#prefixModalCancel').addEventListener('click', closePrefixModal);
+$('#prefixModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'prefixModalOverlay') closePrefixModal(); });
+$('#prefixModalInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') $('#prefixModalConfirm').click(); });
+$('#prefixModalConfirm').addEventListener('click', () => {
+  const oldPrefix = $('#prefixModalOverlay').dataset.oldPrefix;
+  const np = $('#prefixModalInput').value.trim();
+  const scopeIdsRaw = $('#prefixModalOverlay').dataset.scopeIds;
+  const scopeIds = scopeIdsRaw ? JSON.parse(scopeIdsRaw) : null;
+  const targetContacts = scopeIds ? contacts.filter(c => scopeIds.includes(c.id)) : contacts;
+  saveUndoSnapshot('استبدال البادئة');
+  let count = 0;
+  for(const c of targetContacts){
+    for(const p of c.phones){
+      const digits = p.value.replace(/\D/g,'');
+      if(digits.startsWith(oldPrefix)){
+        p.value = np + digits.slice(oldPrefix.length);
+        count++;
+      }
+    }
+  }
+  if(scopeIds) exitSelectionModeAndSync();
+  // لو تعديل البادئة كان مبنياً على نص البحث نفسه (لا تحديد يدوي)، ومن المتوقع
+  // أن يصبح البحث بلا أي نتائج بعد التعديل (لأن كل الأرقام المطابقة تغيّرت)،
+  // نفرّغ الفلتر تلقائياً عبر clearListFilters بدل ترك المستخدم أمام شاشة
+  // "0 نتيجة" ويحتاج خطوة رجوع إضافية يدوياً. لازم نستخدم clearListFilters
+  // تحديداً (وليس تفريغ مربع البحث يدوياً) لأنها تُصفّر filterGuardActive
+  // وتسحب مُدخل الحماية الزائد من سجل المتصفح؛ غير ذلك يُبقي مُدخلاً عالقاً
+  // بالسجل يُفقد تزامن زر الرجوع لاحقاً (يظهر تأكيد الخروج لكن دون استجابة).
+  const willBeEmpty = !scopeIds && count > 0 && getFilteredContacts($('#search').value).length === 0;
+  if(willBeEmpty){
+    const hadFilterGuard = filterGuardActive;
+    clearListFilters();
+    if(hadFilterGuard){
+      suppressPopstateSilentCount++;
+      goBack();
+    }
+  } else {
+    $('#prefixFilter').value = '';
+    syncFilterUI();
+    refreshPrefixOptions();
+    renderList($('#search').value);
+  }
+  if(willBeEmpty) refreshPrefixOptions();
+  if(scopeIds) scrollToContactRow(scopeIds[0]);
+  toast('تم تعديل ' + count + ' رقم');
+  closePrefixModal();
+});
+
+let multiPrefixScopeIds = [];
+function openMultiPrefixModal(scopeIds){
+  multiPrefixScopeIds = scopeIds;
+  const list = $('#multiPrefixList');
+  const rows = [];
+  const selected = contacts.filter(c => scopeIds.includes(c.id));
+  selected.forEach(c => {
+    c.phones.forEach((p, idx) => {
+      if(!p.value.replace(/\D/g,'')) return;
+      rows.push({ contactId: c.id, phoneIndex: idx, contactName: c.fn || '(بدون اسم)', value: p.value });
+    });
+  });
+  list.innerHTML = rows.map((r, i) => {
+    const isLast = i === rows.length - 1;
+    return `<div style="padding:12px 0;" data-contact-id="${r.contactId}" data-phone-index="${r.phoneIndex}">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:7px;">
+        <div style="font-size:12px; line-height:1.7; padding-bottom:1px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:0 1 auto;">${escapeHtml(r.contactName)}</div>
+        <div style="direction:ltr; text-align:left; font-size:14px; font-weight:700; line-height:1.7; color:var(--text); flex:0 0 auto; white-space:nowrap;">${escapeHtml(r.value)}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="tel" class="mp-old" inputmode="tel" placeholder="البادئة الحالية" style="flex:1 1 0; min-width:0; direction:ltr; text-align:right; font-size:14px; padding:13px 14px; line-height:normal;">
+        <span style="color:var(--muted); font-size:14px; flex:0 0 auto; position:relative; top:-2px;">←</span>
+        <input type="tel" class="mp-new" inputmode="tel" placeholder="البادئة الجديدة" style="flex:1 1 0; min-width:0; direction:ltr; text-align:right; font-size:14px; padding:13px 14px; line-height:normal;">
+      </div>
+    </div>`;
+  }).join('');
+  $('#multiPrefixModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'multiPrefix' }, '', '#list');
+}
+function closeMultiPrefixModal(){
+  if($('#multiPrefixModalOverlay').style.display === 'none') return;
+  $('#multiPrefixModalOverlay').style.display = 'none';
+  multiPrefixScopeIds = [];
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#multiPrefixModalCancel').addEventListener('click', closeMultiPrefixModal);
+$('#multiPrefixModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'multiPrefixModalOverlay') closeMultiPrefixModal(); });
+$('#multiPrefixModalConfirm').addEventListener('click', () => {
+  const rows = Array.from($('#multiPrefixList').children);
+  const targetContacts = contacts.filter(c => multiPrefixScopeIds.includes(c.id));
+  const returnToId = multiPrefixScopeIds[0];
+  saveUndoSnapshot('استبدال البادئة');
+  let count = 0;
+  let mismatched = 0;
+  rows.forEach(row => {
+    const contactId = row.dataset.contactId;
+    const phoneIndex = parseInt(row.dataset.phoneIndex, 10);
+    const oldVal = row.querySelector('.mp-old').value.trim().replace(/\D/g,'');
+    const newVal = row.querySelector('.mp-new').value.trim();
+    if(!oldVal) return;
+    const c = targetContacts.find(x => x.id === contactId);
+    if(!c || !c.phones[phoneIndex]) return;
+    const digits = c.phones[phoneIndex].value.replace(/\D/g,'');
+    if(digits.startsWith(oldVal)){
+      c.phones[phoneIndex].value = newVal + digits.slice(oldVal.length);
+      count++;
+    } else {
+      mismatched++;
+    }
+  });
+  exitSelectionModeAndSync();
+  syncFilterUI();
+  refreshPrefixOptions();
+  renderList($('#search').value);
+  scrollToContactRow(returnToId);
+  toast(count ? ('تم تعديل ' + count + ' رقم' + (mismatched ? (' — ' + mismatched + ' لا يبدأ بالبادئة المدخلة') : '')) : 'لم يتم تعديل أي رقم');
+  closeMultiPrefixModal();
+});
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function scrollToContactRow(id){
+  if(!id) return;
+  const target = $('.contact-row[data-id="' + CSS.escape(String(id)) + '"]');
+  if(target) target.scrollIntoView({ block: 'center' });
+}
+
+function updateSearchAddTermBtn(){
+  const val = $('#search').value;
+  const trimmed = val.trim();
+  const btn = $('#searchAddTerm');
+  btn.style.display = (trimmed && !trimmed.endsWith('+')) ? 'flex' : 'none';
+}
+$('#search').addEventListener('input', (e) => { renderList(e.target.value); syncFilterUI(); updateSearchAddTermBtn(); if(listFilterActive()) pushFilterGuard(); });
+$('#search').addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); $('#search').blur(); } });
+$('#searchAddTerm').addEventListener('click', () => {
+  const input = $('#search');
+  const trimmed = input.value.trim();
+  if(!trimmed || trimmed.endsWith('+')) return;
+  input.value = trimmed + '+';
+  updateSearchAddTermBtn();
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+});
+
+const PHONE_TYPES = ['CELL','HOME','WORK','FAX','OTHER'];
+const PHONE_LABELS = {CELL:'محمول',HOME:'منزل',WORK:'عمل',FAX:'فاكس',OTHER:'أخرى'};
+const EMAIL_TYPES = ['HOME','WORK','OTHER'];
+const EMAIL_LABELS = {HOME:'شخصي',WORK:'عمل',OTHER:'أخرى'};
+const URL_TYPES = ['HOME','WORK','OTHER'];
+const URL_LABELS = {HOME:'شخصي',WORK:'عمل',OTHER:'أخرى'};
+const ADR_TYPES = ['HOME','WORK','OTHER'];
+const ADR_LABELS = {HOME:'منزل',WORK:'عمل',OTHER:'آخر'};
+
+function openEdit(id){
+  currentId = id;
+  const c = contacts.find(x => x.id === id);
+  if(!c) return;
+  refreshPhotoPreview(c);
+  $('#f-fn').value = c.fn === '(بدون اسم)' ? '' : c.fn;
+  $('#f-nick').value = c.nickname || '';
+  $('#f-org').value = c.org || '';
+  $('#f-dept').value = c.dept || '';
+  $('#f-title').value = c.title || '';
+  $('#f-note').value = c.note || '';
+  autoGrowNote();
+
+  $('#f-categories').value = categoriesToDisplay(c.categories);
+  updateHeaderStarBtn(c);
+  $('#f-bday').value = c.bday || '';
+  $('#f-bday-display').value = c.bday ? c.bday.split('-').join('/') : '';
+
+  renderMultiList('phoneList', c.phones, PHONE_TYPES, PHONE_LABELS, 'tel', true);
+  renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
+  renderMultiList('urlList', c.urls || [], URL_TYPES, URL_LABELS, 'url');
+  renderMultiList('adrList', c.adrs || [], ADR_TYPES, ADR_LABELS, 'address');
+
+  $('#f-samsungadr').value = c.samsungAdr || '';
+  $('#samsungAdrGroup').style.display = c.samsungAdr ? '' : 'none';
+
+  $('#rawNote').textContent = c.rawExtra.length
+    ? 'يحتوي هذا الجهة على ' + c.rawExtra.length + ' خاصية إضافية سيتم الاحتفاظ بها تلقائياً عند الحفظ.'
+    : '';
+
+  showScreen('edit');
+}
+
+function refreshPhotoPreview(c){
+  const photoEl = $('#f-photo');
+  const placeholder = $('#photoPlaceholder');
+  const menu = $('#photoMenu');
+  const removeOpt = $('#photoRemoveOpt');
+  const changeOpt = $('#photoChangeOpt');
+  menu.style.display = 'none';
+  const photoSrc = c.photo || c.photoUrl;
+  if(photoSrc){
+    photoEl.src = photoSrc;
+    photoEl.style.display = 'block';
+    placeholder.style.display = 'none';
+    removeOpt.style.display = 'inline-block';
+    changeOpt.textContent = 'من الجهاز';
+  } else {
+    photoEl.removeAttribute('src');
+    photoEl.style.display = 'none';
+    placeholder.style.display = 'flex';
+    removeOpt.style.display = 'none';
+    changeOpt.textContent = 'من الجهاز';
+  }
+}
+
+$('#photoWrap').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  const menu = $('#photoMenu');
+  menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+});
+
+$('#photoChangeOpt').addEventListener('click', () => {
+  $('#photoMenu').style.display = 'none';
+  $('#photoInput').click();
+});
+
+$('#photoRemoveOpt').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  c.photo = null;
+  c.photoUrl = null;
+  refreshPhotoPreview(c);
+});
+
+$('#photoUrlOpt').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  $('#photoMenu').style.display = 'none';
+  // إن كانت الصورة الحالية رابطاً أصلاً، نعرضه معبَّأً بالحقل ليتمكن المستخدم
+  // من رؤيته أو تعديله مباشرة بدل حقل فارغ يوحي بعدم وجود رابط محفوظ.
+  $('#photoUrlModalInput').value = (c && c.photoUrl) ? c.photoUrl : '';
+  $('#photoUrlModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'edit', modal: 'photoUrl' }, '', '#edit');
+});
+function closePhotoUrlModal(){
+  if($('#photoUrlModalOverlay').style.display === 'none') return;
+  $('#photoUrlModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#photoUrlModalCancel').addEventListener('click', closePhotoUrlModal);
+$('#photoUrlModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'photoUrlModalOverlay') closePhotoUrlModal(); });
+// إضافة صورة من رابط: لا نجلبها ولا نحوّلها base64 هنا إطلاقاً — تبقى الصورة
+// "رابطاً" (تُعرض مباشرة عبر src بلا أي تخزين/تحويل)، وتضمينها بالملف فعلياً
+// إجراء منفصل صريح لاحقاً (زر "تضمين الصورة") — العرض والتضمين عمليتان مختلفتان.
+$('#photoUrlModalConfirm').addEventListener('click', () => {
+  const url = $('#photoUrlModalInput').value.trim();
+  if(!url){ toast('أدخل رابط الصورة'); return; }
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  c.photo = null;
+  c.photoUrl = url;
+  refreshPhotoPreview(c);
+  closePhotoUrlModal();
+  toast('تمت إضافة رابط الصورة');
+});
+
+function blobToSquarePhotoDataURL(blob, callback, errback){
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    img.onload = () => {
+      const MAX = 1024;
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const outSize = Math.min(MAX, side);
+      const canvas = document.createElement('canvas');
+      canvas.width = outSize;
+      canvas.height = outSize;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+      callback(canvas.toDataURL('image/jpeg', 0.95));
+    };
+    img.onerror = () => errback && errback();
+    img.src = ev.target.result;
+  };
+  reader.onerror = () => errback && errback();
+  reader.readAsDataURL(blob);
+}
+
+// يضيف معامل حجم صريح (=sN) لروابط صور جوجل (lh3.googleusercontent.com) قبل
+// الجلب. بدون هذا المعامل تُعيد خوادم جوجل ضغط الصورة ديناميكياً في كل طلب
+// فيتفاوت حجم الملف الناتج (بالبايت) رغم ثبات الأبعاد؛ تحديد حجم صريح يجعل
+// الاستجابة ثابتة وبأعلى جودة متاحة قبل أن نعيد ضغطها نحن مربعة بالحجم المطلوب.
+function withExplicitGooglePhotoSize(url, size){
+  try{
+    const u = new URL(url);
+    if(!/(^|\.)googleusercontent\.com$/i.test(u.hostname)) return url;
+    if(/=s\d+(-c)?$/i.test(u.pathname)) return url;
+    return url.replace(/\/?$/, '') + '=s' + size;
+  }catch(e){
+    return url;
+  }
+}
+// يحاول جلب صور جهات الاتصال المستوردة من CSV جوجل (رابط فقط بدون بيانات صورة فعلية)
+// عبر طلب كل رابط وتحويله لصورة مربعة مضمّنة؛ يتجاهل بصمت أي رابط يفشل (حجب CORS، انتهاء صلاحية، إلخ)
+async function fetchPhotosFromUrls(cards){
+  const targets = cards.filter(c => c.photoUrl && !c.photo);
+  if(targets.length === 0) return { attempted: 0, success: 0 };
+  let success = 0;
+  const CONCURRENCY = 6;
+  let cursor = 0;
+  async function worker(){
+    while(cursor < targets.length){
+      const card = targets[cursor++];
+      try{
+        const res = await fetch(withExplicitGooglePhotoSize(card.photoUrl, 1024), { mode: 'cors' });
+        if(res.ok){
+          const blob = await res.blob();
+          const dataUrl = await new Promise((resolve, reject) => {
+            blobToSquarePhotoDataURL(blob, resolve, reject);
+          });
+          card.photo = dataUrl;
+          success++;
+        }
+      }catch(err){
+        // تجاهل وانتقل للجهة التالية
+      }
+      delete card.photoUrl;
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, targets.length) }, worker));
+  return { attempted: targets.length, success };
+}
+
+function fileToSquarePhotoDataURL(file, callback){
+  const img = new Image();
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    img.onload = () => {
+      const MAX = 1024;
+      const side = Math.min(img.width, img.height);
+      const sx = (img.width - side) / 2;
+      const sy = (img.height - side) / 2;
+      const outSize = Math.min(MAX, side);
+      const canvas = document.createElement('canvas');
+      canvas.width = outSize;
+      canvas.height = outSize;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, outSize, outSize);
+      callback(canvas.toDataURL('image/jpeg', 0.95));
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+$('#photoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  fileToSquarePhotoDataURL(file, (dataUrl) => {
+    c.photo = dataUrl;
+    c.photoUrl = null;
+    refreshPhotoPreview(c);
+  });
+  e.target.value = '';
+});
+
+// قائمة سريعة لتغيير/حذف صورة جهة اتصال واحدة عند الضغط على صورتها بالشاشة الرئيسية،
+// منفصلة تماماً عن آلية الصورة بشاشة التعديل (currentId) لتفادي أي تعارض بينهما.
+let listPhotoTargetId = null;
+// حالة الصورة المسوَّدة (تُحفظ فعلياً فقط عند الضغط على "تأكيد"): مصدران
+// منفصلان، بالضبط كما في c.photo/c.photoUrl — مضمّنة (رفع من الجهاز) أو
+// رابط (يُعرض مباشرة بلا تحويل). واحد منهما فقط يكون فعّالاً بأي لحظة.
+let listPhotoDraftPhoto = null;
+let listPhotoDraftUrl = null;
+
+function updateListPhotoPreview(){
+  const img = $('#listPhotoMenuImg');
+  const placeholder = $('#listPhotoMenuPlaceholder');
+  const src = listPhotoDraftPhoto || listPhotoDraftUrl;
+  if(src){
+    img.src = src;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+    $('#listPhotoRemoveOpt').style.display = 'inline-block';
+    $('#listPhotoRemoveWrap').style.marginBottom = '17px';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    placeholder.style.display = 'block';
+    $('#listPhotoRemoveOpt').style.display = 'none';
+    $('#listPhotoRemoveWrap').style.marginBottom = '34px';
+  }
+}
+
+function openListPhotoMenu(id){
+  const c = contacts.find(x => x.id === id);
+  if(!c) return;
+  listPhotoTargetId = id;
+  listPhotoDraftPhoto = c.photo || null;
+  listPhotoDraftUrl = c.photoUrl || null;
+  // نعبّئ حقل الرابط برابط الصورة الحالي إن وُجد، بدل تركه فارغاً وكأن لا رابط محفوظاً.
+  $('#listPhotoUrlInline').value = c.photoUrl || '';
+  updateListPhotoPreview();
+  $('#listPhotoMenuOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'photo' }, '', '#list');
+}
+function closeListPhotoMenu(){
+  $('#listPhotoMenuOverlay').style.display = 'none';
+  listPhotoTargetId = null;
+  listPhotoDraftPhoto = null;
+  listPhotoDraftUrl = null;
+}
+// إغلاق عبر واجهة المستخدم (إلغاء / نقر خارج النافذة / تأكيد): يسحب مُدخل
+// السجل الذي أضفناه عند الفتح (بصمت، بلا renderScreenUI حتى لا نصفّر تمرير
+// القائمة). الفحص بالأسفل يمنع التنفيذ مرتين لو أطلق الجهاز حدثي لمس/نقر
+// لنفس الضغطة (وهو ما كان يُسرّب مُدخلاً إضافياً من السجل ويُصعّب الخروج لاحقاً).
+function closeListPhotoMenuViaUI(){
+  if($('#listPhotoMenuOverlay').style.display === 'none') return;
+  closeListPhotoMenu();
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#listPhotoMenuOverlay').addEventListener('click', (e) => { if(e.target.id === 'listPhotoMenuOverlay') closeListPhotoMenuViaUI(); });
+$('#listPhotoMenuCancelBtn').addEventListener('click', closeListPhotoMenuViaUI);
+
+$('#listPhotoRemoveOpt').addEventListener('click', () => {
+  listPhotoDraftPhoto = null;
+  listPhotoDraftUrl = null;
+  $('#listPhotoUrlInline').value = '';
+  updateListPhotoPreview();
+});
+
+$('#listPhotoChangeOpt').addEventListener('click', () => {
+  $('#listPhotoInput').click();
+});
+// الضغط على الصورة نفسها بنافذة القائمة السريعة يفتح استوديو/معرض الصور
+// بالجهاز مباشرة لاختيار صورة جديدة، بنفس فعل زر "اختر ملفاً من جهازك".
+$('#listPhotoMenuImgWrap').addEventListener('click', () => {
+  $('#listPhotoInput').click();
+});
+$('#listPhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  fileToSquarePhotoDataURL(file, (dataUrl) => {
+    listPhotoDraftPhoto = dataUrl;
+    listPhotoDraftUrl = null;
+    $('#listPhotoUrlInline').value = '';
+    updateListPhotoPreview();
+  });
+});
+
+// رابط الصورة هنا لا يُجلب ولا يُحوَّل base64: يبقى رابطاً معروضاً مباشرة
+// (بلا تخزين/تحويل) — تضمينه بالملف فعلياً منفصل، من شاشة تعديل الجهة نفسها
+// (زر "تضمين الصورة") أو دفعة واحدة من قائمة ⋮.
+$('#listPhotoUrlInline').addEventListener('change', () => {
+  const input = $('#listPhotoUrlInline');
+  const url = input.value.trim();
+  if(!url) return;
+  listPhotoDraftPhoto = null;
+  listPhotoDraftUrl = url;
+  updateListPhotoPreview();
+});
+
+$('#listPhotoMenuConfirmBtn').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === listPhotoTargetId);
+  if(!c){ closeListPhotoMenuViaUI(); return; }
+  const beforePhoto = c.photo || null;
+  const beforeUrl = c.photoUrl || null;
+  const afterPhoto = listPhotoDraftPhoto;
+  const afterUrl = listPhotoDraftUrl;
+  if(beforePhoto === afterPhoto && beforeUrl === afterUrl){ closeListPhotoMenuViaUI(); return; }
+  const after = afterPhoto || afterUrl;
+  saveUndoSnapshot(after ? ('تغيير صورة ' + (c.fn || 'جهة الاتصال')) : ('حذف صورة ' + (c.fn || 'جهة الاتصال')));
+  c.photo = afterPhoto;
+  c.photoUrl = afterUrl;
+  renderList($('#search').value);
+  closeListPhotoMenuViaUI();
+  toast(after ? 'تم تغيير الصورة' : 'تم حذف الصورة');
+});
+
+function autosizeTypeText(inp){
+  // sizing now handled by flexbox; no-op kept for compatibility
+}
+
+function renderMultiList(containerId, arr, types, labels, inputType, draggable){
+  const el = $('#' + containerId);
+  el.innerHTML = '';
+  arr.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.className = 'multi-row row-' + inputType;
+
+    if(draggable){
+      row.__item = item;
+      setupRowDrag(row, el, arr);
+    }
+
+    const upType = (item.type || '').toUpperCase();
+    const isStandard = types.includes(upType);
+
+    let typeControl;
+    if(isStandard){
+      typeControl = document.createElement('select');
+      types.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t; opt.textContent = labels[t];
+        if(upType === t) opt.selected = true;
+        typeControl.appendChild(opt);
+      });
+      const customOpt = document.createElement('option');
+      customOpt.value = 'CUSTOM';
+      customOpt.textContent = 'مخصص';
+      typeControl.appendChild(customOpt);
+      typeControl.addEventListener('change', () => {
+        if(typeControl.value === 'CUSTOM'){
+          item.type = '';
+          item.__justSwitchedToCustom = true;
+          renderMultiList(containerId, arr, types, labels, inputType, draggable);
+        } else {
+          item.type = typeControl.value;
+        }
+      });
+    } else {
+      typeControl = document.createElement('input');
+      typeControl.type = 'text';
+      typeControl.className = 'type-text';
+      typeControl.placeholder = inputType === 'email' ? 'نوع البريد' : (inputType === 'url' ? 'نوع الرابط' : (inputType === 'address' ? 'نوع العنوان' : 'نوع الرقم'));
+      typeControl.value = item.type || '';
+      autosizeTypeText(typeControl);
+      if(item.__justSwitchedToCustom){
+        delete item.__justSwitchedToCustom;
+        setTimeout(() => typeControl.focus(), 0);
+      }
+      typeControl.addEventListener('input', () => {
+        item.type = typeControl.value;
+        autosizeTypeText(typeControl);
+      });
+      typeControl.addEventListener('blur', () => {
+        if(!typeControl.value.trim()){
+          item.type = types[0];
+          renderMultiList(containerId, arr, types, labels, inputType, draggable);
+        }
+      });
+    }
+
+    const input = document.createElement('input');
+    input.type = (inputType === 'address') ? 'text' : inputType;
+    input.value = item.value;
+    input.addEventListener('input', () => { item.value = input.value; });
+    input.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); input.blur(); } });
+
+    const rm = document.createElement('button');
+    rm.className = 'rm-btn'; rm.innerHTML = '✕';
+    rm.addEventListener('click', () => { arr.splice(idx,1); renderMultiList(containerId, arr, types, labels, inputType, draggable); });
+
+    input.addEventListener('focus', () => { rm.style.display = 'flex'; });
+    input.addEventListener('blur', () => {
+      setTimeout(() => { rm.style.display = 'none'; }, 150);
+    });
+
+    row.appendChild(typeControl); row.appendChild(input); row.appendChild(rm);
+    el.appendChild(row);
+  });
+}
+
+function setupRowDrag(row, container, arr){
+  let pressTimer = null, dragging = false, startY = 0, startX = 0, origTop = 0, origLeft = 0, origWidth = 0, origHeight = 0;
+  let placeholder = null;
+
+  row.addEventListener('pointerdown', (e) => {
+    if(e.button !== undefined && e.button !== 0) return;
+    if(e.target.closest('.rm-btn')) return;
+    const field = e.target.closest('input, select, textarea');
+    if(field && field === document.activeElement) return;
+    startY = e.pageY; startX = e.pageX;
+    pressTimer = setTimeout(() => startDrag(e), 400);
+  });
+  row.addEventListener('pointerup', cancelPressTimer);
+  row.addEventListener('pointercancel', cancelPressTimer);
+  row.addEventListener('pointermove', (e) => {
+    if(!dragging && pressTimer && (Math.abs(e.pageY - startY) > 8 || Math.abs(e.pageX - startX) > 8)){
+      clearTimeout(pressTimer); pressTimer = null;
+    }
+  });
+  row.addEventListener('contextmenu', (e) => { if(dragging) e.preventDefault(); });
+  row.addEventListener('touchmove', (e) => { if(dragging) e.preventDefault(); }, { passive:false });
+
+  function cancelPressTimer(){
+    if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+  }
+
+  function startDrag(e){
+    dragging = true;
+    if(navigator.vibrate) navigator.vibrate(12);
+    if(document.activeElement && document.activeElement !== row) document.activeElement.blur();
+
+    const rect = row.getBoundingClientRect();
+    origTop = rect.top;
+    origLeft = rect.left;
+    origWidth = rect.width;
+    origHeight = rect.height;
+    startY = e.clientY; startX = e.clientX;
+
+    placeholder = document.createElement('div');
+    placeholder.className = 'drag-placeholder';
+    placeholder.style.height = origHeight + 'px';
+    container.insertBefore(placeholder, row);
+
+    document.body.appendChild(row);
+    row.classList.add('dragging-row');
+    row.style.position = 'fixed';
+    row.style.left = origLeft + 'px';
+    row.style.width = origWidth + 'px';
+    row.style.top = origTop + 'px';
+    row.style.zIndex = '1000';
+    row.style.pointerEvents = 'none';
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    const dy = e.clientY - startY;
+    row.style.top = (origTop + dy) + 'px';
+
+    const siblings = Array.from(container.children).filter(c => c !== placeholder);
+    const rowCenter = origTop + dy + origHeight / 2;
+    let target = null;
+    for(const sib of siblings){
+      const r = sib.getBoundingClientRect();
+      const sibCenter = r.top + r.height / 2;
+      if(rowCenter < sibCenter){ target = sib; break; }
+    }
+    if(target){
+      if(placeholder.nextSibling !== target) container.insertBefore(placeholder, target);
+    } else {
+      if(container.lastElementChild !== placeholder) container.appendChild(placeholder);
+    }
+  }
+
+  function onUp(){
+    if(!dragging) return;
+    dragging = false;
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+
+    container.insertBefore(row, placeholder);
+    placeholder.remove();
+    row.classList.remove('dragging-row');
+    row.style.position = ''; row.style.left = ''; row.style.top = '';
+    row.style.width = ''; row.style.zIndex = ''; row.style.pointerEvents = '';
+
+    const orderedItems = Array.from(container.children)
+      .filter(c => c.__item !== undefined)
+      .map(c => c.__item);
+    arr.length = 0;
+    orderedItems.forEach(it => arr.push(it));
+  }
+}
+
+$('#addPhone').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  c.phones.push({type:'CELL',value:''});
+  renderMultiList('phoneList', c.phones, PHONE_TYPES, PHONE_LABELS, 'tel', true);
+});
+$('#addEmail').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  c.emails.push({type:'HOME',value:''});
+  renderMultiList('emailList', c.emails, EMAIL_TYPES, EMAIL_LABELS, 'email');
+});
+$('#addAdr').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  if(!c.adrs) c.adrs = [];
+  c.adrs.push({type:'HOME',value:''});
+  renderMultiList('adrList', c.adrs, ADR_TYPES, ADR_LABELS, 'address');
+});
+$('#addUrl').addEventListener('click', () => {
+  const c = contacts.find(x => x.id === currentId);
+  c.urls.push({type:'HOME',value:''});
+  renderMultiList('urlList', c.urls, URL_TYPES, URL_LABELS, 'url');
+});
+
+// حفظ تلقائي: كل حقل يكتب مباشرة على جهة الاتصال الحالية فور الكتابة
+$('#f-fn').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.fn = $('#f-fn').value; });
+$('#f-nick').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.nickname = $('#f-nick').value; });
+$('#f-org').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.org = $('#f-org').value; });
+$('#f-dept').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.dept = $('#f-dept').value; });
+$('#f-title').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.title = $('#f-title').value; });
+function autoGrowNote(){ const el = $('#f-note'); el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 46) + 'px'; }
+$('#f-note').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.note = $('#f-note').value; autoGrowNote(); });
+$('#f-categories').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.categories = categoriesFromDisplay($('#f-categories').value); });
+$('#f-samsungadr').addEventListener('input', () => { const c = contacts.find(x => x.id === currentId); if(c) c.samsungAdr = $('#f-samsungadr').value; });
+$('#f-bday').addEventListener('input', () => {
+  const c = contacts.find(x => x.id === currentId);
+  if(c) c.bday = $('#f-bday').value;
+  $('#f-bday-display').value = $('#f-bday').value ? $('#f-bday').value.split('-').join('/') : '';
+});
+$('#f-bday-display').addEventListener('click', () => {
+  const el = $('#f-bday');
+  if (el.showPicker) { try { el.showPicker(); } catch(e) { el.click(); } }
+  else el.click();
+});
+
+// تُستدعى عند مغادرة شاشة التعديل: تنظّف القيم (اسم افتراضي عند الفراغ، حذف صفوف أرقام/إيميلات فارغة) وتحدّث القائمة
+function finalizeCurrentContact(){
+  if(!currentId) return;
+  const c = contacts.find(x => x.id === currentId);
+  if(!c) return;
+  c.fn = (c.fn || '').trim();
+  c.nickname = (c.nickname || '').trim();
+  c.org = (c.org || '').trim();
+  c.dept = (c.dept || '').trim();
+  c.title = (c.title || '').trim();
+  c.note = (c.note || '').trim();
+  c.categories = (c.categories || '').trim();
+  c.bday = (c.bday || '').trim();
+  c.phones = c.phones.filter(p => p.value.trim() !== '');
+  c.emails = c.emails.filter(e => e.value.trim() !== '');
+  c.urls = (c.urls || []).filter(u => u.value.trim() !== '');
+  c.adrs = (c.adrs || []).filter(a => a.value.trim() !== '');
+
+  const isEmpty = !c.fn && !c.nickname && !c.org && !c.dept && !c.title && !c.note && !c.categories && !c.bday
+    && !c.photo && !c.photoUrl && c.phones.length === 0 && c.emails.length === 0 && c.urls.length === 0 && c.adrs.length === 0;
+
+  if(isEmpty){
+    contacts = contacts.filter(x => x.id !== currentId);
+  } else {
+    c.fn = c.fn || '(بدون اسم)';
+  }
+  refreshPrefixOptions();
+  renderList($('#search').value);
+}
+
+function deleteCurrentContact(){
+  $('#deleteModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'edit', modal: 'delete' }, '', '#edit');
+}
+
+function closeDeleteModal(){
+  if($('#deleteModalOverlay').style.display === 'none') return;
+  $('#deleteModalOverlay').style.display = 'none';
+  swipeDeleteTargetId = null;
+  closeOpenSwipe();
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#deleteModalCancel').addEventListener('click', closeDeleteModal);
+$('#deleteModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'deleteModalOverlay') closeDeleteModal(); });
+$('#deleteModalConfirm').addEventListener('click', () => {
+  $('#deleteModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+  const targetId = swipeDeleteTargetId || currentId;
+  const fromList = !!swipeDeleteTargetId;
+  const deletedContact = contacts.find(x => x.id === targetId);
+  saveUndoSnapshot('حذف ' + (deletedContact?.fn || 'جهة الاتصال'));
+  contacts = contacts.filter(x => x.id !== targetId);
+  swipeDeleteTargetId = null;
+  openSwipeRow = null;
+  if(fromList){
+    refreshPrefixOptions();
+    renderList($('#search').value);
+  } else {
+    currentId = null;
+    refreshPrefixOptions();
+    renderList($('#search').value);
+    goBack();
+  }
+  toast('تم الحذف');
+});
+
+$('#headerStarBtn').addEventListener('click', toggleStarredCurrentContact);
+$('#headerDeleteBtn').addEventListener('click', deleteCurrentContact);
+
+$('#fabAdd').addEventListener('click', () => {
+  const c = { id:'c'+Math.random().toString(36).slice(2,9), fn:'', nickname:'', org:'', title:'', note:'', adrs:[], categories:'', bday:'',
+              phones:[{type:'CELL',value:''}], emails:[], urls:[], rawExtra:[], version:'3.0', photo:null };
+  contacts.push(c);
+  openEdit(c.id);
+});
+
+function openListMenuDropdown(){
+  $('#listMenuDropdown').style.display = 'block';
+  safePushState({ screen: 'list', menu: true }, '', '#list');
+}
+// إغلاق بلا سحب من السجل: يُستخدم فقط عند تنظيف الحالة أثناء تبدّل الشاشة
+// نفسه (renderScreenUI) أو قبل نافيغيشن فوري لشاشة أخرى (كشف التكرار) حتى
+// لا نُصادف نفس سباق التوقيت بين goBack() و pushState الذي واجهناه سابقاً.
+function closeListMenuDropdown(){
+  $('#listMenuDropdown').style.display = 'none';
+}
+// إغلاق عبر أي إجراء بالواجهة يبقينا على نفس الشاشة (نقر خارج القائمة، أو
+// اختيار عنصر يفتح نافذة منبثقة لا يغادر شاشة القائمة): يسحب مُدخل السجل
+// الذي أضفناه عند الفتح، بصمت وبفحص يمنع التكرار — بنفس نمط نافذة الصورة.
+function closeListMenuDropdownAndSync(){
+  if($('#listMenuDropdown').style.display === 'none') return;
+  closeListMenuDropdown();
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#listMenuBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const dd = $('#listMenuDropdown');
+  if(dd.style.display === 'block') closeListMenuDropdownAndSync();
+  else openListMenuDropdown();
+});
+document.addEventListener('click', (e) => {
+  const dd = $('#listMenuDropdown');
+  if(dd.style.display === 'block' && !dd.contains(e.target) && e.target.id !== 'listMenuBtn'){
+    closeListMenuDropdownAndSync();
+  }
+});
+
+$('#menuUndoOpt').addEventListener('click', () => {
+  if(!undoSnapshot) return;
+  closeListMenuDropdownAndSync();
+  performUndo();
+});
+
+$('#menuEmbedLinkedPhotosOpt').addEventListener('click', () => {
+  // نتحقق من الشرط قبل لمس القائمة أو السجل إطلاقاً (بنفس نمط menuUndoOpt)؛
+  // فلو أغلقنا القائمة بصمت (closeListMenuDropdown بلا سحب من السجل) ثم
+  // اكتشفنا عدم وجود صور معلّقة وخرجنا مبكراً بلا فتح النافذة، يبقى مُدخل
+  // السجل الذي أضافته القائمة عند فتحها عالقاً بلا استبدال (النافذة لم تُفتح)
+  // ولا سحب صامت، فيختل تزامن زر الرجوع لاحقاً (يظهر تأكيد الخروج لكن
+  // الضغط على "خروج" لا يستجيب من أول ضغطة) — نفس فئة العطل الموثقة عند
+  // menuDupOpt وmenuBulkPhotoOpt.
+  const pendingCount = contacts.filter(c => c.photoUrl && !c.photo).length;
+  if(pendingCount === 0){ closeListMenuDropdownAndSync(); toast('لا توجد صور مرتبطة بحاجة للتضمين'); return; }
+  closeListMenuDropdown();
+  openEmbedPhotosModal();
+});
+
+let embedPhotosSelectedIds = new Set();
+
+// يصفّر حقول نافذة تضمين روابط الصور (البحث، التحديد) للبدء بعملية جديدة، دون
+// إغلاق النافذة. يُملأ حقل البحث تلقائياً بـ"الكل" عند الفتح لعرض كل الجهات
+// فوراً (بدل تركه فارغاً كما في نافذة تعديل الصور)، لأن الغرض هنا استعراض/تحديد
+// جهات جاهزة للتضمين وليس البحث عن جهة بعينها بالضرورة.
+function resetEmbedPhotosFields(){
+  embedPhotosSelectedIds = new Set();
+  $('#embedPhotosSearch').value = 'الكل';
+  renderEmbedPhotosList();
+}
+function openEmbedPhotosModal(){
+  $('#embedPhotosModalOverlay').style.display = 'flex';
+  resetEmbedPhotosFields();
+  $('#embedPhotosList').scrollTop = 0;
+  safeReplaceState({ screen: 'list', modal: 'embedPhotos' }, '', '#list');
+}
+function closeEmbedPhotosModal(){
+  if($('#embedPhotosModalOverlay').style.display === 'none') return;
+  $('#embedPhotosModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+
+// النطاق هنا محصور بالجهات التي لديها رابط صورة بانتظار التضمين فقط (وليس كل
+// الجهات)، لأن الجهات الأخرى لا فائدة من عرضها في نافذة مخصصة لهذا الإجراء.
+// كتابة "الكل"/"الجميع" تعرض كل هذه الجهات المؤهلة دفعة واحدة (نفس نمط
+// bulkPhotoMatchContacts)، وحقل البحث يُملأ بها افتراضياً عند الفتح.
+function embedPhotosMatchContacts(query){
+  const pending = contacts.filter(c => c.photoUrl && !c.photo);
+  const trimmed = query.trim();
+  if(trimmed === 'الكل' || trimmed === 'الجميع') return pending;
+  const f = normalizeArabic(trimmed.toLowerCase());
+  if(!f) return [];
+  return pending.filter(c => {
+    const hay = normalizeArabic([
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
+      ...c.phones.map(p => p.value),
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
+    ].join(' ').toLowerCase());
+    return hay.includes(f);
+  });
+}
+
+function renderEmbedPhotosList(){
+  const q = $('#embedPhotosSearch').value.trim();
+  const list = $('#embedPhotosList');
+  const listWrap = $('#embedPhotosListWrap');
+  const countEl = $('#embedPhotosCount');
+  const selectAllBtn = $('#embedPhotosSelectAll');
+
+  if(!q){
+    listWrap.style.display = 'none';
+    list.innerHTML = '';
+    countEl.textContent = '';
+    updateEmbedPhotosConfirmState();
+    return;
+  }
+
+  listWrap.style.display = 'block';
+
+  const matched = embedPhotosMatchContacts(q);
+  selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+
+  if(!matched.length){
+    list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
+    countEl.textContent = '';
+    updateEmbedPhotosConfirmState();
+    return;
+  }
+
+  const matchedIds = new Set(matched.map(c => c.id));
+  // إزالة أي تحديد سابق لم يعد ضمن نتائج البحث الحالية
+  embedPhotosSelectedIds.forEach(id => { if(!matchedIds.has(id)) embedPhotosSelectedIds.delete(id); });
+
+  list.innerHTML = matched.map((c, idx) => {
+    const checked = embedPhotosSelectedIds.has(c.id) ? 'checked' : '';
+    const isLast = idx === matched.length - 1;
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
+    return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; min-height:56px;">
+      <input type="checkbox" class="embedPhotosItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
+      <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; line-height:1.6;">${escapeHtml(c.fn)}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.embedPhotosItem').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) embedPhotosSelectedIds.add(cb.dataset.id);
+      else embedPhotosSelectedIds.delete(cb.dataset.id);
+      updateEmbedPhotosCountAndSelectAll(matched);
+      updateEmbedPhotosConfirmState();
+    });
+  });
+
+  updateEmbedPhotosCountAndSelectAll(matched);
+  updateEmbedPhotosConfirmState();
+}
+
+function updateEmbedPhotosCountAndSelectAll(matched){
+  const countEl = $('#embedPhotosCount');
+  const selectAllBtn = $('#embedPhotosSelectAll');
+  const allSelected = matched.length > 0 && matched.every(c => embedPhotosSelectedIds.has(c.id));
+  countEl.textContent = embedPhotosSelectedIds.size + ' من ' + matched.length + ' محدد';
+  selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
+}
+
+$('#embedPhotosSearch').addEventListener('input', renderEmbedPhotosList);
+$('#embedPhotosSearch').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#embedPhotosSearch').blur(); }
+});
+
+$('#embedPhotosSelectAll').addEventListener('click', () => {
+  const q = $('#embedPhotosSearch').value.trim();
+  const matched = embedPhotosMatchContacts(q);
+  const allSelected = matched.length > 0 && matched.every(c => embedPhotosSelectedIds.has(c.id));
+  if(allSelected) matched.forEach(c => embedPhotosSelectedIds.delete(c.id));
+  else matched.forEach(c => embedPhotosSelectedIds.add(c.id));
+  renderEmbedPhotosList();
+});
+
+function updateEmbedPhotosConfirmState(){
+  const btn = $('#embedPhotosConfirm');
+  const ready = embedPhotosSelectedIds.size > 0;
+  btn.style.opacity = ready ? '1' : '.5';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+}
+
+$('#embedPhotosCancel').addEventListener('click', closeEmbedPhotosModal);
+$('#embedPhotosModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'embedPhotosModalOverlay') closeEmbedPhotosModal(); });
+$('#embedPhotosConfirm').addEventListener('click', async () => {
+  if(embedPhotosSelectedIds.size === 0) return;
+  const selected = contacts.filter(c => embedPhotosSelectedIds.has(c.id));
+  const pendingCount = selected.filter(c => c.photoUrl && !c.photo).length;
+  if(pendingCount === 0){ toast('لا توجد صور مرتبطة بحاجة للتضمين ضمن التحديد'); return; }
+  toast('جارٍ تضمين الصور...');
+  const result = await fetchPhotosFromUrls(selected);
+  renderList($('#search').value);
+  toast('تم تضمين ' + result.success + ' من ' + result.attempted + ' صورة');
+  closeEmbedPhotosModal();
+});
+
+$('#menuSortOpt').addEventListener('click', () => {
+  sortReversed = !sortReversed;
+  $('#menuSortOpt').textContent = sortReversed ? 'فرز أبجدي' : 'فرز عكسي';
+  renderList($('#search').value);
+  // الفرز العكسي يُعتبر فلتراً فعالاً (listFilterActive)، فبعد إغلاق القائمة
+  // (والتي تركت مُدخل حماية بالسجل من فتحها) قد نحتاج تفعيل مُدخل حماية
+  // الفلتر. الاستدعاء القديم كان يستخدم closeListMenuDropdownAndSync (تسحب
+  // مُدخل القائمة عبر goBack غير متزامن) ثم فوراً pushFilterGuard (تدفع
+  // مُدخلاً جديداً بنفس اللفة التزامنية) — هذا تزامن خاطئ بين goBack()
+  // وpushState يُفسد سجل المتصفح ويُعطّل تأكيد الخروج لاحقاً (نفس فئة عطل
+  // شاشة التكرار المُصلح سابقاً). لذا نستبدل مُدخل القائمة نفسه بمُدخل الفلتر
+  // مباشرة (بلا goBack إطلاقاً) حين نحتاج فتح فلتر جديد، ونسحبه بصمت (goBack
+  // بمفرده، بلا push بعده) حين لا نحتاج أي مُدخل جديد.
+  closeListMenuDropdown();
+  if(listFilterActive()){
+    if(!filterGuardActive){
+      filterGuardActive = true;
+      safeReplaceState({ screen: 'list', filterGuard: true }, '', '#list');
+    } else {
+      suppressPopstateSilentCount++;
+      goBack();
+    }
+  } else {
+    // القائمة كانت قد فُتحت (فأضافت مُدخلاً)، وقد تكون فُتحت فوق مُدخل حماية
+    // فلتر قائم أصلاً من فرز عكسي سابق (filterGuardActive) صار الآن غير
+    // لازم لأن الفلتر تعطّل بهذا الضغط بالذات. نسحب مُدخل القائمة دائماً،
+    // ونسحب مُدخل الفلتر الزائد معه أيضاً إن وُجد — بصمت وبسلسلة متتالية من
+    // goBack() فقط (بلا أي pushState وسطها)، فهذا النمط آمن ولا يسبب سباق
+    // التوقيت الذي واجهناه عند خلط goBack مع pushState.
+    suppressPopstateSilentCount++;
+    goBack();
+    if(filterGuardActive){
+      filterGuardActive = false;
+      suppressPopstateSilentCount++;
+      goBack();
+    }
+  }
+});
+
+// يفتح نافذة اختيار صيغة الحفظ فعلياً؛ يُستدعى مباشرة لو لم يكن هناك بحث نشط،
+// أو بعد تأكيد المستخدم عبر نافذة "البحث ما زال مفعّلاً".
+function openSaveFormatModal(){
+  const { list, scope } = getExportScopeContacts();
+  saveFormatScopeList = list;
+  $('#saveFormatTitle').textContent = scope === 'all'
+    ? 'اختر صيغة الحفظ'
+    : 'تصدير ' + list.length + ' جهات اتصال';
+  updateSaveFormatPhotoSizeVisibility();
+  // كل فتح للنافذة يبدأ من الافتراضي (أندرويد + 720) بغض النظر عن آخر اختيار
+  setExportCompat('samsung');
+  $('#saveFormatModalOverlay').style.display = 'flex';
+  safeReplaceState({ screen: 'list', modal: 'saveFormat' }, '', '#list');
+}
+$('#menuSaveOpt').addEventListener('click', () => {
+  closeListMenuDropdown();
+  const { list, scope } = getExportScopeContacts();
+  // لو البحث نشط حالياً (وليس وضع تحديد يدوي)، ننبّه المستخدم أولاً أن التصدير
+  // سيقتصر على نتيجة البحث فقط، تفادياً لتصدير غير مقصود جزء فقط من الجهات
+  // بدل الكل ظناً منه أن البحث لا يؤثر.
+  if(scope === 'filtered'){
+    $('#searchExportConfirmText').textContent = 'سيتم تصدير نتيجة البحث الحالية فقط، وعددها ' + list.length + ' جهة اتصال، وليس كل جهات الاتصال. هل تريد المتابعة؟';
+    $('#searchExportConfirmModalOverlay').style.display = 'flex';
+    // استبدال (وليس إضافة): القائمة المنسدلة أُغلقت للتو بلا سحب مُدخلها
+    // (closeListMenuDropdown بلا Sync، بتصميم متعمد) — فلو أضفنا مُدخلاً
+    // جديداً هنا فوقه بدل استبداله يتراكم مُدخل زائد لا يُستهلك أبداً، وهذا
+    // يكسر تزامن زر الرجوع لاحقاً (يظهر تأكيد الخروج لكن الضغط على "خروج"
+    // لا يستجيب من أول ضغطة). نفس نمط menuDupOpt/openBulkPhotoModal.
+    safeReplaceState({ screen: 'list', modal: 'searchExportConfirm' }, '', '#list');
+    return;
+  }
+  openSaveFormatModal();
+});
+function closeSearchExportConfirmModal(){
+  if($('#searchExportConfirmModalOverlay').style.display === 'none') return;
+  $('#searchExportConfirmModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#searchExportConfirmCancel').addEventListener('click', closeSearchExportConfirmModal);
+$('#searchExportConfirmModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'searchExportConfirmModalOverlay') closeSearchExportConfirmModal(); });
+$('#searchExportConfirmProceed').addEventListener('click', () => {
+  // لا نستدعي goBack هنا (نفس السبب الموثّق أعلاه عند startMerge): استدعاء
+  // goBack غير المتزامن ثم فتح نافذة أخرى فوراً بلا انتظار popstate بينهما
+  // يُفقد التزامن بين عداد suppressPopstateSilentCount والسجل الفعلي، فيختل
+  // تتبّع حالة السجل لاحقاً (مثل عدم استجابة نافذة الخروج من الشاشة).
+  // بدلاً من ذلك: نُخفي هذه النافذة بلا لمس السجل، ونترك openSaveFormatModal
+  // تستبدل مُدخل هذه النافذة بمُدخلها هي عبر safeReplaceState في عملية واحدة ذرية.
+  $('#searchExportConfirmModalOverlay').style.display = 'none';
+  openSaveFormatModal();
+});
+function closeSaveFormatModal(){
+  if($('#saveFormatModalOverlay').style.display === 'none') return;
+  $('#saveFormatModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#saveFormatModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'saveFormatModalOverlay') closeSaveFormatModal(); });
+$('#saveFormatVcfBtn').addEventListener('click', () => {
+  closeSaveFormatModal();
+  exportContacts();
+});
+$('#saveFormatCsvBtn').addEventListener('click', () => {
+  closeSaveFormatModal();
+  exportContactsCsv();
+});
+function setExportPhotoSize(size){
+  selectedExportPhotoSize = size;
+  $('#photoSize512Btn').style.borderColor = size === 512 ? 'var(--accent)' : 'transparent';
+  $('#photoSize720Btn').style.borderColor = size === 720 ? 'var(--accent)' : 'transparent';
+  $('#photoSize1080Btn').style.borderColor = size === 1024 ? 'var(--accent)' : 'transparent';
+}
+$('#photoSize512Btn').addEventListener('click', () => setExportPhotoSize(512));
+$('#photoSize720Btn').addEventListener('click', () => setExportPhotoSize(720));
+$('#photoSize1080Btn').addEventListener('click', () => setExportPhotoSize(1024));
+
+function setExportCompat(target){
+  selectedExportCompat = target;
+  $('#compatSamsungBtn').style.borderColor = target === 'samsung' ? 'var(--accent)' : 'transparent';
+  $('#compatGoogleBtn').style.borderColor = target === 'google' ? 'var(--accent)' : 'transparent';
+  // جوجل تعتمد 512 كأبعاد افتراضية للصورة الشخصية عند التصدير
+  setExportPhotoSize(720);
+  updateSaveFormatCsvBtnState();
+  updateSaveFormatPhotoNote();
+}
+$('#compatSamsungBtn').addEventListener('click', () => setExportCompat('samsung'));
+$('#compatGoogleBtn').addEventListener('click', () => setExportCompat('google'));
+
+$('#menuDupOpt').addEventListener('click', () => {
+  // القائمة المنسدلة أُغلقت للتو دون سحب مُدخل السجل الذي أضافته عند فتحها
+  // (closeListMenuDropdown بلا Sync، بتصميم متعمد). فلو استخدمنا showScreen
+  // هنا (تُضيف مُدخلاً جديداً فوقه) يتراكم مُدخل زائد بالسجل لا يُستهلك أبداً،
+  // وهذا يكسر تزامن زر الرجوع لاحقاً بعد مغادرة شاشة التكرار (يظهر تأكيد
+  // الخروج لكن الضغط على "خروج" لا يستجيب). لذا نستبدل مُدخل القائمة نفسه
+  // بمُدخل شاشة التكرار بدل إضافة مُدخل جديد فوقه.
+  closeListMenuDropdown();
+  safeReplaceState({ screen: 'duplicates' }, '', '#duplicates');
+  renderScreenUI('duplicates');
+  renderDuplicates();
+});
+
+let bulkPhotoSelectedIds = new Set();
+let bulkPhotoDataUrl = null;
+let bulkPhotoShowAll = false;
+
+$('#menuBulkPhotoOpt').addEventListener('click', () => {
+  // لو كان هناك تحديد جهات اتصال من الشاشة الرئيسية، ننقله لنافذة تعديل الصور
+  // مباشرة (نفس فكرة نافذة إدارة المجموعات)
+  const seedIds = (selectionMode && selectedIds.size > 0) ? new Set(selectedIds) : null;
+  closeListMenuDropdown();
+  openBulkPhotoModal(seedIds);
+});
+
+// يصفّر حقول نافذة الصورة الجماعية (البحث، التحديد، الصورة المختارة) للبدء
+// بعملية جديدة، دون إغلاق النافذة. تُستخدم عند الفتح الأول وأيضاً بعد كل
+// "تطبيق" ناجح ليتمكن المستخدم من تعديل صور عدة جهات متتالية دون خروج ودخول.
+function resetBulkPhotoFields(seedIds){
+  bulkPhotoSelectedIds = seedIds ? new Set(seedIds) : new Set();
+  bulkPhotoDataUrl = null;
+  bulkPhotoShowAll = false;
+  $('#bulkPhotoSearch').value = '';
+  $('#bulkPhotoPreviewImg').style.display = 'none';
+  $('#bulkPhotoPreviewPlaceholder').style.display = 'block';
+  renderBulkPhotoList();
+  updateBulkPhotoConfirmState();
+}
+function openBulkPhotoModal(seedIds){
+  resetBulkPhotoFields(seedIds);
+  // نفس فكرة نافذة تعديل الصيغة: 4 صفوف بوضع المتصفح (223px)، 5 صفوف بوضع PWA المثبّت (279px)
+  $('#bulkPhotoList').style.maxHeight = (isPWAStandalone() ? 279 : 223) + 'px';
+  $('#bulkPhotoModalOverlay').style.display = 'flex';
+  safeReplaceState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
+}
+function closeBulkPhotoModal(){
+  if($('#bulkPhotoModalOverlay').style.display === 'none') return;
+  $('#bulkPhotoModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+
+function bulkPhotoMatchContacts(query){
+  const trimmed = query.trim();
+  // كتابة "الكل" أو "الجميع" تعرض كل جهات الاتصال دفعة واحدة، مفيد مثلاً لإزالة
+  // كل الصور دفعة واحدة عبر "تحديد الكل" ثم اختيار "بدون صورة".
+  if(trimmed === 'الكل' || trimmed === 'الجميع') return contacts.slice();
+  const f = normalizeArabic(trimmed.toLowerCase());
+  if(!f) return [];
+  return contacts.filter(c => {
+    const hay = normalizeArabic([
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
+      ...c.phones.map(p => p.value),
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
+    ].join(' ').toLowerCase());
+    return hay.includes(f);
+  });
+}
+
+function renderBulkPhotoList(){
+  const q = $('#bulkPhotoSearch').value.trim();
+  const list = $('#bulkPhotoList');
+  const listWrap = $('#bulkPhotoListWrap');
+  const countEl = $('#bulkPhotoCount');
+  const selectAllBtn = $('#bulkPhotoSelectAll');
+  const selectAllRow = $('#bulkPhotoSelectAllRow');
+  const pickLabel = $('#bulkPhotoPickLabel');
+  const showAllBtn = $('#bulkPhotoShowAllBtn');
+  showAllBtn.textContent = bulkPhotoShowAll ? 'إخفاء الكل' : 'عرض الكل';
+
+  if(!q && !bulkPhotoShowAll && bulkPhotoSelectedIds.size === 0){
+    listWrap.style.display = 'none';
+    list.innerHTML = '';
+    countEl.textContent = '';
+    selectAllBtn.style.display = 'none';
+    selectAllRow.style.marginTop = '0';
+    selectAllRow.style.marginBottom = '8px';
+    pickLabel.style.marginTop = '0';
+    updateBulkPhotoConfirmState();
+    return;
+  }
+  listWrap.style.display = 'block';
+
+  // لا يوجد بحث ولا "عرض الكل" لكن توجد جهات محددة مسبقاً (منقولة من الشاشة
+  // الرئيسية) — نعرضها هي نفسها بدل إخفاء الصندوق بالكامل
+  const matched = q
+    ? bulkPhotoMatchContacts(q)
+    : (bulkPhotoShowAll ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : contacts.filter(c => bulkPhotoSelectedIds.has(c.id)).sort((a,b) => a.fn.localeCompare(b.fn, 'ar')));
+  selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+  // نضيف 2px إضافية فوق هذا السطر وفوق "اختيار الصورة"، و2px إضافية تحته أيضاً،
+  // فقط عندما توجد جهات اتصال معروضة فعلاً
+  selectAllRow.style.marginTop = matched.length ? '2px' : '0';
+  selectAllRow.style.marginBottom = matched.length ? '10px' : '8px';
+  pickLabel.style.marginTop = matched.length ? '2px' : '0';
+
+  if(!matched.length){
+    list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
+    countEl.textContent = '';
+    updateBulkPhotoConfirmState();
+    return;
+  }
+
+  const matchedIds = new Set(matched.map(c => c.id));
+  // إزالة أي تحديد سابق لم يعد ضمن نتائج البحث الحالية
+  bulkPhotoSelectedIds.forEach(id => { if(!matchedIds.has(id)) bulkPhotoSelectedIds.delete(id); });
+
+  list.innerHTML = matched.map((c, idx) => {
+    const checked = bulkPhotoSelectedIds.has(c.id) ? 'checked' : '';
+    const isLast = idx === matched.length - 1;
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
+    return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
+      <input type="checkbox" class="bulkPhotoItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
+      <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; line-height:1.6;">${escapeHtml(c.fn)}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.bulkPhotoItem').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) bulkPhotoSelectedIds.add(cb.dataset.id);
+      else bulkPhotoSelectedIds.delete(cb.dataset.id);
+      updateBulkPhotoCountAndSelectAll(matched);
+      updateBulkPhotoConfirmState();
+    });
+  });
+
+  updateBulkPhotoCountAndSelectAll(matched);
+  updateBulkPhotoConfirmState();
+}
+
+function updateBulkPhotoCountAndSelectAll(matched){
+  const countEl = $('#bulkPhotoCount');
+  const selectAllBtn = $('#bulkPhotoSelectAll');
+  const allSelected = matched.length > 0 && matched.every(c => bulkPhotoSelectedIds.has(c.id));
+  countEl.textContent = bulkPhotoSelectedIds.size + ' من ' + matched.length + ' محدد';
+  selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
+}
+
+$('#bulkPhotoSearch').addEventListener('input', () => {
+  if($('#bulkPhotoSearch').value.trim()) bulkPhotoShowAll = false;
+  renderBulkPhotoList();
+});
+$('#bulkPhotoSearch').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#bulkPhotoSearch').blur(); }
+});
+$('#bulkPhotoShowAllBtn').addEventListener('click', () => {
+  bulkPhotoShowAll = !bulkPhotoShowAll;
+  if(bulkPhotoShowAll) $('#bulkPhotoSearch').value = '';
+  renderBulkPhotoList();
+});
+
+$('#bulkPhotoSelectAll').addEventListener('click', () => {
+  const q = $('#bulkPhotoSearch').value.trim();
+  const matched = q ? bulkPhotoMatchContacts(q) : (bulkPhotoShowAll ? contacts.slice() : contacts.filter(c => bulkPhotoSelectedIds.has(c.id)));
+  const allSelected = matched.length > 0 && matched.every(c => bulkPhotoSelectedIds.has(c.id));
+  if(allSelected) matched.forEach(c => bulkPhotoSelectedIds.delete(c.id));
+  else matched.forEach(c => bulkPhotoSelectedIds.add(c.id));
+  renderBulkPhotoList();
+});
+
+$('#bulkPhotoPickWrap').addEventListener('click', () => $('#bulkPhotoInput').click());
+$('#bulkPhotoInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  fileToSquarePhotoDataURL(file, (dataUrl) => {
+    bulkPhotoDataUrl = dataUrl;
+    $('#bulkPhotoPreviewImg').src = dataUrl;
+    $('#bulkPhotoPreviewImg').style.display = 'block';
+    $('#bulkPhotoPreviewPlaceholder').style.display = 'none';
+    updateBulkPhotoConfirmState();
+  });
+});
+
+function updateBulkPhotoConfirmState(){
+  const btn = $('#bulkPhotoConfirm');
+  const ready = bulkPhotoSelectedIds.size > 0;
+  btn.style.opacity = ready ? '1' : '.5';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+}
+
+$('#bulkPhotoCancel').addEventListener('click', closeBulkPhotoModal);
+$('#bulkPhotoModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'bulkPhotoModalOverlay') closeBulkPhotoModal(); });
+$('#bulkPhotoConfirm').addEventListener('click', () => {
+  if(bulkPhotoSelectedIds.size === 0) return;
+  saveUndoSnapshot(bulkPhotoDataUrl ? 'تغيير الصور' : 'حذف الصور');
+  let count = 0;
+  contacts.forEach(c => {
+    if(bulkPhotoSelectedIds.has(c.id)){
+      c.photo = bulkPhotoDataUrl || null;
+      c.photoUrl = null;
+      count++;
+    }
+  });
+  renderList($('#search').value);
+  toast(bulkPhotoDataUrl ? ('تم تغيير صورة ' + count + ' جهة اتصال') : ('تم إزالة صورة ' + count + ' جهة اتصال'));
+  resetBulkPhotoFields();
+});
+
+let unifyGroupSelectedIds = new Set();
+// أعضاء المجموعة الأصليون عند دخول وضع تعديل مجموعة موجودة (قبل أي إلغاء تحديد
+// يدوي)، تُستخدم عند "تطبيق" للتفريق بين جهة بقيت في المجموعة وجهة أُزيلت منها.
+let unifyGroupOriginalMemberIds = new Set();
+let unifyGroupMode = false;
+let unifyGroupPickedName = null;
+let unifyGroupActiveGroupName = null;
+
+$('#menuUnifyGroupOpt').addEventListener('click', () => {
+  // لو كان المستخدم قد حدّد جهات اتصال من الشاشة الرئيسية قبل فتح هذه القائمة،
+  // ننقل نفس التحديد إلى نافذة إدارة المجموعات مباشرة (بدل البحث عنهم من جديد)
+  const seedIds = (selectionMode && selectedIds.size > 0) ? new Set(selectedIds) : null;
+  closeListMenuDropdown();
+  openUnifyGroupModal(seedIds);
+});
+$('#menuBulkActionOpt').addEventListener('click', () => {
+  if(!(selectionMode && selectedIds.size > 0)){
+    closeListMenuDropdownAndSync();
+    toast('يرجى اختيار جهات اتصال أولاً');
+    return;
+  }
+  closeListMenuDropdown();
+  openBulkFieldTextModal();
+});
+// يصفّر حقول نافذة إدارة المجموعات (البحث، التحديد، اسم المجموعة) للبدء بعملية
+// جديدة، دون إغلاق النافذة نفسها. تُستخدم عند الفتح الأول وأيضاً بعد كل "تطبيق"
+// ناجح ليتمكن المستخدم من إنشاء عدة مجموعات متتالية دون خروج ودخول متكرر.
+function resetUnifyGroupFields(seedIds){
+  unifyGroupSelectedIds = seedIds ? new Set(seedIds) : new Set();
+  unifyGroupOriginalMemberIds = new Set();
+  unifyGroupMode = false;
+  unifyGroupActiveGroupName = null;
+  $('#unifyGroupSearch').value = '';
+  $('#unifyGroupValue').value = '';
+  unifyGroupPickedName = null;
+  setUnifyGroupFieldMode(false);
+  renderUnifyGroupPickerList();
+  renderUnifyGroupList();
+  $('#unifyGroupPickerList').scrollTop = 0;
+  $('#unifyGroupList').scrollTop = 0;
+  $('#unifyGroupModalOverlay .panel').scrollTop = 0;
+  requestAnimationFrame(() => {
+    $('#unifyGroupPickerList').scrollTop = 0;
+    $('#unifyGroupList').scrollTop = 0;
+    $('#unifyGroupModalOverlay .panel').scrollTop = 0;
+    updateUnifyGroupPickerThumb();
+  });
+  updateUnifyGroupConfirmState();
+}
+function openUnifyGroupModal(seedIds){
+  resetUnifyGroupFields(seedIds);
+  $('#unifyGroupModalOverlay').style.display = 'flex';
+  safeReplaceState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
+}
+// يبدّل شكل ووظيفة حقل "اسم المجموعة": وضع عادي (إضافة مجموعة لجهات محددة)
+// أو وضع مجموعة (تغيير اسم المجموعة المطابقة تماماً لنص البحث أو إزالتها).
+function setUnifyGroupFieldMode(isGroupMode, groupName){
+  const label = $('#unifyGroupValueLabel');
+  const input = $('#unifyGroupValue');
+  const previousGroupName = unifyGroupActiveGroupName;
+  // "دخول" وضع المجموعة يشمل حالتين: القدوم من البحث الحر، أو التبديل المباشر
+  // من مجموعة لأخرى دون مرور بوضع البحث الحر بينهما (وهو ما كان يفوّت تحديث
+  // الحقل والتحديد التلقائي سابقاً).
+  const entering = isGroupMode && (!unifyGroupMode || groupName !== previousGroupName);
+  const leaving = !isGroupMode && unifyGroupMode;
+  unifyGroupMode = isGroupMode;
+  unifyGroupActiveGroupName = isGroupMode ? groupName : null;
+  if(leaving){
+    // عند إغلاق عرض المجموعة، نصفّر التحديد التلقائي لأعضائها حتى لا يظهر
+    // ضمن "إجمالي المحددين" الخاص بالبحث الحر رغم عدم اختيار أي شخص فعلياً.
+    unifyGroupSelectedIds = new Set();
+    unifyGroupOriginalMemberIds = new Set();
+  }
+  if(isGroupMode){
+    const isStarred = /^starred$/i.test(groupName);
+    if(isStarred){
+      label.textContent = 'المفضلة (يمكن إلغاء تحديد من تريد إزالتهم منها فقط)';
+      input.value = groupName;
+      input.disabled = true;
+      input.style.opacity = '0.5';
+      input.placeholder = '';
+    } else {
+      label.textContent = 'تغيير اسم المجموعة "' + groupName + '"';
+      input.disabled = false;
+      input.style.opacity = '1';
+      input.placeholder = 'اترك الحقل فارغاً لإزالة المجموعة';
+      if(entering) input.value = groupName;
+    }
+  } else {
+    label.textContent = 'اسم المجموعة';
+    input.disabled = false;
+    input.style.opacity = '1';
+    input.placeholder = 'اترك الحقل فارغاً للإزالة';
+    if(leaving) input.value = '';
+  }
+  return entering;
+}
+function closeUnifyGroupModal(){
+  if($('#unifyGroupModalOverlay').style.display === 'none') return;
+  $('#unifyGroupModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+function unifyGroupMatchContacts(query){
+  const f = normalizeArabic(query.trim().toLowerCase());
+  if(!f) return [];
+  if(f === 'الكل' || f === 'كل' || f === 'الجميع' || f === 'جميع') return contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
+  return contacts.filter(c => {
+    const hay = normalizeArabic([
+      c.fn, c.nickname, c.org, c.dept, c.title, c.note, c.categories,
+      ...c.phones.map(p => p.value),
+      ...c.emails.map(e => e.value),
+      ...(c.urls || []).map(u => u.value),
+      ...(c.adrs || []).map(a => a.value)
+    ].join(' ').toLowerCase());
+    return hay.includes(f);
+  });
+}
+function renderUnifyGroupList(){
+  const q = unifyGroupPickedName !== null ? unifyGroupPickedName : $('#unifyGroupSearch').value.trim();
+  const list = $('#unifyGroupList');
+  const listWrap = $('#unifyGroupListWrap');
+  const selectRow = $('#unifyGroupSelectRow');
+  const countEl = $('#unifyGroupCount');
+  const selectAllBtn = $('#unifyGroupSelectAll');
+
+  // لا يوجد نص بحث ولا أي جهة محددة حالياً: لا شيء لعرضه
+  if(!q && unifyGroupSelectedIds.size === 0){
+    selectRow.style.display = 'none';
+    listWrap.style.display = 'none';
+    list.innerHTML = '';
+    countEl.textContent = '';
+    selectAllBtn.style.display = 'none';
+    setUnifyGroupFieldMode(false);
+    updateUnifyGroupConfirmState();
+    return;
+  }
+  selectRow.style.display = 'flex';
+  listWrap.style.display = 'block';
+
+  // وضع "تعديل المجموعة" يُفعّل فقط عند اختيار مجموعة من القائمة أعلاه،
+  // أما الكتابة في حقل البحث فتُستخدم للبحث عن جهات الاتصال فقط.
+  const isPickedGroup = unifyGroupPickedName !== null;
+  const groupMembers = isPickedGroup ? getContactsWithCategory(q) : [];
+  const isGroupMode = isPickedGroup && groupMembers.length > 0;
+  const enteringGroupMode = setUnifyGroupFieldMode(isGroupMode, q);
+
+  // لا يوجد نص بحث لكن توجد جهات محددة (منقولة من الشاشة الرئيسية أو باقية من
+  // بحث سابق) — نعرضها هي نفسها في الصندوق بدل إخفائها بالكامل
+  const matched = isGroupMode
+    ? groupMembers
+    : (q ? unifyGroupMatchContacts(q) : contacts.filter(c => unifyGroupSelectedIds.has(c.id)).sort((a,b) => a.fn.localeCompare(b.fn, 'ar')));
+  selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+
+  if(!matched.length){
+    list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
+    countEl.textContent = '';
+    updateUnifyGroupConfirmState();
+    return;
+  }
+
+  const matchedIds = new Set(matched.map(c => c.id));
+  // في وضع البحث الحر: لا نُلغي تحديد جهات اختِرت من بحث سابق عند كتابة بحث جديد،
+  // لأن الهدف تجميع عدة أشخاص من بحثات مختلفة قبل "تطبيق" دفعة واحدة.
+  // أما في وضع تعديل مجموعة موجودة (isGroupMode) فنقتصر على أعضائها فقط.
+  if(isGroupMode){
+    unifyGroupSelectedIds.forEach(id => { if(!matchedIds.has(id)) unifyGroupSelectedIds.delete(id); });
+  }
+  // عند الدخول لوضع المجموعة نحدد كل أعضائها تلقائياً (يمكن إلغاء تحديد أي منهم يدوياً)
+  if(enteringGroupMode){ matched.forEach(c => unifyGroupSelectedIds.add(c.id)); unifyGroupOriginalMemberIds = new Set(matched.map(c => c.id)); }
+
+  list.innerHTML = matched.map((c, idx) => {
+    const checked = unifyGroupSelectedIds.has(c.id) ? 'checked' : '';
+    const isLast = idx === matched.length - 1;
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
+    return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
+      <input type="checkbox" class="unifyGroupItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
+      <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; line-height:1.6;">${escapeHtml(c.fn)}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.unifyGroupItem').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) unifyGroupSelectedIds.add(cb.dataset.id);
+      else unifyGroupSelectedIds.delete(cb.dataset.id);
+      updateUnifyGroupCountAndSelectAll(matched);
+      updateUnifyGroupConfirmState();
+    });
+  });
+
+  updateUnifyGroupCountAndSelectAll(matched);
+  updateUnifyGroupConfirmState();
+}
+function updateUnifyGroupCountAndSelectAll(matched){
+  const countEl = $('#unifyGroupCount');
+  const selectAllBtn = $('#unifyGroupSelectAll');
+  const allSelected = matched.length > 0 && matched.every(c => unifyGroupSelectedIds.has(c.id));
+  countEl.textContent = unifyGroupSelectedIds.size + ' من ' + matched.length + ' محدد';
+  selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
+}
+
+function renderUnifyGroupPickerList(){
+  const groups = getAllGroupsWithCounts();
+  const listEl = $('#unifyGroupPickerList');
+  if(!groups.length){
+    listEl.innerHTML = '<div style="padding:14px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد مجموعات بعد</div>';
+    return;
+  }
+  listEl.innerHTML = groups.map((g, idx) => {
+    const isLast = idx === groups.length - 1;
+    return `<button type="button" class="unifyGroupPickerItem" data-name="${escapeAttr(g.tag)}" style="display:flex; align-items:center; justify-content:space-between; width:100%; height:44px; box-sizing:border-box; padding:0 14px; background:none; border:none; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; font-family:var(--font-body); font-size:13px; color:var(--text); text-align:right;">
+      <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; line-height:1.8;">${escapeHtml(g.name)}</span>
+      <span style="color:var(--muted); font-size:12px; flex:0 0 auto; margin-right:8px;">${g.count}</span>
+    </button>`;
+  }).join('');
+  listEl.querySelectorAll('.unifyGroupPickerItem').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      // ضغطة ثانية على نفس المجموعة المعروضة حالياً تُخفي عرض أعضائها بدل إعادة عرضها
+      unifyGroupPickedName = (unifyGroupPickedName === name) ? null : name;
+      $('#unifyGroupSearch').value = '';
+      renderUnifyGroupList();
+      $('#unifyGroupList').scrollTop = 0;
+    });
+  });
+  updateUnifyGroupPickerThumb();
+}
+function updateUnifyGroupPickerThumb(){
+  const list = $('#unifyGroupPickerList');
+  const thumb = $('#unifyGroupPickerScrollThumb');
+  const trackH = list.clientHeight;
+  const contentH = list.scrollHeight;
+  if(contentH <= trackH + 1){ thumb.style.display = 'none'; return; }
+  thumb.style.display = 'block';
+  const thumbH = Math.round(trackH * 0.65);
+  thumb.style.height = thumbH + 'px';
+  const maxScroll = contentH - trackH;
+  const maxThumbTravel = trackH - thumbH;
+  const scrollRatio = maxScroll > 0 ? (list.scrollTop / maxScroll) : 0;
+  thumb.style.top = Math.round(scrollRatio * maxThumbTravel) + 'px';
+}
+$('#unifyGroupPickerList').addEventListener('scroll', updateUnifyGroupPickerThumb, { passive:true });
+
+$('#unifyGroupSearch').addEventListener('input', () => { unifyGroupPickedName = null; renderUnifyGroupList(); $('#unifyGroupList').scrollTop = 0; });
+$('#unifyGroupSearch').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#unifyGroupSearch').blur(); }
+});
+
+$('#unifyGroupSelectAll').addEventListener('click', () => {
+  const q = unifyGroupPickedName !== null ? unifyGroupPickedName : $('#unifyGroupSearch').value.trim();
+  const matched = q ? unifyGroupMatchContacts(q) : contacts.filter(c => unifyGroupSelectedIds.has(c.id));
+  const allSelected = matched.length > 0 && matched.every(c => unifyGroupSelectedIds.has(c.id));
+  if(allSelected) matched.forEach(c => unifyGroupSelectedIds.delete(c.id));
+  else matched.forEach(c => unifyGroupSelectedIds.add(c.id));
+  renderUnifyGroupList();
+});
+
+function updateUnifyGroupConfirmState(){
+  const btn = $('#unifyGroupConfirm');
+  const inGroupEditMode = unifyGroupMode && unifyGroupActiveGroupName;
+  // في وضع تعديل مجموعة موجودة يبقى الزر مفعّلاً دائماً (صفر تحديد = إزالة الجميع)،
+  // أما في وضع إنشاء مجموعة جديدة فيبقى معطّلاً حتى يُحدَّد شخص واحد على الأقل.
+  const ready = inGroupEditMode ? unifyGroupOriginalMemberIds.size > 0 : unifyGroupSelectedIds.size > 0;
+  btn.style.opacity = ready ? '1' : '.5';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+  const totalEl = $('#unifyGroupTotalSelected');
+  if(!unifyGroupMode && unifyGroupSelectedIds.size > 0){
+    totalEl.style.display = 'block';
+    $('#unifyGroupTotalSelectedText').textContent = 'إجمالي المحددين: ' + unifyGroupSelectedIds.size + ' جهة اتصال';
+  } else {
+    totalEl.style.display = 'none';
+  }
+}
+$('#unifyGroupClearSelectionBtn').addEventListener('click', () => {
+  unifyGroupSelectedIds = new Set();
+  renderUnifyGroupList();
+  updateUnifyGroupConfirmState();
+});
+$('#unifyGroupAddSearchBtn').addEventListener('click', () => {
+  $('#unifyGroupSearch').value = '';
+  unifyGroupPickedName = null;
+  renderUnifyGroupPickerList();
+  renderUnifyGroupList();
+  $('#unifyGroupList').scrollTop = 0;
+  $('#unifyGroupSearch').focus();
+});
+
+$('#unifyGroupCancel').addEventListener('click', closeUnifyGroupModal);
+$('#unifyGroupModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'unifyGroupModalOverlay') closeUnifyGroupModal(); });
+$('#unifyGroupConfirm').addEventListener('click', () => {
+  const inGroupEditMode = unifyGroupMode && unifyGroupActiveGroupName;
+  // في وضع تعديل مجموعة موجودة: صفر جهات محددة يعني "أزل الجميع من المجموعة دفعة
+  // واحدة" وهو إجراء صالح ومقصود، فلا نمنعه. أما في وضع إنشاء مجموعة جديدة من
+  // البحث الحر، فصفر محددين يعني لا شيء لفعله فعلاً.
+  if(!inGroupEditMode && unifyGroupSelectedIds.size === 0) return;
+  if(inGroupEditMode && unifyGroupOriginalMemberIds.size === 0) return;
+  const val = $('#unifyGroupValue').value.trim();
+
+  if(unifyGroupMode && unifyGroupActiveGroupName){
+    // وضع تعديل مجموعة: نستبدل اسم المجموعة القديم بالاسم الجديد (أو نحذفه لو الحقل فارغ)
+    // مع الحفاظ على باقي مجموعات كل جهة اتصال.
+    const oldName = unifyGroupActiveGroupName;
+    const oldLower = oldName.toLowerCase();
+    const isStarredGroup = /^starred$/i.test(oldName);
+    // "المفضلة" لا تدعم إعادة التسمية أبداً (حفاظاً على أيقونة النجمة)، فقط إزالة
+    // جماعية لمن أُلغي تحديدهم؛ لذا نتجاهل قيمة الحقل ونعامله كأنه = oldName دائماً.
+    const effectiveVal = isStarredGroup ? oldName : val;
+    const deselectedCount = unifyGroupOriginalMemberIds.size - unifyGroupSelectedIds.size;
+    if(isStarredGroup){
+      saveUndoSnapshot('إزالة ' + deselectedCount + ' جهة اتصال من المفضلة');
+    } else {
+      saveUndoSnapshot(val ? ('تغيير اسم المجموعة "' + oldName + '" إلى "' + val + '" لـ ' + unifyGroupOriginalMemberIds.size + ' جهة اتصال') : ('إزالة مجموعة "' + oldName + '" من ' + unifyGroupOriginalMemberIds.size + ' جهة اتصال'));
+    }
+    let renameCount = 0;
+    contacts.forEach(c => {
+      if(!unifyGroupOriginalMemberIds.has(c.id)) return;
+      const existing = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
+      const idx = existing.findIndex(g => g.toLowerCase() === oldLower);
+      if(idx === -1) return;
+      const stillSelected = unifyGroupSelectedIds.has(c.id);
+      if(stillSelected && effectiveVal){
+        // لو الاسم الجديد موجود أصلاً ضمن مجموعات الجهة، نكتفي بحذف القديم لتفادي التكرار
+        if(existing.some((g, i) => i !== idx && g.toLowerCase() === effectiveVal.toLowerCase())){
+          existing.splice(idx, 1);
+        } else {
+          existing[idx] = effectiveVal;
+        }
+      } else {
+        // إما أُلغي تحديد الجهة (أُزيلت من المجموعة) أو تُرك الحقل فارغاً (حذف المجموعة كلياً)
+        existing.splice(idx, 1);
+      }
+      c.categories = existing.join(', ');
+      renameCount++;
+    });
+    renderList($('#search').value);
+    if(isStarredGroup){
+      toast(deselectedCount > 0 ? ('تمت إزالة ' + deselectedCount + ' جهة اتصال من المفضلة') : 'لم يتم إلغاء تحديد أي جهة');
+    } else {
+      toast(val ? ('تم تغيير اسم المجموعة لـ ' + renameCount + ' جهة اتصال') : ('تم إزالة المجموعة من ' + renameCount + ' جهة اتصال'));
+    }
+    resetUnifyGroupFields();
+    return;
+  }
+
+  saveUndoSnapshot(val ? ('إضافة مجموعة "' + val + '" إلى ' + unifyGroupSelectedIds.size + ' جهة اتصال') : ('إزالة مجموعات ' + unifyGroupSelectedIds.size + ' جهة اتصال'));
+  let count = 0;
+  contacts.forEach(c => {
+    if(unifyGroupSelectedIds.has(c.id)){
+      if(val){
+        // نضيف المجموعة الجديدة إلى المجموعات الحالية بدل استبدالها، مع
+        // تفادي التكرار لو الجهة منضمة أصلاً لنفس المجموعة.
+        const existing = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean);
+        if(!existing.some(g => g.toLowerCase() === val.toLowerCase())){
+          existing.push(val);
+        }
+        c.categories = existing.join(', ');
+      } else {
+        // ترك الحقل فارغاً يعني إزالة كل المجموعات المنضمة لها الجهات المحددة
+        c.categories = '';
+      }
+      count++;
+    }
+  });
+  renderList($('#search').value);
+  toast(val ? ('تم إضافة المجموعة إلى ' + count + ' جهة اتصال') : ('تم إزالة مجموعة ' + count + ' جهة اتصال'));
+  resetUnifyGroupFields();
+});
+
+let nameFormatSelectedIds = new Set();
+
+$('#menuNameFormatOpt').addEventListener('click', () => {
+  closeListMenuDropdown();
+  openNameFormatModal();
+});
+// تكتشف إذا كان التطبيق يعمل مثبّتاً كـ PWA (standalone) أو داخل متصفح عادي بتبويب
+function isPWAStandalone(){
+  return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+}
+let nameFormatShowAll = false;
+function openNameFormatModal(){
+  nameFormatSelectedIds = new Set();
+  nameFormatShowAll = false;
+  $('#nameFormatSearch').value = '';
+  $('#nameFormatValue').value = '';
+  selectedCaseStyle = null;
+  updateCaseStyleButtonsUI();
+  // 4 صفوف بوضع المتصفح (224px)، 5 صفوف بوضع PWA المثبّت (280px)
+  $('#nameFormatList').style.maxHeight = (isPWAStandalone() ? 279 : 223) + 'px';
+  renderNameFormatList();
+  updateNameFormatConfirmState();
+  $('#nameFormatModalOverlay').style.display = 'flex';
+  safeReplaceState({ screen: 'list', modal: 'nameFormat' }, '', '#list');
+  setTimeout(() => $('#nameFormatSearch').focus(), 50);
+}
+function closeNameFormatModal(){
+  if($('#nameFormatModalOverlay').style.display === 'none') return;
+  $('#nameFormatModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+function nameFormatMatchContacts(query){
+  const trimmed = query.trim();
+  // كتابة "الكل" أو "الجميع" تعرض كل جهات الاتصال دفعة واحدة، مفيد مثلاً لتوحيد
+  // حالة الأحرف اللاتينية (AA/aa/Aa) لكل الأسماء دفعة واحدة.
+  if(trimmed === 'الكل' || trimmed === 'الجميع') return contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
+  const f = normalizeArabic(trimmed.toLowerCase());
+  if(!f) return [];
+  return contacts.filter(c => {
+    const hay = normalizeArabic([c.fn, c.nickname, c.org, c.title].join(' ').toLowerCase());
+    return hay.includes(f);
+  }).sort((a,b) => a.fn.localeCompare(b.fn, 'ar'));
+}
+function renderNameFormatList(){
+  const q = $('#nameFormatSearch').value.trim();
+  const list = $('#nameFormatList');
+  const listWrap = $('#nameFormatListWrap');
+  const countEl = $('#nameFormatCount');
+  const selectAllBtn = $('#nameFormatSelectAll');
+  const showAllBtn = $('#nameFormatShowAllBtn');
+  showAllBtn.textContent = nameFormatShowAll ? 'إخفاء الكل' : 'عرض الكل';
+
+  if(!q && !nameFormatShowAll){
+    listWrap.style.display = 'none';
+    list.innerHTML = '';
+    countEl.textContent = '';
+    selectAllBtn.style.display = 'none';
+    updateNameFormatConfirmState();
+    return;
+  }
+  listWrap.style.display = 'block';
+
+  const matched = (nameFormatShowAll && !q) ? contacts.slice().sort((a,b) => a.fn.localeCompare(b.fn, 'ar')) : nameFormatMatchContacts(q);
+  selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+
+  if(!matched.length){
+    list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
+    countEl.textContent = '';
+    updateNameFormatConfirmState();
+    return;
+  }
+
+  const matchedIds = new Set(matched.map(c => c.id));
+  nameFormatSelectedIds.forEach(id => { if(!matchedIds.has(id)) nameFormatSelectedIds.delete(id); });
+
+  list.innerHTML = matched.map((c, idx) => {
+    const checked = nameFormatSelectedIds.has(c.id) ? 'checked' : '';
+    const isLast = idx === matched.length - 1;
+    const avatarInner = (c.photo || c.photoUrl)
+      ? `<img src="${c.photo || c.photoUrl}" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:8px;">`
+      : `<div style="width:100%; height:100%; border-radius:8px; background:var(--card2); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--muted);">${escapeHtml((c.fn||'?').trim()[0]||'?')}</div>`;
+    return `<label style="display:flex; align-items:center; gap:10px; padding:10px 12px; margin:0; ${isLast ? '' : 'border-bottom:1px solid var(--border);'} cursor:pointer; box-sizing:border-box; height:56px;">
+      <input type="checkbox" class="nameFormatItem" data-id="${c.id}" ${checked} style="width:17px; height:17px; flex:0 0 auto; margin:0;">
+      <div style="width:32px; height:32px; flex:0 0 auto;">${avatarInner}</div>
+      <span style="font-size:13px; font-weight:400; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 auto; line-height:1.6;">${escapeHtml(c.fn)}</span>
+    </label>`;
+  }).join('');
+  list.querySelectorAll('.nameFormatItem').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) nameFormatSelectedIds.add(cb.dataset.id);
+      else nameFormatSelectedIds.delete(cb.dataset.id);
+      updateNameFormatCountAndSelectAll(matched);
+      updateNameFormatConfirmState();
+    });
+  });
+
+  updateNameFormatCountAndSelectAll(matched);
+  updateNameFormatConfirmState();
+}
+function updateNameFormatCountAndSelectAll(matched){
+  const countEl = $('#nameFormatCount');
+  const selectAllBtn = $('#nameFormatSelectAll');
+  const allSelected = matched.length > 0 && matched.every(c => nameFormatSelectedIds.has(c.id));
+  countEl.textContent = nameFormatSelectedIds.size + ' من ' + matched.length + ' محدد';
+  selectAllBtn.textContent = allSelected ? 'إلغاء تحديد الكل' : 'تحديد الكل';
+}
+
+$('#nameFormatSearch').addEventListener('input', () => {
+  if($('#nameFormatSearch').value.trim()) nameFormatShowAll = false;
+  renderNameFormatList();
+});
+$('#nameFormatShowAllBtn').addEventListener('click', () => {
+  nameFormatShowAll = !nameFormatShowAll;
+  if(nameFormatShowAll) $('#nameFormatSearch').value = '';
+  renderNameFormatList();
+});
+$('#nameFormatSearch').addEventListener('keydown', (e) => {
+  if(e.key === 'Enter'){ e.preventDefault(); $('#nameFormatSearch').blur(); }
+});
+
+$('#nameFormatSelectAll').addEventListener('click', () => {
+  const q = $('#nameFormatSearch').value.trim();
+  const matched = nameFormatMatchContacts(q);
+  const allSelected = matched.length > 0 && matched.every(c => nameFormatSelectedIds.has(c.id));
+  if(allSelected) matched.forEach(c => nameFormatSelectedIds.delete(c.id));
+  else matched.forEach(c => nameFormatSelectedIds.add(c.id));
+  renderNameFormatList();
+});
+
+function updateNameFormatConfirmState(){
+  const btn = $('#nameFormatConfirm');
+  const valueInput = $('#nameFormatValue');
+  valueInput.disabled = !!selectedCaseStyle;
+  valueInput.style.opacity = selectedCaseStyle ? '0.45' : '1';
+  const query = $('#nameFormatSearch').value.trim();
+  const ready = nameFormatSelectedIds.size > 0 && (!!selectedCaseStyle || query.length > 0);
+  btn.style.opacity = ready ? '1' : '.5';
+  btn.style.pointerEvents = ready ? 'auto' : 'none';
+}
+$('#nameFormatValue').addEventListener('input', updateNameFormatConfirmState);
+
+// يحول أول حرف من كل كلمة لاتينية إلى كبير وبقية أحرفها إلى صغيرة، ولا يمس الأحرف العربية أو الأرقام
+function toTitleCase(s){
+  return s.replace(/[A-Za-zÀ-ÖØ-öø-ÿ]+/g, w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+}
+let selectedCaseStyle = null;
+function updateCaseStyleButtonsUI(){
+  ['caseStyleTitle','caseStyleUpper','caseStyleLower'].forEach(id => {
+    const btn = $('#' + id);
+    const active = btn.dataset.case === selectedCaseStyle;
+    btn.style.background = active ? 'var(--accent)' : 'var(--card2)';
+    btn.style.color = active ? '#FFFFFF' : 'var(--text)';
+  });
+}
+function applyCaseStyleToSelected(style){
+  saveUndoSnapshot('توحيد نمط الأحرف لـ' + nameFormatSelectedIds.size + ' جهة اتصال');
+  let count = 0;
+  contacts.forEach(c => {
+    if(!nameFormatSelectedIds.has(c.id) || !c.fn) return;
+    let newFn;
+    if(style === 'title') newFn = toTitleCase(c.fn);
+    else if(style === 'upper') newFn = c.fn.toUpperCase();
+    else newFn = c.fn.toLowerCase();
+    if(newFn !== c.fn){
+      c.fn = newFn;
+      count++;
+    }
+  });
+  renderList($('#search').value);
+  toast('تم توحيد نمط ' + count + ' اسم');
+}
+['caseStyleTitle','caseStyleUpper','caseStyleLower'].forEach(id => {
+  $('#' + id).addEventListener('click', () => {
+    const style = $('#' + id).dataset.case;
+    selectedCaseStyle = (selectedCaseStyle === style) ? null : style;
+    updateCaseStyleButtonsUI();
+    updateNameFormatConfirmState();
+  });
+});
+
+$('#nameFormatCancel').addEventListener('click', closeNameFormatModal);
+$('#nameFormatModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'nameFormatModalOverlay') closeNameFormatModal(); });
+$('#nameFormatConfirm').addEventListener('click', () => {
+  if(nameFormatSelectedIds.size === 0) return;
+  if(selectedCaseStyle){
+    applyCaseStyleToSelected(selectedCaseStyle);
+    closeNameFormatModal();
+    return;
+  }
+  const val = $('#nameFormatValue').value.trim();
+  const query = $('#nameFormatSearch').value.trim();
+  if(!query) return;
+  saveUndoSnapshot('تعديل صيغة ' + nameFormatSelectedIds.size + ' جهة اتصال');
+  let count = 0;
+  contacts.forEach(c => {
+    if(nameFormatSelectedIds.has(c.id)){
+      const newFn = normalizedReplaceAll(c.fn || '', query, val);
+      const newNickname = normalizedReplaceAll(c.nickname || '', query, val);
+      const newOrg = normalizedReplaceAll(c.org || '', query, val);
+      const newTitle = normalizedReplaceAll(c.title || '', query, val);
+      const fnChanged = newFn !== c.fn;
+      const nicknameChanged = newNickname !== (c.nickname || '');
+      const orgChanged = newOrg !== (c.org || '');
+      const titleChanged = newTitle !== (c.title || '');
+      if(fnChanged) c.fn = newFn;
+      if(nicknameChanged) c.nickname = newNickname;
+      if(orgChanged) c.org = newOrg;
+      if(titleChanged) c.title = newTitle;
+      if(fnChanged || nicknameChanged || orgChanged || titleChanged) count++;
+    }
+  });
+  closeNameFormatModal();
+  renderList($('#search').value);
+  toast('تم تعديل صيغة ' + count + ' جهة اتصال');
+});
+
+function normalizePhoneForDup(v){
+  let d = (v||'').replace(/\D/g,'');
+  if(!d) return '';
+  if(d.startsWith('00')) d = d.slice(2);
+  if(d.length > 1 && d.startsWith('0')) d = d.slice(1);
+  return d;
+}
+
+function findDuplicatePhones(){
+  const map = {};
+  for(const c of contacts){
+    const seenInContact = new Set();
+    for(const p of c.phones){
+      const norm = normalizePhoneForDup(p.value);
+      if(!norm || seenInContact.has(norm)) continue;
+      seenInContact.add(norm);
+      (map[norm] = map[norm] || []).push({ id: c.id, fn: c.fn, raw: p.value });
+    }
+  }
+  return Object.values(map)
+    .filter(entries => entries.length >= 2)
+    .sort((a,b) => b.length - a.length);
+}
+
+function findIntraContactDuplicatePhones(){
+  const result = [];
+  for(const c of contacts){
+    const groups = {};
+    for(const p of c.phones){
+      const norm = normalizePhoneForDup(p.value);
+      if(!norm) continue;
+      (groups[norm] = groups[norm] || []).push(p);
+    }
+    for(const norm in groups){
+      if(groups[norm].length >= 2){
+        result.push({ contactId: c.id, contactFn: c.fn, raw: groups[norm][0].value, norm });
+      }
+    }
+  }
+  return result;
+}
+
+function openIntraPhoneMergeModal(contactId, norm){
+  const c = contacts.find(x => x.id === contactId);
+  if(!c) return;
+  const matches = c.phones.filter(p => normalizePhoneForDup(p.value) === norm);
+  if(matches.length < 2) return;
+  // خيارات فريدة (قد يكون الرقمان مكتوبين بنفس الصيغة تماماً أو بصيغ مختلفة)
+  const options = [...new Set(matches.map(p => p.value))];
+  mergeModalMode = 'intraPhone';
+  pendingIntraPhoneMerge = { contactId, norm, chosen: options[0] };
+  $('#mergeModalTitle').textContent = 'دمج رقم مكرر';
+  $('#mergeModalSubtitle').textContent = 'الرقم مكرر داخل نفس جهة الاتصال';
+
+  const body = $('#mergeModalBody');
+  body.innerHTML = '';
+  const label = document.createElement('div');
+  label.className = 'merge-field-label merge-name-label';
+  label.textContent = 'أي رقم تريد الإبقاء عليه؟';
+  body.appendChild(label);
+  const group = document.createElement('div');
+  group.className = 'merge-name-group';
+  body.appendChild(group);
+  let customInput;
+  options.forEach((val, i) => {
+    const opt = document.createElement('div');
+    opt.className = 'merge-opt name-opt-lg' + (i === 0 ? ' selected' : '');
+    opt.style.direction = 'ltr';
+    opt.style.unicodeBidi = 'embed';
+    opt.style.textAlign = 'right';
+    opt.textContent = val;
+    opt.addEventListener('click', () => {
+      group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+      pendingIntraPhoneMerge.chosen = val;
+      if(customInput) customInput.value = '';
+    });
+    group.appendChild(opt);
+  });
+  customInput = document.createElement('input');
+  customInput.type = 'tel';
+  customInput.placeholder = 'اكتب رقماً آخر';
+  customInput.className = 'merge-custom-name';
+  customInput.style.cssText = 'width:100%; box-sizing:border-box; padding:13px 12px; background:transparent; color:var(--text); font-size:14px; font-weight:600; font-family:var(--font-body); line-height:normal; direction:ltr; text-align:right;';
+  customInput.addEventListener('input', () => {
+    group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+    const v = customInput.value.trim();
+    if(v){
+      pendingIntraPhoneMerge.chosen = v;
+    } else {
+      pendingIntraPhoneMerge.chosen = options[0];
+      const first = group.querySelector('.merge-opt');
+      if(first) first.classList.add('selected');
+    }
+  });
+  customInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); customInput.blur(); } });
+  group.appendChild(customInput);
+
+  $('#mergeModalOverlay').style.display = 'flex';
+  safePushState({ screen: screens.duplicates.classList.contains('active') ? 'duplicates' : 'list', modal: 'merge' }, '', '#' + (screens.duplicates.classList.contains('active') ? 'duplicates' : 'list'));
+}
+
+function finalizeIntraPhoneMerge(){
+  if(!pendingIntraPhoneMerge) return;
+  const { contactId, norm, chosen } = pendingIntraPhoneMerge;
+  const c = contacts.find(x => x.id === contactId);
+  saveUndoSnapshot('دمج الرقم المكرر' + (c?.fn ? (' - ' + c.fn) : ''));
+  if(c){
+    let kept = false;
+    c.phones = c.phones.filter(p => {
+      if(normalizePhoneForDup(p.value) !== norm) return true;
+      if(kept) return false;
+      kept = true;
+      p.value = chosen;
+      return true;
+    });
+  }
+  pendingIntraPhoneMerge = null;
+  toast('تم دمج الرقم المكرر');
+  renderDuplicates();
+  renderList();
+  refreshPrefixOptions();
+}
+
+function mergeIntraContactDuplicate(contactId, norm){
+  const c = contacts.find(x => x.id === contactId);
+  if(!c) return;
+  let kept = false;
+  c.phones = c.phones.filter(p => {
+    if(normalizePhoneForDup(p.value) !== norm) return true;
+    if(kept) return false;
+    kept = true;
+    return true;
+  });
+  toast('تم دمج الرقم المكرر');
+  renderDuplicates();
+  renderList();
+  refreshPrefixOptions();
+}
+
+function mergeAllIntraContactDuplicates(){
+  const intraDups = findIntraContactDuplicatePhones();
+  if(!intraDups.length) return;
+  saveUndoSnapshot('دمج ' + intraDups.length + ' حالة تكرار داخل نفس الجهة');
+  for(const d of intraDups){
+    const c = contacts.find(x => x.id === d.contactId);
+    if(!c) continue;
+    let kept = false;
+    c.phones = c.phones.filter(p => {
+      if(normalizePhoneForDup(p.value) !== d.norm) return true;
+      if(kept) return false;
+      kept = true;
+      return true;
+    });
+  }
+  toast('تم دمج ' + intraDups.length + ' حالة تكرار داخل نفس الجهة');
+  renderDuplicates();
+  renderList();
+  refreshPrefixOptions();
+}
+$('#mergeAllIntraBtn').addEventListener('click', mergeAllIntraContactDuplicates);
+
+function renderDuplicates(){
+  const dups = findDuplicatePhones();
+  const intraDups = findIntraContactDuplicatePhones();
+  const container = $('#duplicatesList');
+  container.innerHTML = '';
+  const total = dups.length + intraDups.length;
+  $('#dupSummaryText').textContent = total
+    ? total + ' حالة تكرار'
+    : 'لا توجد أرقام مكررة';
+  $('#mergeAllIntraBtn').style.display = (screens.duplicates.classList.contains('active') && intraDups.length) ? 'inline-flex' : 'none';
+
+  if(intraDups.length){
+    const sectionTitle = document.createElement('div');
+    sectionTitle.style.cssText = 'font-size:12.5px; font-weight:700; color:var(--muted); margin:4px 4px 11px;';
+    sectionTitle.textContent = 'تكرار داخل جهة الاتصال';
+    container.appendChild(sectionTitle);
+
+    for(const d of intraDups){
+      const group = document.createElement('div');
+      group.className = 'panel';
+      group.style.cssText = 'padding:12px 14px; margin:11px 0;';
+
+      const numberRow = document.createElement('div');
+      numberRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border);';
+      const numberLabel = document.createElement('div');
+      numberLabel.style.cssText = 'font-size:13.5px; font-weight:700; color:var(--text);';
+      numberLabel.innerHTML = 'الرقم المكرر &nbsp; <span style="direction:ltr; unicode-bidi:embed;">' + escapeHtml(d.raw) + '</span>';
+      numberRow.appendChild(numberLabel);
+      const mergeBtn = document.createElement('button');
+      mergeBtn.type = 'button';
+      mergeBtn.className = 'dup-merge-btn';
+      mergeBtn.textContent = 'دمج';
+      mergeBtn.addEventListener('click', (e) => { e.stopPropagation(); openIntraPhoneMergeModal(d.contactId, d.norm); });
+      numberRow.appendChild(mergeBtn);
+      group.appendChild(numberRow);
+
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:7px 0; cursor:pointer; font-size:13px; font-weight:600; color:var(--accent);';
+      row.innerHTML = '<span style="color:var(--muted); font-weight:700;">جهة الإتصال &nbsp;:&nbsp; </span>' + escapeHtml(d.contactFn);
+      row.addEventListener('click', () => openEdit(d.contactId));
+      group.appendChild(row);
+
+      container.appendChild(group);
+    }
+  }
+
+  if(dups.length){
+    const sectionTitle = document.createElement('div');
+    sectionTitle.style.cssText = 'font-size:12.5px; font-weight:700; color:var(--muted); margin:19px 4px 11px;';
+    sectionTitle.textContent = 'تكرار بين جهات الاتصال';
+    container.appendChild(sectionTitle);
+  }
+
+  for(const entries of dups){
+    const group = document.createElement('div');
+    group.className = 'panel';
+    group.style.cssText = 'padding:12px 14px; margin:11px 0;';
+
+    const numberRow = document.createElement('div');
+    numberRow.style.cssText = 'display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--border);';
+    const numberLabel = document.createElement('div');
+    numberLabel.style.cssText = 'font-size:13.5px; font-weight:700; color:var(--text);';
+    numberLabel.innerHTML = 'الرقم المكرر &nbsp; <span style="direction:ltr; unicode-bidi:embed;">' + escapeHtml(entries[0].raw) + '</span>';
+    numberRow.appendChild(numberLabel);
+    const mergeBtn = document.createElement('button');
+    mergeBtn.type = 'button';
+    mergeBtn.className = 'dup-merge-btn';
+    mergeBtn.textContent = 'دمج';
+    mergeBtn.addEventListener('click', (e) => { e.stopPropagation(); startMerge(entries.map(x => x.id)); });
+    numberRow.appendChild(mergeBtn);
+    group.appendChild(numberRow);
+
+    entries.forEach(e => {
+      const row = document.createElement('div');
+      row.style.cssText = 'padding:8px 0; cursor:pointer; font-size:13px; font-weight:600; color:var(--accent);';
+      row.innerHTML = '<span style="color:var(--muted); font-weight:700;">جهة الإتصال &nbsp;:&nbsp; </span>' + escapeHtml(e.fn);
+      row.addEventListener('click', () => openEdit(e.id));
+      group.appendChild(row);
+    });
+
+    container.appendChild(group);
+  }
+}
+
+function normEmailForMerge(v){ return (v||'').trim().toLowerCase(); }
+
+function buildMergePlan(ids, choices){
+  choices = choices || {};
+  const list = ids.map(id => contacts.find(c => c.id === id)).filter(Boolean);
+  if(list.length < 2) return null;
+
+  const distinctNames = [...new Set(list.map(c => c.fn).filter(n => n && n !== '(بدون اسم)'))];
+  const nameConflict = distinctNames.length > 1;
+  const fn = choices.fn || distinctNames[0] || '(بدون اسم)';
+
+  const distinctPhotos = [...new Set(list.map(c => c.photo).filter(Boolean))];
+  const anyMissingPhoto = list.some(c => !c.photo);
+  const photoConflict = distinctPhotos.length > 1 || (distinctPhotos.length === 1 && anyMissingPhoto);
+  const photo = ('photo' in choices) ? choices.photo : (distinctPhotos[0] || null);
+  // لا تعارض/اختيار لصور الروابط غير المضمّنة هنا (تبقى خارج نافذة الدمج
+  // البصرية) — فقط نحافظ عليها من الضياع: إن لم تُختَر صورة مضمّنة، نأخذ
+  // أول رابط صورة موجود بين الجهات المدموجة بدل فقدانه صامتاً.
+  const photoUrl = photo ? null : (list.map(c => c.photoUrl).find(Boolean) || null);
+
+  function resolveField(key){
+    const distinct = [...new Set(list.map(c => (c[key] || '').trim()).filter(Boolean))];
+    const conflict = distinct.length > 1;
+    const value = (choices[key] !== undefined) ? choices[key] : (distinct[0] || '');
+    return { distinct, conflict, value };
+  }
+  const nicknameR = resolveField('nickname');
+  const orgR = resolveField('org');
+  const deptR = resolveField('dept');
+  const titleR = resolveField('title');
+  const bdayR = resolveField('bday');
+  const nickname = nicknameR.value;
+  const org = orgR.value;
+  const dept = deptR.value;
+  const title = titleR.value;
+  const bday = bdayR.value;
+  const allCats = list.flatMap(c => (c.categories || '').split(',').map(s => s.trim()).filter(Boolean));
+  const categories = [...new Set(allCats)].join(', ');
+  const notes = [...new Set(list.map(c => c.note).filter(v => v && v.trim()))];
+  const note = notes.join('\n');
+
+  const phones = [];
+  const seenPhone = new Set();
+  for(const c of list){
+    for(const p of c.phones){
+      const norm = normalizePhoneForDup(p.value);
+      const key = norm || ('raw:' + p.value.trim().toLowerCase());
+      if(!key || seenPhone.has(key)) continue;
+      seenPhone.add(key);
+      phones.push({ type: p.type, value: p.value });
+    }
+  }
+
+  const emails = [];
+  const seenEmail = new Set();
+  for(const c of list){
+    for(const e of c.emails){
+      const key = normEmailForMerge(e.value);
+      if(!key || seenEmail.has(key)) continue;
+      seenEmail.add(key);
+      emails.push({ type: e.type, value: e.value });
+    }
+  }
+
+  const urls = [];
+  const seenUrl = new Set();
+  for(const c of list){
+    for(const u of (c.urls || [])){
+      const key = (u.value || '').trim().toLowerCase();
+      if(!key || seenUrl.has(key)) continue;
+      seenUrl.add(key);
+      urls.push({ type: u.type, value: u.value });
+    }
+  }
+
+  const adrs = [];
+  const seenAdr = new Set();
+  for(const c of list){
+    for(const a of (c.adrs || [])){
+      const key = (a.value || '').trim().toLowerCase();
+      if(!key || seenAdr.has(key)) continue;
+      seenAdr.add(key);
+      adrs.push({ type: a.type, value: a.value });
+    }
+  }
+
+  const rawExtra = list.map(c => c.rawExtra).find(r => r && r.length) || [];
+  const samsungAdr = list.map(c => c.samsungAdr).find(Boolean) || '';
+
+  return {
+    conflicts: {
+      name: nameConflict ? distinctNames : null,
+      photo: photoConflict ? distinctPhotos : null,
+      nickname: nicknameR.conflict ? nicknameR.distinct : null,
+      org: orgR.conflict ? orgR.distinct : null,
+      dept: deptR.conflict ? deptR.distinct : null,
+      title: titleR.conflict ? titleR.distinct : null,
+      bday: bdayR.conflict ? bdayR.distinct : null
+    },
+    merged: { id: list[0].id, fn, nickname, org, dept, title, note, adrs, categories, bday, phones, emails, urls, rawExtra, samsungAdr, version: list[0].version || '3.0', photo, photoUrl },
+    sourceIds: list.map(c => c.id)
+  };
+}
+
+let pendingMergeIds = null;
+let pendingMergeChoices = {};
+let pendingIntraPhoneMerge = null; // { contactId, norm, options } عند دمج تكرار داخل نفس الجهة
+let mergeModalMode = 'contacts'; // 'contacts' | 'intraPhone'
+
+function startMerge(ids, opts){
+  pendingMergeIds = ids;
+  pendingMergeChoices = {};
+  const plan = buildMergePlan(ids, pendingMergeChoices);
+  if(!plan){
+    if(opts && opts.replaceHistory){ suppressPopstateSilentCount++; goBack(); }
+    return;
+  }
+  const hasAnyConflict = Object.values(plan.conflicts).some(Boolean);
+  if(!hasAnyConflict){
+    finalizeMerge(plan);
+    if(opts && opts.replaceHistory){ suppressPopstateSilentCount++; goBack(); }
+    return;
+  }
+  openMergeModal(plan, opts);
+}
+
+function openMergeModal(plan, opts){
+  mergeModalMode = 'contacts';
+  $('#mergeModalTitle').textContent = 'دمج جهات الاتصال';
+  $('#mergeModalSubtitle').textContent = 'يوجد تعارض — اختر ما تريد الاحتفاظ به';
+  const body = $('#mergeModalBody');
+  body.innerHTML = '';
+
+  if(plan.conflicts.name){
+    const label = document.createElement('div');
+    label.className = 'merge-field-label merge-name-label';
+    label.textContent = 'الاسم';
+    body.appendChild(label);
+    const group = document.createElement('div');
+    group.className = 'merge-name-group';
+    body.appendChild(group);
+    let customNameInput;
+    plan.conflicts.name.forEach((name, i) => {
+      const opt = document.createElement('div');
+      opt.className = 'merge-opt name-opt-lg' + (i === 0 ? ' selected' : '');
+      opt.textContent = name;
+      opt.addEventListener('click', () => {
+        group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        pendingMergeChoices.fn = name;
+        if(customNameInput) customNameInput.value = '';
+      });
+      group.appendChild(opt);
+    });
+    customNameInput = document.createElement('input');
+    customNameInput.type = 'text';
+    customNameInput.id = 'mergeCustomNameInput';
+    customNameInput.placeholder = 'اكتب اسمًا آخر';
+    customNameInput.className = 'merge-custom-name';
+    customNameInput.style.cssText = 'width:100%; box-sizing:border-box; padding:9px 12px; background:transparent; color:var(--text); font-size:14px; font-weight:600; font-family:var(--font-body); line-height:1.7;';
+    customNameInput.addEventListener('input', () => {
+      group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+      const v = customNameInput.value.trim();
+      if(v){
+        pendingMergeChoices.fn = v;
+      } else {
+        pendingMergeChoices.fn = plan.conflicts.name[0];
+        const first = group.querySelector('.merge-opt');
+        if(first) first.classList.add('selected');
+      }
+    });
+    customNameInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); customNameInput.blur(); } });
+    group.appendChild(customNameInput);
+    pendingMergeChoices.fn = plan.conflicts.name[0];
+  }
+
+  const textConflictFields = [
+    { key: 'nickname', label: 'اللقب', placeholder: 'اكتب لقبًا آخر' },
+    { key: 'org', label: 'الشركة', placeholder: 'اكتب اسم شركة آخر' },
+    { key: 'dept', label: 'القسم', placeholder: 'اكتب قسمًا آخر' },
+    { key: 'title', label: 'الوظيفة', placeholder: 'اكتب مسمى آخر' },
+    { key: 'bday', label: 'تاريخ الميلاد', placeholder: 'اكتب تاريخًا آخر' }
+  ];
+
+  textConflictFields.forEach(({ key, label: labelText, placeholder }) => {
+    if(!plan.conflicts[key]) return;
+    const options = plan.conflicts[key];
+    const label = document.createElement('div');
+    label.className = 'merge-field-label';
+    label.textContent = labelText;
+    body.appendChild(label);
+    const group = document.createElement('div');
+    group.className = 'merge-name-group';
+    body.appendChild(group);
+    let customInput;
+    options.forEach((val, i) => {
+      const opt = document.createElement('div');
+      opt.className = 'merge-opt' + (i === 0 ? ' selected' : '');
+      opt.textContent = val;
+      opt.addEventListener('click', () => {
+        group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        pendingMergeChoices[key] = val;
+        if(customInput) customInput.value = '';
+      });
+      group.appendChild(opt);
+    });
+    customInput = document.createElement('input');
+    customInput.type = 'text';
+    customInput.placeholder = placeholder;
+    customInput.className = 'merge-custom-name';
+    customInput.style.cssText = 'width:100%; box-sizing:border-box; padding:7px 12px; background:transparent; color:var(--text); font-size:13.5px; font-weight:600; font-family:var(--font-body); line-height:1.7;';
+    customInput.addEventListener('input', () => {
+      group.querySelectorAll('.merge-opt').forEach(o => o.classList.remove('selected'));
+      const v = customInput.value.trim();
+      if(v){
+        pendingMergeChoices[key] = v;
+      } else {
+        pendingMergeChoices[key] = options[0];
+        const first = group.querySelector('.merge-opt');
+        if(first) first.classList.add('selected');
+      }
+    });
+    customInput.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); customInput.blur(); } });
+    group.appendChild(customInput);
+    pendingMergeChoices[key] = options[0];
+  });
+
+  if(plan.conflicts.photo){
+    const label = document.createElement('div');
+    label.className = 'merge-field-label';
+    label.textContent = 'الصورة';
+    body.appendChild(label);
+    const row = document.createElement('div');
+    row.className = 'merge-photo-row';
+    plan.conflicts.photo.forEach((photo, i) => {
+      const opt = document.createElement('div');
+      opt.className = 'merge-photo-opt' + (i === 0 ? ' selected' : '');
+      opt.innerHTML = `<img src="${photo}" alt="">`;
+      opt.addEventListener('click', () => {
+        row.querySelectorAll('.merge-photo-opt').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        pendingMergeChoices.photo = photo;
+      });
+      row.appendChild(opt);
+    });
+    const noneOpt = document.createElement('div');
+    noneOpt.className = 'merge-photo-opt';
+    noneOpt.style.fontSize = '9px';
+    noneOpt.style.lineHeight = '1.3';
+    noneOpt.style.padding = '2px';
+    noneOpt.textContent = 'بدون صورة';
+    noneOpt.addEventListener('click', () => {
+      row.querySelectorAll('.merge-photo-opt').forEach(o => o.classList.remove('selected'));
+      noneOpt.classList.add('selected');
+      pendingMergeChoices.photo = null;
+    });
+    row.appendChild(noneOpt);
+    body.appendChild(row);
+    pendingMergeChoices.photo = plan.conflicts.photo[0];
+  }
+
+  $('#mergeModalOverlay').style.display = 'flex';
+  const targetScreen = screens.duplicates.classList.contains('active') ? 'duplicates' : 'list';
+  if(opts && opts.replaceHistory){
+    safeReplaceState({ screen: targetScreen, modal: 'merge' }, '', '#' + targetScreen);
+  } else {
+    safePushState({ screen: targetScreen, modal: 'merge' }, '', '#' + targetScreen);
+  }
+}
+
+function closeMergeModal(){
+  if($('#mergeModalOverlay').style.display === 'none') return;
+  $('#mergeModalOverlay').style.display = 'none';
+  pendingMergeIds = null;
+  pendingIntraPhoneMerge = null;
+  mergeModalMode = 'contacts';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#mergeModalCancel').addEventListener('click', closeMergeModal);
+$('#mergeModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'mergeModalOverlay') closeMergeModal(); });
+$('#mergeModalConfirm').addEventListener('click', () => {
+  if(mergeModalMode === 'intraPhone'){
+    if(!pendingIntraPhoneMerge) return;
+    $('#mergeModalOverlay').style.display = 'none';
+    suppressPopstateSilentCount++;
+    goBack();
+    finalizeIntraPhoneMerge();
+    mergeModalMode = 'contacts';
+    return;
+  }
+  if(!pendingMergeIds) return;
+  const plan = buildMergePlan(pendingMergeIds, pendingMergeChoices);
+  $('#mergeModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+  finalizeMerge(plan);
+});
+
+function finalizeMerge(plan){
+  saveUndoSnapshot('دمج ' + (plan.merged.fn || 'جهة الاتصال'));
+  contacts = contacts.filter(c => !plan.sourceIds.includes(c.id) || c.id === plan.merged.id);
+  const idx = contacts.findIndex(c => c.id === plan.merged.id);
+  if(idx !== -1){
+    contacts[idx] = Object.assign({}, contacts[idx], plan.merged);
+  }
+  pendingMergeIds = null;
+  toast('تم دمج جهات الاتصال');
+  renderDuplicates();
+  renderList();
+  refreshPrefixOptions();
+}
+
+function getExportScopeContacts(){
+  if(selectionMode && selectedIds.size > 0){
+    return { list: contacts.filter(c => selectedIds.has(c.id)), scope: 'selected' };
+  }
+  const searchVal = $('#search').value;
+  if(searchVal.trim()){
+    const filtered = getFilteredContacts(searchVal).slice().sort((a,b) => sortReversed ? b.fn.localeCompare(a.fn, 'ar') : a.fn.localeCompare(b.fn, 'ar'));
+    return { list: filtered, scope: 'filtered' };
+  }
+  return { list: contacts, scope: 'all' };
+}
+
+let selectedExportPhotoSize = 720;
+let selectedExportCompat = 'samsung';
+let saveFormatScopeList = [];
+
+function updateSaveFormatPhotoNote(){
+  const hasPendingLinkedPhotos = saveFormatScopeList.some(c => c.photoUrl && !c.photo);
+  const hasEmbeddedPhotos = saveFormatScopeList.some(c => c.photo);
+  const note = $('#saveFormatPhotoNote');
+  if(selectedExportCompat === 'samsung' && hasPendingLinkedPhotos){
+    note.textContent = 'تطبيق جهات الاتصال لا يدعم الصور بروابط';
+    note.style.display = 'block';
+  } else if(selectedExportCompat === 'samsung' || !hasEmbeddedPhotos){
+    // سامسونج: CSV أصلاً معطّل فلا داعي لرسالة تخص فرق VCF/CSV.
+    // جوجل بلا صور مضمّنة: لا فرق فعلي بين الصيغتين بخصوص الصور، فلا داعي لتوجيه المستخدم.
+    note.style.display = 'none';
+  } else {
+    note.textContent = 'الصور المضمّنة بالملف تصدر فقط مع صيغة VCF';
+    note.style.display = 'block';
+  }
+}
+
+function updateSaveFormatCsvBtnState(){
+  const disabled = selectedExportCompat !== 'google';
+  $('#saveFormatCsvBtn').disabled = disabled;
+  $('#saveFormatCsvBtn').style.opacity = disabled ? '0.45' : '1';
+  $('#saveFormatCsvBtn').style.cursor = disabled ? 'not-allowed' : 'pointer';
+}
+
+// تخفى بالكامل (مو بهتان فقط) إذا ما فيه ولا جهة عندها صورة مضمّنة فعلية
+// بنطاق التصدير الحالي — سواء لعدم وجود صور أصلاً، أو لأن الصور الموجودة
+// مجرد روابط لم تُضمَّن بعد؛ لأن حجم التصدير لا يؤثر إلا على الصور المضمّنة.
+function updateSaveFormatPhotoSizeVisibility(){
+  const hasEmbeddedPhotos = saveFormatScopeList.some(c => c.photo);
+  $('#saveFormatPhotoSizeSection').style.display = hasEmbeddedPhotos ? 'block' : 'none';
+}
+
+async function exportContacts(){
+  const { list, scope } = getExportScopeContacts();
+  if(list.length === 0){ toast('لا توجد جهات اتصال للتصدير'); return; }
+  let exportList = list;
+  {
+    const hasPhotos = list.some(c => c.photo);
+    if(hasPhotos) toast('جارٍ تجهيز الملف...');
+    exportList = await Promise.all(list.map(async c => {
+      if(!c.photo) return c;
+      const resized = await resizeDataUrlToSquare(c.photo, selectedExportPhotoSize);
+      return Object.assign({}, c, { photo: resized });
+    }));
+  }
+  const vcfText = buildVCF(exportList);
+  const blob = new Blob([vcfText], {type:'text/vcard;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date();
+  const dateStr = String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+  const suffix = scope === 'all' ? '' : ('_' + list.length);
+  a.download = 'contacts_' + dateStr + suffix + '.vcf';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+  toast(scope === 'all' ? 'تم تنزيل الملف' : ('تم تنزيل ' + list.length + ' جهة اتصال'));
+}
+
+function csvEscape(val){
+  const s = (val == null) ? '' : String(val);
+  if(/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+// يطابق بنية ملف CSV المُصدَّر من جوجل نفسه بايت ببايت (قارناها بملف csv حقيقي
+// لنفس الـ293 جهة اتصال): ترتيب الأعمدة (إيميل قبل هاتف)، أعمدة الاسم الصوتي/
+// البادئة/اللاحقة وعمود Photo فارغة دائماً (التطبيق لا يخزّن هذه البيانات)،
+// "File As" فارغ دائماً (جوجل لا يملأه فعلياً رغم وجود العمود)، Labels بصيغة
+// "* التصنيف" مفصولة بـ " ::: "، وأول إيميل فقط (وليس الهاتف أو أي إيميل تالٍ)
+// يحصل على تسمية مسبوقة بـ"* " — هذا سلوك جوجل نفسه وليس شيئاً نضيفه
+function buildCSV(contactsArr){
+  const maxOf = (getter) => contactsArr.reduce((m, c) => Math.max(m, getter(c)), 0);
+  const maxEmails = maxOf(c => c.emails.filter(e => e.value).length);
+  const maxPhones = maxOf(c => c.phones.filter(p => p.value).length);
+  const maxUrls = maxOf(c => (c.urls || []).filter(u => u.value).length);
+  const maxAdrs = maxOf(c => (c.adrs || []).filter(a => a.value).length);
+
+  const headers = ['First Name', 'Middle Name', 'Last Name', 'Phonetic First Name', 'Phonetic Middle Name',
+    'Phonetic Last Name', 'Name Prefix', 'Name Suffix', 'Nickname', 'File As',
+    'Organization Name', 'Organization Title', 'Organization Department', 'Birthday', 'Notes', 'Photo', 'Labels'];
+  for(let i = 1; i <= maxEmails; i++){ headers.push(`E-mail ${i} - Label`, `E-mail ${i} - Value`); }
+  for(let i = 1; i <= maxPhones; i++){ headers.push(`Phone ${i} - Label`, `Phone ${i} - Value`); }
+  for(let i = 1; i <= maxUrls; i++){ headers.push(`Website ${i} - Label`, `Website ${i} - Value`); }
+  for(let i = 1; i <= maxAdrs; i++){
+    headers.push(`Address ${i} - Label`, `Address ${i} - Formatted`, `Address ${i} - Street`,
+      `Address ${i} - City`, `Address ${i} - PO Box`, `Address ${i} - Region`,
+      `Address ${i} - Postal Code`, `Address ${i} - Country`, `Address ${i} - Extended Address`);
+  }
+
+  const rows = [headers];
+  for(const c of contactsArr){
+    const emails = c.emails.filter(e => e.value);
+    const phones = c.phones.filter(p => p.value);
+    const urls = (c.urls || []).filter(u => u.value);
+    const adrs = (c.adrs || []).filter(a => a.value);
+    const labels = (c.categories || '').split(',').map(s => s.trim()).filter(Boolean).map(v => '* ' + v).join(' ::: ');
+    // عمود Photo: يُعبَّأ برابط الصورة فقط إذا كانت الجهة تحمل photoUrl (رابط
+    // بلا تضمين فعلي). أما الجهات ذات الصورة الحقيقية المضمّنة (base64) فلا
+    // يوجد لها رابط فعلي نضعه هنا، فيبقى العمود فارغاً لها كما في تصدير جوجل.
+    // (جُرِّب وضع base64 بهذا العمود تجريبياً: تسبّب برفض جوجل للملف كاملاً
+    // وفشل الاستيراد، لذا رجعنا للروابط فقط وهو السلوك المضمون).
+    const photoCol = (!c.photo && c.photoUrl) ? c.photoUrl : '';
+    const row = ['', '', c.fn || '', '', '', '', '', '', c.nickname || '', '',
+      c.org || '', c.title || '', c.dept || '', c.bday || '', c.note || '', photoCol, labels];
+    for(let i = 0; i < maxEmails; i++){
+      const e = emails[i];
+      const label = e ? (i === 0 ? '* ' + (e.type || '') : (e.type || '')) : '';
+      row.push(label, e?.value || '');
+    }
+    for(let i = 0; i < maxPhones; i++){ row.push(phones[i]?.type || '', phones[i]?.value || ''); }
+    for(let i = 0; i < maxUrls; i++){ row.push(urls[i]?.type || '', urls[i]?.value || ''); }
+    for(let i = 0; i < maxAdrs; i++){
+      const a = adrs[i];
+      row.push(a?.type || '', a?.value || '', a?.value || '', '', '', '', '', '', '');
+    }
+    rows.push(row);
+  }
+  return '\uFEFF' + rows.map(r => r.map(csvEscape).join(',')).join('\r\n');
+}
+
+function exportContactsCsv(){
+  const { list, scope } = getExportScopeContacts();
+  if(list.length === 0){ toast('لا توجد جهات اتصال للتصدير'); return; }
+  let csvText;
+  try{
+    csvText = buildCSV(list);
+  }catch(err){
+    console.error('CSV export failed:', err);
+    toast('حدث خطأ أثناء إنشاء ملف CSV');
+    return;
+  }
+  const blob = new Blob([csvText], {type:'text/csv;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date();
+  const dateStr = String(d.getDate()).padStart(2,'0') + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + d.getFullYear();
+  const suffix = scope === 'all' ? '' : ('_' + list.length);
+  a.download = 'contacts_' + dateStr + suffix + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+  toast(scope === 'all' ? 'تم تنزيل الملف' : ('تم تنزيل ' + list.length + ' جهة اتصال'));
+}
+
+function listFilterActive(){
+  return !!$('#search').value.trim() || !!$('#prefixFilter').value || sortReversed;
+}
+function clearListFilters(){
+  $('#search').value = '';
+  $('#prefixFilter').value = '';
+  sortReversed = false;
+  updateSearchAddTermBtn();
+  $('#menuSortOpt').textContent = 'فرز عكسي';
+  filterGuardActive = false;
+  syncFilterUI();
+  renderList('');
+}
+
+// مُدخل حماية إضافي عند تفعيل الفلتر لأول مرة، بنفس فكرة home guard:
+// هذا يضمن أن زر الرجوع الفعلي دائماً يهبط على مُدخل جاهز مسبقاً.
+let filterGuardActive = false;
+function pushFilterGuard(){
+  if(filterGuardActive) return;
+  filterGuardActive = true;
+  safePushState({ screen: 'list', filterGuard: true }, '', '#list');
+}
+
+// يقرر ماذا يعني "الرجوع" وأنت في الشاشة الحالية بالضبط:
+// - إن كان المقصود مجرّد إجراء داخل نفس الشاشة (إلغاء التحديد، مسح فلتر،
+//   عرض نافذة تأكيد) فهذا لا يُغادر الشاشة إطلاقاً → نُرجع true (بقينا).
+// - إن كان المقصود مغادرة الشاشة فعلاً (تعديل/تكرارات ← قائمة) فهذا
+//   تنقّل حقيقي يجب أن يُترجم إلى تراجع في سجل المتصفح → نُرجع false.
+// نافذة منبثقة مفتوحة فوق شاشة القائمة (تضمين الروابط، تعديل الصور، إدارة
+// المجموعات، تصدير، إلخ) يجب أن يُغلقها زر الرجوع العلوي هي أولاً، بدل أن
+// يهبط decideBackAction() مباشرة على فرع "شاشة القائمة نشطة" ويُظهر نافذة
+// تأكيد الخروج خلف النافذة المفتوحة (بما أنهما بنفس z-index وتُرسَم النافذة
+// الأحدث بالـDOM فوقها) — عندها يبدو زر "خروج" بلا استجابة رغم أنه يعمل
+// فعلياً خلف النافذة التي لم تُغلق. هذا يغطي كل نوافذ شاشة القائمة المنبثقة
+// التي يتحقق منها معالج popstate أدناه بنفس الترتيب، فيبقى السلوك متطابقاً
+// سواء جاء الرجوع من زر الجهاز الفعلي (popstate) أو من السهم العلوي بالواجهة.
+function closeTopmostListModalIfOpen(){
+  const modals = [
+    ['#listPhotoMenuOverlay', closeListPhotoMenuViaUI],
+    ['#deleteModalOverlay', closeDeleteModal],
+    ['#searchExportConfirmModalOverlay', closeSearchExportConfirmModal],
+    ['#deleteSelectedModalOverlay', closeDeleteSelectedModal],
+    ['#prefixModalOverlay', closePrefixModal],
+    ['#multiPrefixModalOverlay', closeMultiPrefixModal],
+    ['#saveFormatModalOverlay', closeSaveFormatModal],
+    ['#bulkPhotoModalOverlay', closeBulkPhotoModal],
+    ['#embedPhotosModalOverlay', closeEmbedPhotosModal],
+    ['#unifyGroupModalOverlay', closeUnifyGroupModal],
+    ['#nameFormatModalOverlay', closeNameFormatModal],
+    ['#mergeModalOverlay', closeMergeModal],
+    ['#photoUrlModalOverlay', closePhotoUrlModal],
+    ['#prefixDeleteModalOverlay', closePrefixDeleteModal],
+    ['#bulkFieldTextModalOverlay', closeBulkFieldTextModal],
+    ['#removeGroupModalOverlay', closeRemoveGroupModal],
+  ];
+  for(const [sel, closeFn] of modals){
+    if($(sel).style.display !== 'none'){ closeFn(); return true; }
+  }
+  if($('#listMenuDropdown').style.display !== 'none'){ closeListMenuDropdownAndSync(); return true; }
+  return false;
+}
+
+function decideBackAction(){
+  if(closeTopmostListModalIfOpen()) return true;
+  if(screens.list.classList.contains('active') && selectionMode){
+    exitSelectionModeAndSync();
+    return true;
+  }
+  if(screens.edit.classList.contains('active')){
+    finalizeCurrentContact();
+    return false;
+  }
+  if(screens.duplicates.classList.contains('active')){
+    return false;
+  }
+  if(screens.list.classList.contains('active') && listFilterActive()){
+    clearListFilters();
+    // نفس علة مُدخل حماية القائمة أدناه: زر رجوع الجهاز يسحب مُدخل حماية
+    // الفلتر تلقائياً قبل وصوله لفرع popstate المطابق؛ زر الرجوع بالواجهة
+    // يستدعي هذه الدالة مباشرة فيبقيه عالقاً إن لم نسحبه بصمت هنا.
+    suppressPopstateSilentCount++;
+    goBack();
+    return true;
+  }
+  if(screens.list.classList.contains('active')){
+    $('#exitListModalOverlay').style.display = 'flex';
+    // زر رجوع الجهاز الفعلي يسحب مُدخل حماية القائمة تلقائياً قبل الوصول
+    // لهذا الفرع (فيسقط بالمعالج العام أدناه). زر الرجوع بالواجهة يستدعي
+    // decideBackAction() مباشرة دون أي تراجع فعلي بالسجل، فيبقى مُدخل
+    // الحماية عالقاً أعلى السجل. لولا هذا السحب الصامت هنا، سيحتاج "خروج"
+    // لاحقاً لضغطتين فعليتين (سحب الحماية أولاً ثم مغادرة القائمة فعلياً)
+    // فيبدو للمستخدم أن الزر لا يستجيب من أول ضغطة.
+    suppressPopstateSilentCount++;
+    goBack();
+    return true;
+  }
+  // نحن في الرئيسية: لا شيء يُفقد هنا، فليخرج مباشرة بلا تأكيد
+  return false;
+}
+
+// عندما نستدعي goBack() بأنفسنا (بعد أن قررنا بالفعل عبر decideBackAction
+// أننا نريد المغادرة)، لا داعي لتكرار نفس القرار داخل معالج popstate.
+let suppressNextPopstate = false;
+// مثل suppressNextPopstate لكن بدون استدعاء renderScreenUI: تُستخدم عند إغلاق
+// نافذة منبثقة (كتعديل الصورة) لا تغيّر الشاشة، حتى لا نصفّر تمرير القائمة.
+// عدّاد لا قيمة منطقية: أحياناً يُستدعى goBack() الصامت مرتين متتاليتين بنفس
+// اللفة التزامنية (مثلاً exitSelectionModeAndSync ثم closeMultiPrefixModal)،
+// فيصل أول popstate فقط قبل أن يُعاد ضبط علم منطقي واحد، فيسقط الـpopstate
+// الثاني في المعالج العام ويُظهر نافذة تأكيد الخروج خطأً. العدّاد يستوعب أي
+// عدد من عمليات الرجوع الصامتة المتراكمة بصرف النظر عن ترتيب وصول الأحداث.
+let suppressPopstateSilentCount = 0;
+
+$('#backBtn').addEventListener('click', () => {
+  const stayed = decideBackAction();
+  if(!stayed){
+    suppressNextPopstate = true;
+    goBack();
+  }
+});
+
+$('#exitListModalCancel').addEventListener('click', () => {
+  $('#exitListModalOverlay').style.display = 'none';
+  // نعيد مُدخل الحماية بعد الإلغاء (بضغطة زر، لا يوجد سباق توقيت هنا).
+  safePushState({ screen: 'list', guard: true }, '', '#list');
+});
+$('#exitListModalConfirm').addEventListener('click', () => {
+  $('#exitListModalOverlay').style.display = 'none';
+  suppressNextPopstate = true;
+  goBack();
+});
+
+// اعتراض زر الرجوع الفعلي بالجهاز: كل شاشة غير الرئيسية تحصل على مُدخلها
+// الحقيقي الخاص بها عبر showScreen. الرئيسية نفسها بلا مُدخل حماية، فأول
+// ضغطة رجوع وأنت فيها تخرج من التطبيق مباشرة بلا تأكيد.
+safeReplaceState({ screen: 'home' }, '', '#home');
+
+window.addEventListener('popstate', (e) => {
+  if(suppressPopstateSilentCount > 0){
+    suppressPopstateSilentCount--;
+    return;
+  }
+
+  if(suppressNextPopstate){
+    suppressNextPopstate = false;
+    const target = (e.state && e.state.screen) || 'home';
+    renderScreenUI(target);
+    return;
+  }
+
+  if($('#listPhotoMenuOverlay').style.display !== 'none'){
+    closeListPhotoMenu();
+    return;
+  }
+
+  if($('#deleteModalOverlay').style.display !== 'none'){
+    $('#deleteModalOverlay').style.display = 'none';
+    swipeDeleteTargetId = null;
+    closeOpenSwipe();
+    return;
+  }
+
+  if($('#searchExportConfirmModalOverlay').style.display !== 'none'){
+    $('#searchExportConfirmModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#deleteSelectedModalOverlay').style.display !== 'none'){
+    $('#deleteSelectedModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#prefixModalOverlay').style.display !== 'none'){
+    $('#prefixModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#multiPrefixModalOverlay').style.display !== 'none'){
+    $('#multiPrefixModalOverlay').style.display = 'none';
+    multiPrefixScopeIds = [];
+    return;
+  }
+
+  if($('#saveFormatModalOverlay').style.display !== 'none'){
+    $('#saveFormatModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#bulkPhotoModalOverlay').style.display !== 'none'){
+    $('#bulkPhotoModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#embedPhotosModalOverlay').style.display !== 'none'){
+    $('#embedPhotosModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#unifyGroupModalOverlay').style.display !== 'none'){
+    $('#unifyGroupModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#nameFormatModalOverlay').style.display !== 'none'){
+    $('#nameFormatModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#mergeModalOverlay').style.display !== 'none'){
+    $('#mergeModalOverlay').style.display = 'none';
+    pendingMergeIds = null;
+    pendingIntraPhoneMerge = null;
+    mergeModalMode = 'contacts';
+    return;
+  }
+
+  if($('#photoUrlModalOverlay').style.display !== 'none'){
+    $('#photoUrlModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#prefixDeleteModalOverlay').style.display !== 'none'){
+    $('#prefixDeleteModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#bulkFieldTextModalOverlay').style.display !== 'none'){
+    $('#bulkFieldTextModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#removeGroupModalOverlay').style.display !== 'none'){
+    $('#removeGroupModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#listMenuDropdown').style.display !== 'none'){
+    closeListMenuDropdown();
+    return;
+  }
+
+  // كل الحالات هنا هبطت على مُدخل حماية موجود مسبقاً (وليس مُدخلاً نضيفه
+  // الآن بعد فوات الأوان)، فلا حاجة لأي pushState داخل هذا المعالج إطلاقاً —
+  // هذا هو ما كان يسبب فقدان الضغطة أحياناً على الأجهزة الحقيقية.
+  if(screens.edit.classList.contains('active')){
+    finalizeCurrentContact();
+    renderScreenUI((e.state && e.state.screen) || 'home');
+    return;
+  }
+  if(screens.duplicates.classList.contains('active')){
+    renderScreenUI((e.state && e.state.screen) || 'home');
+    return;
+  }
+  if(screens.list.classList.contains('active')){
+    if(selectionMode){
+      exitSelectionMode();
+      return;
+    }
+    if(listFilterActive()){
+      filterGuardActive = false;
+      clearListFilters();
+      return;
+    }
+    $('#exitListModalOverlay').style.display = 'flex';
+    return;
+  }
+  // الرئيسية: لا يوجد مُدخل حماية هنا أصلاً، فالمتصفح/النظام يتولى الخروج مباشرة.
+});
+
+loadContactsFromDB().then(() => renderScreenUI('home'));
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
