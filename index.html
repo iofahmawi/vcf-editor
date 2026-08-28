@@ -4360,6 +4360,8 @@ function renderUnifyGroupList(){
   // لا يوجد نص بحث ولا أي جهة محددة حالياً: لا شيء لعرضه
   if(!q && unifyGroupSelectedIds.size === 0){
     selectRow.style.display = 'none';
+    selectRow.style.marginTop = '0';
+    selectRow.style.marginBottom = '8px';
     listWrap.style.display = 'none';
     list.innerHTML = '';
     countEl.textContent = '';
@@ -4388,9 +4390,11 @@ function renderUnifyGroupList(){
 
   // نلغي margin-bottom الخاص بصندوق جهات الاتصال هنا، لأن حقل "اسم المجموعة"
   // له margin-top خاص به بالفعل يوفر نفس المسافة (تفادي تراكم المسافتين معاً)،
-  // مع زيادة 2px إضافية فوق الحقل فقط عند وجود جهات اتصال معروضة فعلاً
+  // مع زيادة 2px إضافية فوق الحقل، وفوق/تحت صف "تحديد الكل"، فقط عند وجود جهات اتصال معروضة فعلاً
   listWrap.style.marginBottom = '0';
   nameGroup.style.marginTop = matched.length ? '18px' : '14px';
+  selectRow.style.marginTop = matched.length ? '2px' : '0';
+  selectRow.style.marginBottom = matched.length ? '10px' : '8px';
 
   if(!matched.length){
     list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
