@@ -814,12 +814,12 @@
       <div id="unifyGroupList" style="max-height:167px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; -webkit-overflow-scrolling:touch; touch-action:pan-y; flex-shrink:0;"></div>
     </div>
 
-    <div class="field-group" style="margin-top:14px; margin-bottom:18px;">
+    <div id="unifyGroupNameGroup" class="field-group" style="margin-top:14px; margin-bottom:18px;">
       <label id="unifyGroupValueLabel">اسم المجموعة</label>
       <input type="text" id="unifyGroupValue" placeholder="اترك الحقل فارغاً للإزالة">
     </div>
 
-    <div style="display:flex; gap:8px;">
+    <div style="display:flex; gap:8px; margin-top:2px;">
       <button type="button" id="unifyGroupCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="unifyGroupConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
     </div>
@@ -4355,6 +4355,7 @@ function renderUnifyGroupList(){
   const selectRow = $('#unifyGroupSelectRow');
   const countEl = $('#unifyGroupCount');
   const selectAllBtn = $('#unifyGroupSelectAll');
+  const nameGroup = $('#unifyGroupNameGroup');
 
   // لا يوجد نص بحث ولا أي جهة محددة حالياً: لا شيء لعرضه
   if(!q && unifyGroupSelectedIds.size === 0){
@@ -4363,6 +4364,7 @@ function renderUnifyGroupList(){
     list.innerHTML = '';
     countEl.textContent = '';
     selectAllBtn.style.display = 'none';
+    nameGroup.style.marginTop = '14px';
     setUnifyGroupFieldMode(false);
     updateUnifyGroupConfirmState();
     return;
@@ -4383,6 +4385,12 @@ function renderUnifyGroupList(){
     ? groupMembers
     : (q ? unifyGroupMatchContacts(q) : contacts.filter(c => unifyGroupSelectedIds.has(c.id)).sort((a,b) => a.fn.localeCompare(b.fn, 'ar')));
   selectAllBtn.style.display = matched.length ? 'inline-block' : 'none';
+
+  // نلغي margin-bottom الخاص بصندوق جهات الاتصال هنا، لأن حقل "اسم المجموعة"
+  // له margin-top خاص به بالفعل يوفر نفس المسافة (تفادي تراكم المسافتين معاً)،
+  // مع زيادة 2px إضافية فوق الحقل فقط عند وجود جهات اتصال معروضة فعلاً
+  listWrap.style.marginBottom = '0';
+  nameGroup.style.marginTop = matched.length ? '18px' : '14px';
 
   if(!matched.length){
     list.innerHTML = '<div style="padding:16px; text-align:center; color:var(--muted); font-size:12.5px;">لا توجد نتائج</div>';
