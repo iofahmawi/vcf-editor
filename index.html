@@ -950,6 +950,10 @@ async function loadContactsFromDB(){
     const savedCompat = await idbGet('compatLabel');
     if(typeof savedCompat === 'string') detectedCompatLabel = savedCompat;
   } catch(err){ /* تجاهل */ }
+  try{
+    const savedHomeCC = await idbGet('homeCountryCode');
+    if(typeof savedHomeCC === 'string') homeCountryCode = savedHomeCC;
+  } catch(err){ /* تجاهل */ }
 }
 
 let undoSnapshot = null;
@@ -1901,6 +1905,8 @@ async function loadFiles(fileList){
   // صيغ بملفات متعددة يجعل التصنيف غير دقيق فنخفيه (null)
   detectedCompatLabel = compatLabels.size === 1 ? [...compatLabels][0] : null;
   idbSet('compatLabel', detectedCompatLabel).catch(() => {});
+  homeCountryCode = null;
+  idbSet('homeCountryCode', null).catch(() => {});
   clearUndoSnapshot();
   clearListFilters();
   expandedContactId = null;
@@ -1941,6 +1947,8 @@ dropZone.addEventListener('drop', e => {
 
 $('#newFileBtn').addEventListener('click', () => {
   contacts = [];
+  homeCountryCode = null;
+  idbSet('homeCountryCode', null).catch(() => {});
   clearUndoSnapshot();
   clearListFilters();
   expandedContactId = null;
@@ -2051,10 +2059,91 @@ function getAllGroupsWithCounts(){
 let selectionMode = false;
 let sortReversed = false;
 let selectedIds = new Set();
+// قائمة مفاتيح الدول العالمية (ITU E.164) لاكتشاف مفتاح الدولة الفعلي من أي
+// رقم يبدأ بـ+ أو 00. القائمة خالية من أي تداخل بادئات (كل مفتاح غير مسبوق
+// بمفتاح آخر أقصر)، لذا تكفي مطابقة جشعة من 3 أرقام فأقل دون التباس.
+const COUNTRY_CALLING_CODES = new Set([
+  '1','7','20','27','30','31','32','33','34','36','39','40','41','43','44','45','46','47','48','49',
+  '51','52','53','54','55','56','57','58','60','61','62','63','64','65','66','81','82','84','86','90','91','92','93','94','95','98',
+  '211','212','213','216','218','220','221','222','223','224','225','226','227','228','229','230','231','232','233','234','235','236','237','238','239',
+  '240','241','242','243','244','245','246','248','249','250','251','252','253','254','255','256','257','258','260','261','262','263','264','265','266','267','268','269',
+  '290','291','297','298','299',
+  '350','351','352','353','354','355','356','357','358','359',
+  '370','371','372','373','374','375','376','377','378','379','380','381','382','383','385','386','387','389',
+  '420','421','423',
+  '500','501','502','503','504','505','506','507','508','509',
+  '590','591','592','593','594','595','596','597','598','599',
+  '670','672','673','674','675','676','677','678','679','680','681','682','683','685','686','687','688','689','690','691','692',
+  '850','852','853','855','856',
+  '880','886',
+  '960','961','962','963','964','965','966','967','968','970','971','972','973','974','975','976','977',
+  '992','993','994','995','996','998'
+]);
+// يستخرج مفتاح الدولة الفعلي من رقم مكتوب بصيغة دولية صريحة (+ أو 00 فقط)؛
+// يرجع null لأي رقم محلي بلا بادئة دولية صريحة (لا يمكن الجزم بدولته أصلاً)
+function extractCountryCode(phoneValue){
+  const raw = (phoneValue || '').replace(/[^\d+]/g, '');
+  let digits;
+  if(raw.startsWith('+')) digits = raw.slice(1);
+  else if(raw.startsWith('00')) digits = raw.slice(2);
+  else return null;
+  if(!digits) return null;
+  const three = digits.slice(0,3), two = digits.slice(0,2), one = digits.slice(0,1);
+  if(COUNTRY_CALLING_CODES.has(three)) return three;
+  if(COUNTRY_CALLING_CODES.has(two)) return two;
+  if(COUNTRY_CALLING_CODES.has(one)) return one;
+  return null;
+}
+// المفتاح "المحلي" لم يعد يُخمَّن تلقائياً (الأكثر تكراراً قد لا يكون فعلاً
+// مفتاح بلد المستخدم). بدلاً من ذلك يُدخله المستخدم يدوياً مرة واحدة
+// (homeCountryCode) ويُحفظ في IndexedDB؛ أي رقم بمفتاح مختلف عنه يُعتبر دولياً
+let homeCountryCode = null;
+// يقبل 962 أو 962+ أو 00962 ويعيد المفتاح الصحيح من القائمة، أو null لو غير صالح
+function parseHomeCountryCodeInput(input){
+  let s = (input || '').trim();
+  if(!s) return null;
+  if(!s.startsWith('+') && !s.startsWith('00')) s = '+' + s;
+  return extractCountryCode(s);
+}
+function confirmHomeCountryCode(value){
+  const cc = parseHomeCountryCodeInput(value);
+  if(!cc){
+    toast('مفتاح غير صحيح، جرّب مثلاً 962 أو ‎+962');
+    return;
+  }
+  homeCountryCode = cc;
+  idbSet('homeCountryCode', cc).catch(() => {});
+  applySummaryCycleDisplay();
+}
+function renderHomeCountryCodePrompt(el){
+  el.innerHTML = '';
+  const label = document.createElement('span');
+  label.textContent = 'أدخل مفتاح بلدك:\u00A0';
+  el.appendChild(label);
+  const input = document.createElement('input');
+  input.type = 'tel';
+  input.inputMode = 'numeric';
+  input.placeholder = '962+';
+  input.style.cssText = 'width:56px; font-family:inherit; font-size:inherit; border:1px solid var(--accent); border-radius:6px; padding:2px 6px; background:transparent; color:inherit;';
+  input.addEventListener('click', e => e.stopPropagation());
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); confirmHomeCountryCode(input.value); }
+  });
+  input.addEventListener('blur', () => confirmHomeCountryCode(input.value));
+  el.appendChild(input);
+}
+function getInternationalContactsCount(){
+  if(!homeCountryCode) return 0;
+  return contacts.filter(c => c.phones.some(p => {
+    const cc = extractCountryCode(p.value);
+    return cc && cc !== homeCountryCode;
+  })).length;
+}
 // عداد دورة عرض بديل لملخص العدد الكلي (summaryText) عند الضغط عليه في العرض
 // الافتراضي فقط (بلا تحديد وبلا بحث): 0=العدد الكلي، 1=عدد الجهات بصورة،
-// 2=عدد المجموعات (باستثناء "starred")، ثم يعود لـ0. يُصفَّر تلقائياً مع أي
-// إعادة رسم فعلية للقائمة حتى لا يبقى عالقاً على بيانات قديمة.
+// 2=عدد المجموعات (باستثناء "starred")، 3=عدد الجهات بأرقام دولية، ثم يعود
+// لـ0. يُصفَّر تلقائياً مع أي إعادة رسم فعلية للقائمة حتى لا يبقى عالقاً على
+// بيانات قديمة.
 let summaryCycleIndex = 0;
 function getPhotoCount(){
   return contacts.filter(c => c.photo || c.photoUrl).length;
@@ -2066,6 +2155,13 @@ function applySummaryCycleDisplay(){
   if(summaryCycleIndex === 1){
     $('#summaryText').textContent = getPhotoCount() + ' \u00A0جهة بصورة';
   } else if(summaryCycleIndex === 2){
+    const el = $('#summaryText');
+    if(!homeCountryCode){
+      renderHomeCountryCodePrompt(el);
+    } else {
+      el.textContent = getInternationalContactsCount() + ' \u00A0جهة دولية';
+    }
+  } else if(summaryCycleIndex === 3){
     $('#summaryText').textContent = getGroupsCountExcludingStarred() + ' \u00A0مجموعة';
   } else {
     $('#summaryText').textContent = contacts.length + ' \u00A0جهة اتصال';
@@ -2074,7 +2170,7 @@ function applySummaryCycleDisplay(){
 $('#summaryText').style.cursor = 'pointer';
 $('#summaryText').addEventListener('click', () => {
   if(selectionMode || $('#search').value.trim()) return;
-  summaryCycleIndex = (summaryCycleIndex + 1) % 3;
+  summaryCycleIndex = (summaryCycleIndex + 1) % 4;
   applySummaryCycleDisplay();
 });
 let longPressTimer = null;
