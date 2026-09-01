@@ -381,7 +381,7 @@
   </div>
   <div style="position:relative; display:inline-block;">
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
-    <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:147px; z-index:30; overflow:hidden;">
+    <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:148px; z-index:30; overflow:hidden;">
       <button type="button" class="link-btn" id="menuUndoOpt" style="display:none; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);"><span id="menuUndoOptText">تراجع</span></button>
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
@@ -2894,12 +2894,12 @@ $('#favoriteSelectedBtn').addEventListener('click', () => {
 $('#groupsSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size === 0) return;
   const seedIds = new Set(selectedIds);
-  openUnifyGroupModal(seedIds);
+  openUnifyGroupModal(seedIds, true);
 });
 $('#bulkPhotoSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size === 0) return;
   const seedIds = new Set(selectedIds);
-  openBulkPhotoModal(seedIds);
+  openBulkPhotoModal(seedIds, true);
 });
 $('#bulkFieldTextSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size === 0) return;
@@ -3006,7 +3006,7 @@ function openBulkFieldTextModal(){
   $('#bulkFieldTextModalOverlay').style.display = 'flex';
   renderBulkFieldPickerList();
   $('#bulkFieldPickerList').scrollTop = 0;
-  safeReplaceState({ screen: 'list', modal: 'bulkFieldText' }, '', '#list');
+  safePushState({ screen: 'list', modal: 'bulkFieldText' }, '', '#list');
   setTimeout(() => $('#bulkFieldTextValue').focus(), 50);
 }
 function closeBulkFieldTextModal(){
@@ -4273,12 +4273,17 @@ function resetBulkPhotoFields(seedIds){
   renderBulkPhotoList();
   updateBulkPhotoConfirmState();
 }
-function openBulkPhotoModal(seedIds){
+function openBulkPhotoModal(seedIds, pushEntry){
   resetBulkPhotoFields(seedIds);
   // نفس فكرة نافذة تعديل الصيغة: 4 صفوف بوضع المتصفح (223px)، 5 صفوف بوضع PWA المثبّت (279px)
   $('#bulkPhotoList').style.maxHeight = (isPWAStandalone() ? 279 : 223) + 'px';
   $('#bulkPhotoModalOverlay').style.display = 'flex';
-  safeReplaceState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
+  // من شريط التحديد: لا مُدخل قائمة ⋮ لاستبداله، فيجب إضافة مُدخل جديد فوق
+  // مُدخل selectionGuard الحالي (تركه كما هو)، تماماً كنافذة الدمج. من قائمة
+  // ⋮: مُدخل القائمة نفسه ما زال قائماً بلا استهلاك (closeListMenuDropdown
+  // بلا Sync)، فنستبدله بمُدخل هذه النافذة بدل تكديس مُدخل زائد فوقه.
+  if(pushEntry) safePushState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
+  else safeReplaceState({ screen: 'list', modal: 'bulkPhoto' }, '', '#list');
 }
 function closeBulkPhotoModal(){
   if($('#bulkPhotoModalOverlay').style.display === 'none') return;
@@ -4487,10 +4492,14 @@ function resetUnifyGroupFields(seedIds){
   });
   updateUnifyGroupConfirmState();
 }
-function openUnifyGroupModal(seedIds){
+function openUnifyGroupModal(seedIds, pushEntry){
   resetUnifyGroupFields(seedIds);
   $('#unifyGroupModalOverlay').style.display = 'flex';
-  safeReplaceState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
+  // انظر تعليق نفس النمط في openBulkPhotoModal: شريط التحديد يحتاج إضافة
+  // مُدخل جديد فوق selectionGuard، بينما مسار قائمة ⋮ يحتاج استبدال مُدخل
+  // القائمة غير المُستهلَك.
+  if(pushEntry) safePushState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
+  else safeReplaceState({ screen: 'list', modal: 'unifyGroup' }, '', '#list');
 }
 // يبدّل شكل ووظيفة حقل "اسم المجموعة": وضع عادي (إضافة مجموعة لجهات محددة)
 // أو وضع مجموعة (تغيير اسم المجموعة المطابقة تماماً لنص البحث أو إزالتها).
