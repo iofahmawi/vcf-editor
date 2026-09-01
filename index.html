@@ -2914,18 +2914,13 @@ $('#deleteSelectedBtn').addEventListener('click', () => {
 $('#mergeSelectedBtn').addEventListener('click', () => {
   if(selectedIds.size < 2 || selectedIds.size > 5) return;
   const ids = Array.from(selectedIds);
-  // لا نستخدم exitSelectionModeAndSync هنا (تستدعي goBack غير المتزامنة) لأن
-  // startMerge قد يفتح نافذة الدمج فوراً بعدها بنفس اللحظة عبر safePushState؛
-  // استدعاء goBack ثم pushState متتاليين بلا انتظار popstate بينهما يُسبب
-  // تسابقاً يُفقد التزامن بين عداد suppressPopstateSilentCount والسجل الفعلي.
-  // بدلاً من ذلك: نصفّر حالة التحديد مباشرة (بلا لمس السجل)، ونمرّر
-  // replaceHistory لتستبدل startMerge/openMergeModal مُدخل الحماية الحالي
-  // بمُدخل نافذة الدمج في عملية واحدة ذرية.
-  selectionMode = false;
-  selectedIds.clear();
-  syncFilterUI();
-  renderList($('#search').value);
-  startMerge(ids, { replaceHistory: true });
+  // نفس نمط زر الحذف الجماعي (deleteSelectedBtn): لا نلمس وضع التحديد أو
+  // سجل المتصفح هنا إطلاقاً — نافذة الدمج تُفتح كنافذة عادية فوق مُدخل
+  // selectionGuard الحالي (يبقى كما هو، بلا حذف/استبدال)، فيصير الإلغاء
+  // مجرد رجوع خطوة واحدة عادية بلا أي حاجة لاستعادة التحديد لاحقاً. التحديد
+  // يُنهى فقط عند نجاح الدمج فعلاً (عبر exitSelectionModeAndSync في نقطة
+  // التأكيد داخل startMerge/مستمع مergeModalConfirm).
+  startMerge(ids);
 });
 function closeDeleteSelectedModal(){
   if($('#deleteSelectedModalOverlay').style.display === 'none') return;
@@ -5403,24 +5398,21 @@ let pendingMergeChoices = {};
 let pendingIntraPhoneMerge = null; // { contactId, norm, options } عند دمج تكرار داخل نفس الجهة
 let mergeModalMode = 'contacts'; // 'contacts' | 'intraPhone'
 
-function startMerge(ids, opts){
+function startMerge(ids){
   pendingMergeIds = ids;
   pendingMergeChoices = {};
   const plan = buildMergePlan(ids, pendingMergeChoices);
-  if(!plan){
-    if(opts && opts.replaceHistory){ suppressPopstateSilentCount++; goBack(); }
-    return;
-  }
+  if(!plan) return;
   const hasAnyConflict = Object.values(plan.conflicts).some(Boolean);
   if(!hasAnyConflict){
     finalizeMerge(plan);
-    if(opts && opts.replaceHistory){ suppressPopstateSilentCount++; goBack(); }
+    exitSelectionModeAndSync();
     return;
   }
-  openMergeModal(plan, opts);
+  openMergeModal(plan);
 }
 
-function openMergeModal(plan, opts){
+function openMergeModal(plan){
   mergeModalMode = 'contacts';
   $('#mergeModalTitle').textContent = 'دمج جهات الاتصال';
   $('#mergeModalSubtitle').textContent = 'يوجد تعارض — اختر ما تريد الاحتفاظ به';
@@ -5558,11 +5550,7 @@ function openMergeModal(plan, opts){
 
   $('#mergeModalOverlay').style.display = 'flex';
   const targetScreen = screens.duplicates.classList.contains('active') ? 'duplicates' : 'list';
-  if(opts && opts.replaceHistory){
-    safeReplaceState({ screen: targetScreen, modal: 'merge' }, '', '#' + targetScreen);
-  } else {
-    safePushState({ screen: targetScreen, modal: 'merge' }, '', '#' + targetScreen);
-  }
+  safePushState({ screen: targetScreen, modal: 'merge' }, '', '#' + targetScreen);
 }
 
 function closeMergeModal(){
@@ -5592,6 +5580,7 @@ $('#mergeModalConfirm').addEventListener('click', () => {
   suppressPopstateSilentCount++;
   goBack();
   finalizeMerge(plan);
+  exitSelectionModeAndSync();
 });
 
 function finalizeMerge(plan){
