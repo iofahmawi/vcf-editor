@@ -2194,7 +2194,7 @@ function buildContactExpandHtml(c){
   const phones = c.phones.filter(p => p.value);
   if(phones.length){
     groups.push(`<div class="contact-expand-group"><div class="contact-expand-label">أرقام الهاتف</div>${
-      phones.map(p => `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(PHONE_LABELS[p.type] || p.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(p.value)}">${escapeHtml(p.value)}</span></div>`).join('')
+      phones.map(p => { const flag = getPhoneFlagEmoji(p.value); const display = flag ? (p.value + ' ' + flag) : p.value; return `<div class="contact-expand-row"><span class="contact-expand-type">${escapeHtml(PHONE_LABELS[p.type] || p.type || '')}</span><span class="contact-expand-value copyable" data-copy="${escapeAttr(p.value)}">${escapeHtml(display)}</span></div>`; }).join('')
     }</div>`);
   }
 
@@ -2436,7 +2436,10 @@ function buildContactRowElement(c, f){
     if(!matchedPhone && f){
       matchedPhone = c.phones.find(p => normalizeArabic((PHONE_LABELS[p.type] || p.type || '').toLowerCase()).includes(f));
     }
-    const sub = matchedPhone?.value || c.phones[0]?.value || c.emails[0]?.value || '';
+    const subPhoneValue = matchedPhone?.value || c.phones[0]?.value || '';
+    const sub = subPhoneValue || c.emails[0]?.value || '';
+    const subFlag = subPhoneValue && subPhoneValue === sub ? getPhoneFlagEmoji(subPhoneValue) : '';
+    const subDisplay = subFlag ? (sub + ' ' + subFlag) : sub;
     // إذا كانت نتيجة البحث جاءت من اللقب وليس الاسم نفسه، نعرض اللقب بدل الاسم
     // حتى لا يبدو للمستخدم أن النتيجة خاطئة، مع سطر خافت للاسم الحقيقي تحته
     // (نفحص كل شرط من شروط البحث المركب على حدة، مو النص الكامل)
@@ -2476,7 +2479,7 @@ function buildContactRowElement(c, f){
           <div class="contact-info${isExpanded ? ' centered' : ''}">
             <div class="contact-name"${(() => { const s = []; if(isExpanded && !realNameLine) s.push('margin:0'); else if(realNameLine) s.push('margin-bottom:10px'); return s.filter(Boolean).length ? ` style="${s.filter(Boolean).join(';')}"` : ''; })()}>${escapeHtml(displayName)}</div>
             ${realNameLine}
-            ${isExpanded ? '' : `<div class="contact-sub">${escapeHtml(sub)}</div>`}
+            ${isExpanded ? '' : `<div class="contact-sub">${escapeHtml(subDisplay)}</div>`}
           </div>
           ${starHtml}
           ${editIconHtml}
@@ -5055,6 +5058,30 @@ $('#nameFormatConfirm').addEventListener('click', () => {
   renderList($('#search').value);
   toast('تم تعديل صيغة ' + count + ' جهة اتصال');
 });
+
+// تحوّل رمز دولة ISO2 (مثل "JO") لرمز علم إيموجي (🇯🇴) عبر رموز
+// "regional indicator" اليونيكود
+function countryFlagEmoji(iso2){
+  if(!iso2 || iso2.length !== 2) return '';
+  return iso2.toUpperCase().replace(/./g, ch => String.fromCodePoint(127397 + ch.charCodeAt(0)));
+}
+
+// يرجع علم الدولة فقط إذا كان الرقم مكتوباً بصيغة دولية (+ أو 00) ومقروء
+// عبر المكتبة؛ الأرقام المحلية (بدون مفتاح دولة) ترجع فارغة عمداً.
+function getPhoneFlagEmoji(v){
+  const raw = (v||'').trim();
+  if(!raw) return '';
+  const digits = raw.replace(/\D/g,'');
+  if(!digits) return '';
+  const hasCountryCode = raw.startsWith('+') || digits.startsWith('00');
+  if(!hasCountryCode || !window.libphonenumber) return '';
+  const intlDigits = digits.startsWith('00') ? digits.slice(2) : digits;
+  try{
+    const parsed = window.libphonenumber.parsePhoneNumberFromString('+' + intlDigits);
+    if(parsed && parsed.country) return countryFlagEmoji(parsed.country);
+  }catch(e){}
+  return '';
+}
 
 function normalizePhoneForDup(v){
   const raw = (v||'').trim();
