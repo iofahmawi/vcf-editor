@@ -238,6 +238,7 @@
   #listPhotoUrlInline::placeholder{ color: #B6BEC9; }
   #bulkFieldTextValue::placeholder{ color: #B6BEC9; }
   #homeCountryCodeInput::placeholder{ color: #B6BEC9; }
+  #phoneTypePrefixInput::placeholder, #phoneTypeValueInput::placeholder{ color: #B6BEC9; }
   #unifyGroupValue{ padding-top:8px; padding-bottom:8px; line-height:2; }
   .merge-custom-name{ border:none !important; border-radius:0 !important; transition: background 0.2s; }
   .merge-custom-name:focus{ background:var(--card2); }
@@ -388,6 +389,7 @@
       <button type="button" class="link-btn" id="menuUnifyGroupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">إدارة المجموعات</button>
       <button type="button" class="link-btn" id="menuBulkPhotoOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصور</button>
       <button type="button" class="link-btn" id="menuEmbedLinkedPhotosOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تضمين صور الروابط</button>
+      <button type="button" class="link-btn" id="menuPhoneTypeOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">إضافة نوع رقم</button>
       <button type="button" class="link-btn" id="menuNameFormatOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">تعديل الصيغة</button>
       <button type="button" class="link-btn" id="menuSaveOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px;">حفظ الملف</button>
     </div>
@@ -614,6 +616,32 @@
     <div style="display:flex; gap:8px; margin-top:18px;">
       <button type="button" id="prefixModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
       <button type="button" id="prefixModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تعديل</button>
+    </div>
+  </div>
+</div>
+
+<div id="phoneTypeModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
+  <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
+    <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إضافة نوع رقم</div>
+    <div style="font-size:13.5px; color:#94A3B8; margin:15px 0 16px; line-height:1.6; text-align:center;">حدد بادئة الرقم والنص الذي تريده لنوع الرقم</div>
+    <div class="field-group">
+      <label>البادئة</label>
+      <input type="tel" id="phoneTypePrefixInput" inputmode="tel" placeholder="مثال: 078" style="direction:ltr; text-align:right; font-size:15.5px; padding:13px 14px; line-height:normal;">
+    </div>
+    <div class="field-group" style="padding-top:5px;">
+      <label>نوع الرقم</label>
+      <input type="text" id="phoneTypeValueInput" placeholder="مثال: أمنية" style="font-size:15.5px; padding:13px 14px; line-height:normal;">
+    </div>
+    <div class="field-group" style="padding-top:5px; margin-bottom:0;">
+      <label>التطبيق على</label>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="phoneTypeScopeBtn" data-scope="empty" style="flex:1 1 0; border-radius:10px; padding:13px 11px; font-family:var(--font-body); font-weight:700; font-size:12.5px; cursor:pointer; background:transparent; border:1.5px solid var(--border); transition: all 0.15s;">الأرقام غير المسجلة</button>
+        <button type="button" class="phoneTypeScopeBtn" data-scope="all" style="flex:1 1 0; border-radius:10px; padding:13px 11px; font-family:var(--font-body); font-weight:700; font-size:12.5px; cursor:pointer; background:transparent; border:1.5px solid var(--border); transition: all 0.15s;">كل الأرقام المطابقة</button>
+      </div>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:18px;">
+      <button type="button" id="phoneTypeModalCancel" style="flex:1 1 0; background:var(--card2); color:var(--text); border:none; border-radius:10px; padding:13px; font-family:var(--font-body); font-weight:700; font-size:14px; line-height:normal; cursor:pointer; display:flex; align-items:center; justify-content:center; transition: background 0.2s;">إلغاء</button>
+      <button type="button" id="phoneTypeModalConfirm" class="btn" style="flex:1 1 0; margin:0; padding:13px;">تطبيق</button>
     </div>
   </div>
 </div>
@@ -3173,6 +3201,60 @@ $('#prefixModalConfirm').addEventListener('click', () => {
   closePrefixModal();
 });
 
+// نافذة "إضافة نوع رقم" — تنفيذ فوري بدون حفظ أي قاعدة: يكتب المستخدم بادئة
+// ونص النوع، ويختار نطاق التطبيق (كل الأرقام المطابقة أو غير المسجلة فقط).
+let phoneTypeScope = 'empty';
+function renderPhoneTypeScopeButtons(){
+  document.querySelectorAll('.phoneTypeScopeBtn').forEach(btn => {
+    const sel = btn.dataset.scope === phoneTypeScope;
+    btn.style.background = 'transparent';
+    btn.style.borderColor = sel ? 'var(--accent)' : 'var(--border)';
+    btn.style.color = sel ? 'var(--accent)' : 'var(--text)';
+  });
+}
+document.querySelectorAll('.phoneTypeScopeBtn').forEach(btn => {
+  btn.addEventListener('click', () => { phoneTypeScope = btn.dataset.scope; renderPhoneTypeScopeButtons(); });
+});
+function openPhoneTypeModal(){
+  phoneTypeScope = 'empty';
+  $('#phoneTypePrefixInput').value = '';
+  $('#phoneTypeValueInput').value = '';
+  renderPhoneTypeScopeButtons();
+  $('#phoneTypeModalOverlay').style.display = 'flex';
+  safePushState({ screen: 'list', modal: 'phoneType' }, '', '#list');
+  setTimeout(() => { $('#phoneTypePrefixInput').focus(); }, 50);
+}
+function closePhoneTypeModal(){
+  if($('#phoneTypeModalOverlay').style.display === 'none') return;
+  $('#phoneTypeModalOverlay').style.display = 'none';
+  suppressPopstateSilentCount++;
+  goBack();
+}
+$('#phoneTypeModalCancel').addEventListener('click', closePhoneTypeModal);
+$('#phoneTypeModalOverlay').addEventListener('click', (e) => { if(e.target.id === 'phoneTypeModalOverlay') closePhoneTypeModal(); });
+$('#phoneTypePrefixInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') $('#phoneTypeValueInput').focus(); });
+$('#phoneTypeValueInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') $('#phoneTypeModalConfirm').click(); });
+$('#phoneTypeModalConfirm').addEventListener('click', () => {
+  const prefix = $('#phoneTypePrefixInput').value.trim().replace(/\D/g,'');
+  const typeText = $('#phoneTypeValueInput').value.trim();
+  if(!prefix || !typeText) return;
+  saveUndoSnapshot('إضافة نوع رقم "' + typeText + '"');
+  let count2 = 0;
+  for(const c of contacts){
+    for(const p of c.phones){
+      const digits = p.value.replace(/\D/g,'');
+      if(!digits.startsWith(prefix)) continue;
+      const isDefaultType = !p.type || PHONE_TYPES.includes(String(p.type).toUpperCase()) || Object.values(PHONE_LABELS).includes(p.type);
+      if(phoneTypeScope === 'empty' && !isDefaultType) continue;
+      p.type = typeText;
+      count2++;
+    }
+  }
+  closePhoneTypeModal();
+  renderList($('#search').value);
+  toast('تم تطبيق النوع على ' + count2 + ' رقم');
+});
+
 let multiPrefixScopeIds = [];
 function openMultiPrefixModal(scopeIds){
   multiPrefixScopeIds = scopeIds;
@@ -4838,6 +4920,10 @@ $('#unifyGroupConfirm').addEventListener('click', () => {
 
 let nameFormatSelectedIds = new Set();
 
+$('#menuPhoneTypeOpt').addEventListener('click', () => {
+  closeListMenuDropdown();
+  openPhoneTypeModal();
+});
 $('#menuNameFormatOpt').addEventListener('click', () => {
   closeListMenuDropdown();
   openNameFormatModal();
@@ -5857,6 +5943,7 @@ function closeTopmostListModalIfOpen(){
     ['#searchExportConfirmModalOverlay', closeSearchExportConfirmModal],
     ['#deleteSelectedModalOverlay', closeDeleteSelectedModal],
     ['#prefixModalOverlay', closePrefixModal],
+    ['#phoneTypeModalOverlay', closePhoneTypeModal],
     ['#multiPrefixModalOverlay', closeMultiPrefixModal],
     ['#saveFormatModalOverlay', closeSaveFormatModal],
     ['#bulkPhotoModalOverlay', closeBulkPhotoModal],
@@ -5987,6 +6074,11 @@ window.addEventListener('popstate', (e) => {
 
   if($('#prefixModalOverlay').style.display !== 'none'){
     $('#prefixModalOverlay').style.display = 'none';
+    return;
+  }
+
+  if($('#phoneTypeModalOverlay').style.display !== 'none'){
+    $('#phoneTypeModalOverlay').style.display = 'none';
     return;
   }
 
