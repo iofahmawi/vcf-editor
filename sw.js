@@ -1,9 +1,10 @@
-const CACHE_NAME = 'vcf-editor-v288';
+const CACHE_NAME = 'vcf-editor-v289';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
-  './icon-1440.png'
+  './icon-1440.png',
+  'https://cdn.jsdelivr.net/npm/libphonenumber-js@1/bundle/libphonenumber-min.js'
 ];
 
 self.addEventListener('install', (event) => {
