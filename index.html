@@ -3243,8 +3243,9 @@ $('#phoneTypeValueInput').addEventListener('keydown', (e) => { if(e.key === 'Ent
 $('#phoneTypeModalConfirm').addEventListener('click', () => {
   const prefix = $('#phoneTypePrefixInput').value.trim().replace(/\D/g,'');
   const typeText = $('#phoneTypeValueInput').value.trim();
-  if(!prefix || !typeText) return;
-  saveUndoSnapshot('إضافة نوع رقم "' + typeText + '"');
+  const isClearMode = !typeText && !phoneTypeScopeIds && phoneTypeScope === 'all';
+  if(!prefix || (!typeText && !isClearMode)) return;
+  saveUndoSnapshot(isClearMode ? 'إزالة تصنيف نوع الرقم' : ('إضافة نوع رقم "' + typeText + '"'));
   let count2 = 0;
   for(const c of contacts){
     if(phoneTypeScopeIds && !phoneTypeScopeIds.has(c.id)) continue;
@@ -3253,14 +3254,14 @@ $('#phoneTypeModalConfirm').addEventListener('click', () => {
       if(!digits.startsWith(prefix)) continue;
       const isDefaultType = !p.type || PHONE_TYPES.includes(String(p.type).toUpperCase()) || Object.values(PHONE_LABELS).includes(p.type);
       if(!phoneTypeScopeIds && phoneTypeScope === 'empty' && !isDefaultType) continue;
-      p.type = typeText;
+      p.type = isClearMode ? 'أخرى' : typeText;
       count2++;
     }
   }
   closePhoneTypeModal();
   if(phoneTypeScopeIds) exitSelectionModeAndSync();
   renderList($('#search').value);
-  toast('تم تطبيق النوع على ' + count2 + ' رقم');
+  toast(isClearMode ? ('تم إزالة التصنيف عن ' + count2 + ' رقم') : ('تم تطبيق النوع على ' + count2 + ' رقم'));
 });
 
 let multiPrefixScopeIds = [];
