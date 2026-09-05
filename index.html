@@ -623,7 +623,7 @@
 <div id="phoneTypeModalOverlay" style="display:none; position:fixed; inset:0; background:rgba(20,24,38,0.45); backdrop-filter:blur(2px); z-index:100; align-items:flex-start; justify-content:center; padding:47px 20px 20px;">
   <div class="panel" style="width:100%; max-width:320px; margin:0; box-shadow:0 12px 32px rgba(0,0,0,.18);">
     <div style="font-family:var(--font-display); font-weight:800; font-size:15px; margin-bottom:6px; color:var(--text); text-align:center;">إضافة نوع رقم</div>
-    <div style="font-size:13.5px; color:#94A3B8; margin:15px 0 16px; line-height:1.6; text-align:center;">حدد بادئة الرقم والنص الذي تريده لنوع الرقم</div>
+    <div id="phoneTypeModalDesc" style="font-size:13.5px; color:#94A3B8; margin:15px 0 16px; line-height:1.6; text-align:center;">حدد بادئة الرقم والنص الذي تريده لنوع الرقم</div>
     <div class="field-group">
       <label>البادئة</label>
       <input type="tel" id="phoneTypePrefixInput" inputmode="tel" placeholder="مثال: 078" style="direction:ltr; text-align:right; font-size:15.5px; padding:13px 14px; line-height:normal;">
@@ -632,7 +632,7 @@
       <label>نوع الرقم</label>
       <input type="text" id="phoneTypeValueInput" placeholder="مثال: أمنية" style="font-size:15.5px; padding:13px 14px; line-height:normal;">
     </div>
-    <div class="field-group" style="padding-top:5px; margin-bottom:0;">
+    <div id="phoneTypeScopeGroup" class="field-group" style="padding-top:5px; margin-bottom:0;">
       <label>التطبيق على</label>
       <div style="display:flex; gap:8px;">
         <button type="button" class="phoneTypeScopeBtn" data-scope="empty" style="flex:1 1 0; border-radius:10px; padding:13px 11px; font-family:var(--font-body); font-weight:700; font-size:12.5px; cursor:pointer; background:transparent; border:1.5px solid var(--border); transition: all 0.15s;">الأرقام غير المسجلة</button>
@@ -3204,6 +3204,7 @@ $('#prefixModalConfirm').addEventListener('click', () => {
 // نافذة "إضافة نوع رقم" — تنفيذ فوري بدون حفظ أي قاعدة: يكتب المستخدم بادئة
 // ونص النوع، ويختار نطاق التطبيق (كل الأرقام المطابقة أو غير المسجلة فقط).
 let phoneTypeScope = 'empty';
+let phoneTypeScopeIds = null;
 function renderPhoneTypeScopeButtons(){
   document.querySelectorAll('.phoneTypeScopeBtn').forEach(btn => {
     const sel = btn.dataset.scope === phoneTypeScope;
@@ -3215,13 +3216,18 @@ function renderPhoneTypeScopeButtons(){
 document.querySelectorAll('.phoneTypeScopeBtn').forEach(btn => {
   btn.addEventListener('click', () => { phoneTypeScope = btn.dataset.scope; renderPhoneTypeScopeButtons(); });
 });
-function openPhoneTypeModal(){
+function openPhoneTypeModal(seedIds){
   phoneTypeScope = 'empty';
+  phoneTypeScopeIds = seedIds ? new Set(seedIds) : null;
   $('#phoneTypePrefixInput').value = '';
   $('#phoneTypeValueInput').value = '';
+  $('#phoneTypeModalDesc').textContent = phoneTypeScopeIds
+    ? ('حدد بادئة الرقم والنص الذي تريده لنوع الرقم — سيُطبّق على ' + phoneTypeScopeIds.size + ' جهة اتصال محددة فقط')
+    : 'حدد بادئة الرقم والنص الذي تريده لنوع الرقم';
+  $('#phoneTypeScopeGroup').style.display = phoneTypeScopeIds ? 'none' : 'block';
   renderPhoneTypeScopeButtons();
   $('#phoneTypeModalOverlay').style.display = 'flex';
-  safePushState({ screen: 'list', modal: 'phoneType' }, '', '#list');
+  safeReplaceState({ screen: 'list', modal: 'phoneType' }, '', '#list');
   setTimeout(() => { $('#phoneTypePrefixInput').focus(); }, 50);
 }
 function closePhoneTypeModal(){
@@ -3241,16 +3247,18 @@ $('#phoneTypeModalConfirm').addEventListener('click', () => {
   saveUndoSnapshot('إضافة نوع رقم "' + typeText + '"');
   let count2 = 0;
   for(const c of contacts){
+    if(phoneTypeScopeIds && !phoneTypeScopeIds.has(c.id)) continue;
     for(const p of c.phones){
       const digits = p.value.replace(/\D/g,'');
       if(!digits.startsWith(prefix)) continue;
       const isDefaultType = !p.type || PHONE_TYPES.includes(String(p.type).toUpperCase()) || Object.values(PHONE_LABELS).includes(p.type);
-      if(phoneTypeScope === 'empty' && !isDefaultType) continue;
+      if(!phoneTypeScopeIds && phoneTypeScope === 'empty' && !isDefaultType) continue;
       p.type = typeText;
       count2++;
     }
   }
   closePhoneTypeModal();
+  if(phoneTypeScopeIds) exitSelectionModeAndSync();
   renderList($('#search').value);
   toast('تم تطبيق النوع على ' + count2 + ' رقم');
 });
@@ -4922,7 +4930,7 @@ let nameFormatSelectedIds = new Set();
 
 $('#menuPhoneTypeOpt').addEventListener('click', () => {
   closeListMenuDropdown();
-  openPhoneTypeModal();
+  openPhoneTypeModal((selectionMode && selectedIds.size > 0) ? new Set(selectedIds) : null);
 });
 $('#menuNameFormatOpt').addEventListener('click', () => {
   closeListMenuDropdown();
