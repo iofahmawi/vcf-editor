@@ -3814,6 +3814,31 @@ function autosizeTypeText(inp){
   // sizing now handled by flexbox; no-op kept for compatibility
 }
 
+// كشف اسم شركة الاتصالات تلقائياً من بادئة الرقم الأردني (يُستخدم فقط عند
+// اختيار "مخصص" لنوع رقم الهاتف) — يُعيد نصاً فارغاً إن لم تتطابق أي بادئة
+const CARRIER_PREFIXES = [
+  { prefix:'79', name:'زين' },
+  { prefix:'78', name:'أمنية' },
+  { prefix:'77', name:'أورانج' }
+];
+function detectCarrierByNumber(value){
+  const raw = (value || '').trim();
+  let digits = raw.replace(/\D/g,'');
+  if(digits.length === 4) return 'خدمة المشتركين';
+  if(raw.startsWith('+') || digits.startsWith('00')){
+    if(digits.startsWith('00962')) digits = '0' + digits.slice(5);
+    else if(raw.startsWith('+962')) digits = '0' + digits.slice(3);
+    else return ''; // رقم دولي من دولة غير الأردن — لا تخمين
+  }
+  if(!digits.startsWith('0')) return ''; // شكل غير معروف كرقم أردني محلي — لا تخمين
+  if(digits.length === 9) return 'أورانج - ثابت';
+  const local = digits.slice(1);
+  for(const c of CARRIER_PREFIXES){
+    if(local.startsWith(c.prefix)) return c.name;
+  }
+  return '';
+}
+
 function renderMultiList(containerId, arr, types, labels, inputType, draggable){
   const el = $('#' + containerId);
   el.innerHTML = '';
@@ -3844,7 +3869,7 @@ function renderMultiList(containerId, arr, types, labels, inputType, draggable){
       typeControl.appendChild(customOpt);
       typeControl.addEventListener('change', () => {
         if(typeControl.value === 'CUSTOM'){
-          item.type = '';
+          item.type = (inputType === 'tel') ? detectCarrierByNumber(item.value) : '';
           item.__justSwitchedToCustom = true;
           renderMultiList(containerId, arr, types, labels, inputType, draggable);
         } else {
@@ -3860,7 +3885,7 @@ function renderMultiList(containerId, arr, types, labels, inputType, draggable){
       autosizeTypeText(typeControl);
       if(item.__justSwitchedToCustom){
         delete item.__justSwitchedToCustom;
-        setTimeout(() => typeControl.focus(), 0);
+        setTimeout(() => { typeControl.focus(); }, 0);
       }
       typeControl.addEventListener('input', () => {
         item.type = typeControl.value;
