@@ -383,7 +383,7 @@
   </div>
   <div style="position:relative; display:inline-block;">
     <button class="icon-btn" id="listMenuBtn" style="display:none;">⋮</button>
-    <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:148px; z-index:30; overflow:hidden;">
+    <div id="listMenuDropdown" style="display:none; position:absolute; top:calc(100% + 6px); left:0; background:var(--card); border:1px solid var(--border); border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,.1); min-width:148px; white-space:nowrap; z-index:30; overflow:hidden;">
       <button type="button" class="link-btn" id="menuUndoOpt" style="display:none; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);"><span id="menuUndoOptText">تراجع</span></button>
       <button type="button" class="link-btn" id="menuSortOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">فرز عكسي</button>
       <button type="button" class="link-btn" id="menuDupOpt" style="display:block; width:100%; text-align:right; padding:16px 14px; color:var(--text); font-size:13px; border-bottom:1px solid var(--border);">كشف التكرار</button>
@@ -3831,7 +3831,9 @@ function detectCarrierByNumber(value){
     else return ''; // رقم دولي من دولة غير الأردن — لا تخمين
   }
   if(!digits.startsWith('0')) return ''; // شكل غير معروف كرقم أردني محلي — لا تخمين
-  if(digits.length === 9) return 'أورانج - ثابت';
+  const LANDLINE_PREFIXES = ['02','03','05','06'];
+  if(digits.length === 9 && LANDLINE_PREFIXES.some(p => digits.startsWith(p))) return 'أورانج - ثابت';
+  if(digits.length === 10 && digits.startsWith('0701')) return 'أمنية - إنترنت منزلي';
   const local = digits.slice(1);
   for(const c of CARRIER_PREFIXES){
     if(local.startsWith(c.prefix)) return c.name;
