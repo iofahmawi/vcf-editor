@@ -1,36 +1,30 @@
-const CACHE_NAME = 'vcf-editor-v300';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon-1440.png',
-  'https://cdn.jsdelivr.net/npm/libphonenumber-js@1/bundle/libphonenumber-min.js'
-];
+const CACHE = 'day-calc-v1';
+const ASSETS = ['/', '/index.html', '/manifest.json', 'icon-1440.png'];
 
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
-  self.skipWaiting();
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
-self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return cached || fetch(event.request).then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      }).catch(() => cached);
-    })
+// network first (so updates show up), cache as offline fallback
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    fetch(e.request)
+      .then(res => {
+        if (res && res.ok && new URL(e.request.url).origin === location.origin) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, copy));
+        }
+        return res;
+      })
+      .catch(() => caches.match(e.request).then(r => r || caches.match('/index.html')))
   );
 });
